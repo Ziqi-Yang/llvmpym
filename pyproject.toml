@@ -20,7 +20,6 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/Ziqi-Yang/llvmpym"
 
-
 [build-system]
 requires = ["scikit-build-core", "nanobind"]
 build-backend = "scikit_build_core.build"

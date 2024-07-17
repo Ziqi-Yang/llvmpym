@@ -59,4 +59,4 @@ nanobind_add_module(
 )
 
 # Install directive for scikit-build-core
-install(TARGETS llvmpym_ext LIBRARY DESTINATION llvmpym)
+install(TARGETS llvmpym_ext LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME})

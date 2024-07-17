@@ -1,1 +1,1 @@
-from .llvmpym import add, __doc__
+from .llvmpym_ext import add, __doc__
