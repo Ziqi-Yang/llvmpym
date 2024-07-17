@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15...3.26)
+cmake_minimum_required(VERSION 3.20.0...3.29.6)
 
 project(${SKBUILD_PROJECT_NAME} LANGUAGES CXX)
 
@@ -16,6 +16,7 @@ if (NOT SKBUILD)
   it is usually much more efficient to install the build dependencies
   in your environment once and use the following command that avoids
   a costly creation of a new virtual environment at every compilation:
+TODO outdated
   =====================================================================
    $ pip install nanobind scikit-build-core[pyproject]
    $ pip install --no-build-isolation -ve .
@@ -38,6 +39,18 @@ find_package(Python 3.8
 
 find_package(nanobind CONFIG REQUIRED)
 
+# Find LLVM
+find_package(LLVM REQUIRED CONFIG)
+
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+
+include_directories(${CMAKE_SOURCE_DIR}/src/llvm)
+
+include_directories(${LLVM_INCLUDE_DIRS})
+separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
+add_definitions(${LLVM_DEFINITIONS_LIST})
+
 nanobind_add_module(
   llvmpym_ext
 
@@ -56,7 +69,17 @@ nanobind_add_module(
 
   # Source code goes here
   src/llvmpym_ext.cpp
+  src/llvm/Core.cpp
+  ${LLVM_INCLUDE_DIRS}
 )
+
+llvm_map_components_to_libnames(llvm_libs core)
+
+# Link against LLVM libraries
+target_link_libraries(llvmpym_ext PRIVATE ${llvm_libs})
+# -flto and --exclude-libs allow us to remove those parts of LLVM we don't use
+# although we are going build a full llvm python binding :-
+set_property(TARGET llvmpym_ext APPEND_STRING PROPERTY LINK_FLAGS "-flto -Wl,--exclude-libs,ALL") # taken from llvmite
 
 # Install directive for scikit-build-core
 install(TARGETS llvmpym_ext LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME})

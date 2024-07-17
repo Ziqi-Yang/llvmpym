@@ -1,0 +1,28 @@
+# https://EditorConfig.org
+# https://github.com/editorconfig/editorconfig/wiki/Projects-Using-EditorConfig
+
+# top-most EditorConfig file
+root = true
+
+# All Files
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 4
+# Unix-style newlines with a newline ending every file
+end_of_line = lf
+insert_final_newline = true
+
+# Tab indentation (no size specified)
+[Makefile]
+indent_style = tab
+
+[CMakelists.txt]
+indent_size = 2
+
+[*.nix]
+indent_size = 2
+
+[*.{c++,cc,cpp,cxx,h,h++,hh,hpp,hxx,inl,ipp,tlh,tli}]
+indent_size = 2
+

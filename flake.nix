@@ -12,11 +12,11 @@
       devShells = forEachSupportedSystem ({ pkgs }: {
         default = pkgs.mkShell {
           packages = with pkgs; [
-            python312
-            llvm_14
-          ] ++ (with pkgs.python312Packages; [
-            pip setuptools
-          ]);
+            (python312.withPackages (ppkgs: with ppkgs; [
+              pip
+            ]))
+            llvm_18
+          ];
         };
       });
     };

@@ -1,10 +1,13 @@
 #include <nanobind/nanobind.h>
 
-namespace nb = nanobind;
+#include "llvm/Core.h"
 
+namespace nb = nanobind;
 using namespace nb::literals;
 
 NB_MODULE(llvmpym_ext, m) {
-    m.doc() = "This is a \"hello world\" example with nanobind";
-    m.def("add", [](int a, int b) { return a + b; }, "a"_a, "b"_a);
+  m.doc() = "LLVM Python Native Extension";
+  
+  auto coreModule = m.def_submodule("core", "LLVM Core");
+  populateCore(coreModule);
 }
