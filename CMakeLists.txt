@@ -81,5 +81,32 @@ target_link_libraries(llvmpym_ext PRIVATE ${llvm_libs})
 # although we are going build a full llvm python binding :-
 set_property(TARGET llvmpym_ext APPEND_STRING PROPERTY LINK_FLAGS "-flto -Wl,--exclude-libs,ALL") # taken from llvmite
 
+
+# Stub Files
+nanobind_add_stub(
+  llvmpym_ext_stub
+  MODULE llvmpym_ext
+  OUTPUT __init__.pyi
+  PYTHON_PATH $<TARGET_FILE_DIR:llvmpym_ext>
+  DEPENDS llvmpym_ext
+)
+
+nanobind_add_stub(
+  llvmpym_ext_stub_core
+  MODULE llvmpym_ext.core
+  OUTPUT core.pyi
+  PYTHON_PATH $<TARGET_FILE_DIR:llvmpym_ext>
+  DEPENDS llvmpym_ext
+)
+
+
+
 # Install directive for scikit-build-core
 install(TARGETS llvmpym_ext LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME})
+
+# stub files
+install(FILES
+  ${CMAKE_BINARY_DIR}/__init__.pyi
+  ${CMAKE_BINARY_DIR}/core.pyi
+  
+  DESTINATION ${SKBUILD_PROJECT_NAME}/llvmpym_ext)

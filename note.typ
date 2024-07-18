@@ -13,3 +13,12 @@
 - https://github.com/revng/llvmcpy/blob/master/.github/workflows/ci.yml
 - https://github.com/leapmotion/pyopticam/blob/main/src/pyopticam_ext.cpp
 
+
+= Misc
+== Stub File
+The generated library file structure for stub file is correct. \
+If you are testing files under `example` directory, the pyright language server
+may not working correctly, since it will looks into our source code directly
+first I think. For in-place testing, you can copy the generated `llvmpym_ext`
+directory(e.g. `.venv/lib/python3.12/site-packages/llvmpym/llvmpym_ext`) to corresponding place in source code directory.
+

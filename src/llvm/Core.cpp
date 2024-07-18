@@ -293,11 +293,11 @@ void populateCore(nb::module_ &m) {
       .value("LandingPadFilter", LLVMLandingPadClauseTy::LLVMLandingPadFilter);
 
   nb::enum_<LLVMThreadLocalMode>(m, "ThreadLocalMode", "LLVMThreadLocalMode")
-      .value("LLVMNotThreadLocal", LLVMThreadLocalMode::LLVMNotThreadLocal)
-      .value("LLVMGeneralDynamicTLSModel", LLVMThreadLocalMode::LLVMGeneralDynamicTLSModel)
-      .value("LLVMLocalDynamicTLSModel", LLVMThreadLocalMode::LLVMLocalDynamicTLSModel)
-      .value("LLVMInitialExecTLSModel", LLVMThreadLocalMode::LLVMInitialExecTLSModel)
-      .value("LLVMLocalExecTLSModel", LLVMThreadLocalMode::LLVMLocalExecTLSModel);
+      .value("NotThreadLocal", LLVMThreadLocalMode::LLVMNotThreadLocal)
+      .value("GeneralDynamicTLSModel", LLVMThreadLocalMode::LLVMGeneralDynamicTLSModel)
+      .value("LocalDynamicTLSModel", LLVMThreadLocalMode::LLVMLocalDynamicTLSModel)
+      .value("InitialExecTLSModel", LLVMThreadLocalMode::LLVMInitialExecTLSModel)
+      .value("LocalExecTLSModel", LLVMThreadLocalMode::LLVMLocalExecTLSModel);
 
     
   nb::class_<PyModule>(m, "Module", "Module")
