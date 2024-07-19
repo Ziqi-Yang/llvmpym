@@ -424,6 +424,12 @@ void populateCore(nb::module_ &m) {
 
   // TODO LLVMFastMathFlags
 
+
+
+
+
+  
+
   // TODO it seems it has no effect in python binding
   m.def("shutdown", &LLVMShutdown, "Deallocate and destroy all ManagedStatic variables.");
   
@@ -431,7 +437,14 @@ void populateCore(nb::module_ &m) {
     unsigned major, minor, patch;
     LLVMGetVersion(&major, &minor, &patch);
     return std::make_tuple(major, minor, patch);
-  });
+  }, "Return the major, minor, and patch version of LLVM\n"
+     "The version components are returned via the function's three output parameters or skipped if a NULL pointer was supplied.");
+
+  // NOTE these two functions are useless in Python?
+  // m.def("create_message", &LLVMCreateMessage, "message"_a);
+  // m.def("dispose_message", &LLVMDisposeMessage, "message"_a); // error, may need a wrapper for created message
+
+  
   
 
   nb::class_<PyValue>(m, "Value", "Value");

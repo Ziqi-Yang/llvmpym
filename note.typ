@@ -23,6 +23,12 @@ may not working correctly, since it will looks into our source code directly
 first I think. For in-place testing, you can copy the generated `llvmpym_ext`
 directory(e.g. `.venv/lib/python3.12/site-packages/llvmpym/llvmpym_ext`) to corresponding place in source code directory.
 
+== Add new submodule checklist
+1. c++ code
+2. python code: `__init__.py` import clause
+3. CMakefile: `nanobind_add_module` and stub file definition and install blocks
+
+
 = NOTE Note
 + Currently Pickling (thus deepcopy) is not supported, consider the we are not supported to know the internal change of LLVM when built on LLVM-C layer
 
@@ -30,3 +36,5 @@ directory(e.g. `.venv/lib/python3.12/site-packages/llvmpym/llvmpym_ext`) to corr
 == Core
 + LLVMAttributeIndex: should we create another type or just alias it at the python side (but it is an unsigned int)? (Maybe we just use the function name to represent it, but unsigned int?)
     + and check two anonymous enum values just before its typedef
+    
+== Multi-thread
