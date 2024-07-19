@@ -1,11 +1,56 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
+#include <nanobind/stl/tuple.h>
 #include <llvm-c/Core.h>
 
 namespace nb = nanobind;
 using namespace nb::literals;
 
+enum class PyAttributeIndex {
+  Return = LLVMAttributeReturnIndex,
+  Function = LLVMAttributeFunctionIndex
+};
+
+enum class PyLLVMFastMathFlags {
+  AllowReassoc = LLVMFastMathAllowReassoc,
+  NoNaNs = LLVMFastMathNoNaNs,
+  NoInfs = LLVMFastMathNoInfs,
+  NoSignedZeros = LLVMFastMathNoSignedZeros,
+  AllowReciprocal = LLVMFastMathAllowReciprocal,
+  AllowContract = LLVMFastMathAllowContract,
+  ApproxFunc = LLVMFastMathApproxFunc,
+  None = LLVMFastMathNone,
+  All = LLVMFastMathAll
+};
+
+class PyValue {
+private:
+  LLVMValueRef Value;
+
+public:
+  PyValue(const PyValue &) = delete;
+  PyValue &operator=(const PyValue &) = delete;
+
+  PyValue(PyValue &&other) noexcept : Value(other.Value) {
+    other.Value = nullptr;
+  }
+  
+  PyValue &operator=(PyValue &&other) noexcept {
+    if (this != &other) {
+      Value = other.Value;
+      other.Value = nullptr;
+    }
+    return *this;
+  }
+
+  PyValue(LLVMValueRef value) : Value(value) {}
+};
+
+
 class PyModule {
+private:
+  LLVMModuleRef module;
+
 public:
   explicit PyModule(const std::string &id) {
     module = LLVMModuleCreateWithName(id.c_str());
@@ -19,16 +64,13 @@ public:
       LLVMDisposeModule(module);
   }
 
-  // Delete copy constructor and copy assignment
   PyModule(const PyModule &) = delete;
   PyModule &operator=(const PyModule &) = delete;
 
-  // Move constructor
   PyModule(PyModule &&other) noexcept : module(other.module) {
     other.module = nullptr;
   }
 	
-	// Move assignment
   PyModule &operator=(PyModule &&other) noexcept {
     if (this != &other) {
       if (module) {
@@ -53,9 +95,6 @@ public:
     const char *identifier = LLVMGetModuleIdentifier(module, &len);
     return std::string(identifier, len);
   }
-
-private:
-  LLVMModuleRef module;
 };
 
 
@@ -128,6 +167,7 @@ void populateCore(nb::module_ &m) {
       .value("CatchPad", LLVMOpcode::LLVMCatchPad)
       .value("CleanupPad", LLVMOpcode::LLVMCleanupPad)
       .value("CatchSwitch", LLVMOpcode::LLVMCatchSwitch);
+  
 
   nb::enum_<LLVMTypeKind>(m, "TypeKind", "TypeKind")
       .value("Void", LLVMTypeKind::LLVMVoidTypeKind, "type with no size")
@@ -151,6 +191,7 @@ void populateCore(nb::module_ &m) {
       .value("BFloat", LLVMTypeKind::LLVMBFloatTypeKind, "16 bit brain floating point type")
       .value("X86_AMX", LLVMTypeKind::LLVMX86_AMXTypeKind, "X86 AMX")
       .value("TargetExt", LLVMTypeKind::LLVMTargetExtTypeKind, "Target extension type");
+  
 
   nb::enum_<LLVMLinkage>(m, "Linkage", "Linkage")
       .value("External", LLVMLinkage::LLVMExternalLinkage, "Externally visible function")
@@ -170,21 +211,25 @@ void populateCore(nb::module_ &m) {
       .value("Common", LLVMLinkage::LLVMCommonLinkage, "Tentative definitions")
       .value("LinkerPrivate", LLVMLinkage::LLVMLinkerPrivateLinkage, "Like Private, but linker removes.")
       .value("LinkerPrivateWeak", LLVMLinkage::LLVMLinkerPrivateWeakLinkage, "Like LinkerPrivate, but is weak.");
+  
 
   nb::enum_<LLVMVisibility>(m, "Visibility", "Visibility")
       .value("Default", LLVMVisibility::LLVMDefaultVisibility, "The GV is visible")
       .value("Hidden", LLVMVisibility::LLVMHiddenVisibility, "The GV is hidden")
       .value("Protected", LLVMVisibility::LLVMProtectedVisibility, "The GV is protected");
+  
 
   nb::enum_<LLVMUnnamedAddr>(m, "UnnamedAddr", "UnnamedAddr")
       .value("No", LLVMUnnamedAddr::LLVMNoUnnamedAddr, "Address of the GV is significant.")
       .value("Local", LLVMUnnamedAddr::LLVMLocalUnnamedAddr, "Address of the GV is locally insignificant.")
       .value("Global", LLVMUnnamedAddr::LLVMGlobalUnnamedAddr, "Address of the GV is globally insignificant.");
+  
 
   nb::enum_<LLVMDLLStorageClass>(m, "DLLStorageClass", "DLLStorageClass")
       .value("Default", LLVMDLLStorageClass::LLVMDefaultStorageClass)
       .value("DLLImport", LLVMDLLStorageClass::LLVMDLLImportStorageClass, "Function to be imported from DLL.")
       .value("DLLExport", LLVMDLLStorageClass::LLVMDLLExportStorageClass, "Function to be accessible from DLL.");
+  
 
   nb::enum_<LLVMCallConv>(m, "CallConv", "CallConv")
       .value("C", LLVMCallConv::LLVMCCallConv)
@@ -228,6 +273,7 @@ void populateCore(nb::module_ &m) {
       .value("MSP430BUILTIN", LLVMCallConv::LLVMMSP430BUILTINCallConv)
       .value("AMDGPULS", LLVMCallConv::LLVMAMDGPULSCallConv)
       .value("AMDGPUES", LLVMCallConv::LLVMAMDGPUESCallConv);
+  
 
   nb::enum_<LLVMValueKind>(m, "ValueKind", "ValueKind")
       .value("Argument", LLVMValueKind::LLVMArgumentValueKind)
@@ -257,6 +303,7 @@ void populateCore(nb::module_ &m) {
       .value("Instruction", LLVMValueKind::LLVMInstructionValueKind)
       .value("PoisonValue", LLVMValueKind::LLVMPoisonValueValueKind)
       .value("ConstantTargetNone", LLVMValueKind::LLVMConstantTargetNoneValueKind);
+  
 
   nb::enum_<LLVMIntPredicate>(m, "IntPredicate", "IntPredicate")
       .value("EQ", LLVMIntPredicate::LLVMIntEQ, "equal")
@@ -269,6 +316,7 @@ void populateCore(nb::module_ &m) {
       .value("SGE", LLVMIntPredicate::LLVMIntSGE, "signed greater or equal")
       .value("SLT", LLVMIntPredicate::LLVMIntSLT, "signed less than")
       .value("SLE", LLVMIntPredicate::LLVMIntSLE, "signed less or equal");
+  
 
   nb::enum_<LLVMRealPredicate>(m, "RealPredicate", "RealPredicate")
       .value("False", LLVMRealPredicate::LLVMRealPredicateFalse, "Always false (always folded)")
@@ -287,10 +335,12 @@ void populateCore(nb::module_ &m) {
       .value("ULE", LLVMRealPredicate::LLVMRealULE, "True if unordered, less than, or equal")
       .value("UNE", LLVMRealPredicate::LLVMRealUNE, "True if unordered or not equal")
       .value("True", LLVMRealPredicate::LLVMRealPredicateTrue, "Always true (always folded)");
+  
 
   nb::enum_<LLVMLandingPadClauseTy>(m, "LandingPadClauseTy", "LandingPadClauseTy")
       .value("Catch", LLVMLandingPadClauseTy::LLVMLandingPadCatch, "A catch clause")
       .value("Filter", LLVMLandingPadClauseTy::LLVMLandingPadFilter, "A filter clause");
+  
 
   nb::enum_<LLVMThreadLocalMode>(m, "ThreadLocalMode", "ThreadLocalMode")
       .value("NotThreadLocal", LLVMThreadLocalMode::LLVMNotThreadLocal)
@@ -298,6 +348,7 @@ void populateCore(nb::module_ &m) {
       .value("LocalDynamic", LLVMThreadLocalMode::LLVMLocalDynamicTLSModel)
       .value("InitialExec", LLVMThreadLocalMode::LLVMInitialExecTLSModel)
       .value("LocalExec", LLVMThreadLocalMode::LLVMLocalExecTLSModel);
+  
 
   nb::enum_<LLVMAtomicOrdering>(m, "AtomicOrdering", "AtomicOrdering")
       .value("NotAtomic", LLVMAtomicOrdering::LLVMAtomicOrderingNotAtomic, "A load or store which is not atomic")
@@ -307,6 +358,7 @@ void populateCore(nb::module_ &m) {
       .value("Release", LLVMAtomicOrdering::LLVMAtomicOrderingRelease, "Release is similar to Acquire, but with a barrier of the sort necessary to release a lock.")
       .value("AcquireRelease", LLVMAtomicOrdering::LLVMAtomicOrderingAcquireRelease, "provides both an Acquire and a Release barrier (for fences and operations which both read and write memory).")
       .value("SequentiallyConsistent", LLVMAtomicOrdering::LLVMAtomicOrderingSequentiallyConsistent, "provides Acquire semantics for loads and Release semantics for stores. Additionally, it guarantees that a total ordering exists between all SequentiallyConsistent operations.");
+  
 
   nb::enum_<LLVMAtomicRMWBinOp>(m, "AtomicRMWBinOp", "AtomicRMWBinOp")
       .value("Xchg", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpXchg, "Set the new value and return the one old")
@@ -324,29 +376,70 @@ void populateCore(nb::module_ &m) {
       .value("FSub", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpFSub, "Subtract a floating point value and return the old one")
       .value("FMax", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpFMax, "Sets the value if it's greater than the original using an floating point comparison and return the old one")
       .value("FMin", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpFMin, "Sets the value if it's smaller than the original using an floating point comparison and return the old one");
+  
 
   nb::enum_<LLVMDiagnosticSeverity>(m, "DiagnosticSeverity", "DiagnosticSeverity")
       .value("Error", LLVMDiagnosticSeverity::LLVMDSError)
       .value("Warning", LLVMDiagnosticSeverity::LLVMDSWarning)
       .value("Remark", LLVMDiagnosticSeverity::LLVMDSRemark)
       .value("Note", LLVMDiagnosticSeverity::LLVMDSNote);
+  
 
   nb::enum_<LLVMInlineAsmDialect>(m, "InlineAsmDialect", "InlineAsmDialect")
       .value("ATT", LLVMInlineAsmDialect::LLVMInlineAsmDialectATT)
       .value("Intel", LLVMInlineAsmDialect::LLVMInlineAsmDialectIntel);
   
 
+  // TODO move into Module?
   nb::enum_<LLVMModuleFlagBehavior>(m, "ModuleFlagBehavior", "ModuleFlagBehavior")
-  .value("Error", LLVMModuleFlagBehavior::LLVMModuleFlagBehaviorError, "Adds a requirement that another module flag be present and have a specified value after linking is performed. The value must be a metadata pair, where the first element of the pair is the ID of the module flag to be restricted, and the second element of the pair is the value the module flag should be restricted to. This behavior can be used to restrict the allowable results (via triggering of an error) of linking IDs with the **Override** behavior.")
-  .value("Warning", LLVMModuleFlagBehavior::LLVMModuleFlagBehaviorWarning, "Emits a warning if two values disagree. The result value will be the operand for the flag from the first module being linked.")
-  .value("Require", LLVMModuleFlagBehavior::LLVMModuleFlagBehaviorRequire, "Adds a requirement that another module flag be present and have a specified value after linking is performed. The value must be a metadata pair, where the first element of the pair is the ID of the module flag to be restricted, and the second element of the pair is the value the module flag should be restricted to. This behavior can be used to restrict the allowable results (via triggering of an error) of linking IDs with the **Override** behavior.")
-  .value("Override", LLVMModuleFlagBehavior::LLVMModuleFlagBehaviorOverride, "Uses the specified value, regardless of the behavior or value of the other module. If both modules specify **Override**, but the values differ, an error will be emitted.")
-  .value("Append", LLVMModuleFlagBehavior::LLVMModuleFlagBehaviorAppend, "Appends the two values, which are required to be metadata nodes.")
-  .value("AppendUnique", LLVMModuleFlagBehavior::LLVMModuleFlagBehaviorAppendUnique, "Appends the two values, which are required to be metadata nodes. However, duplicate entries in the second list are dropped during the append operation.");
+       .value("Error", LLVMModuleFlagBehavior::LLVMModuleFlagBehaviorError, "Adds a requirement that another module flag be present and have a specified value after linking is performed. The value must be a metadata pair, where the first element of the pair is the ID of the module flag to be restricted, and the second element of the pair is the value the module flag should be restricted to. This behavior can be used to restrict the allowable results (via triggering of an error) of linking IDs with the **Override** behavior.")
+       .value("Warning", LLVMModuleFlagBehavior::LLVMModuleFlagBehaviorWarning, "Emits a warning if two values disagree. The result value will be the operand for the flag from the first module being linked.")
+       .value("Require", LLVMModuleFlagBehavior::LLVMModuleFlagBehaviorRequire, "Adds a requirement that another module flag be present and have a specified value after linking is performed. The value must be a metadata pair, where the first element of the pair is the ID of the module flag to be restricted, and the second element of the pair is the value the module flag should be restricted to. This behavior can be used to restrict the allowable results (via triggering of an error) of linking IDs with the **Override** behavior.")
+       .value("Override", LLVMModuleFlagBehavior::LLVMModuleFlagBehaviorOverride, "Uses the specified value, regardless of the behavior or value of the other module. If both modules specify **Override**, but the values differ, an error will be emitted.")
+       .value("Append", LLVMModuleFlagBehavior::LLVMModuleFlagBehaviorAppend, "Appends the two values, which are required to be metadata nodes.")
+       .value("AppendUnique", LLVMModuleFlagBehavior::LLVMModuleFlagBehaviorAppendUnique, "Appends the two values, which are required to be metadata nodes. However, duplicate entries in the second list are dropped during the append operation.");
+
+  nb::enum_<PyAttributeIndex>(m, "AttributeIndex", "AttributeIndex")
+      .value("Return", PyAttributeIndex::Return)
+      .value("Function", PyAttributeIndex::Function);
+
+  nb::enum_<LLVMTailCallKind>(m, "TailCallKind", "TailCallKind")
+      .value("LLVMTailCallKindNone", LLVMTailCallKind::LLVMTailCallKindNone)
+      .value("LLVMTailCallKindTail", LLVMTailCallKind::LLVMTailCallKindTail)
+      .value("LLVMTailCallKindMustTail", LLVMTailCallKind::LLVMTailCallKindMustTail)
+      .value("LLVMTailCallKindNoTail", LLVMTailCallKind::LLVMTailCallKindNoTail);
+
+  // TODO LLVMAttributeIndex
+
+  nb::enum_<PyLLVMFastMathFlags>(m, "FastMathFlags", "FastMathFlags")
+       .value("AllowReassoc", PyLLVMFastMathFlags::AllowReassoc)
+       .value("NoNaNs", PyLLVMFastMathFlags::NoNaNs)
+       .value("NoInfs", PyLLVMFastMathFlags::NoInfs)
+       .value("NoSignedZeros", PyLLVMFastMathFlags::NoSignedZeros)
+       .value("AllowReciprocal", PyLLVMFastMathFlags::AllowReciprocal)
+       .value("AllowContract", PyLLVMFastMathFlags::AllowContract)
+       .value("ApproxFunc", PyLLVMFastMathFlags::ApproxFunc)
+       .value("None", PyLLVMFastMathFlags::None)
+       .value("All", PyLLVMFastMathFlags::All);
+
+  // TODO LLVMFastMathFlags
+
+  // TODO it seems it has no effect in python binding
+  m.def("shutdown", &LLVMShutdown, "Deallocate and destroy all ManagedStatic variables.");
   
+  m.def("get_version", []() {
+    unsigned major, minor, patch;
+    LLVMGetVersion(&major, &minor, &patch);
+    return std::make_tuple(major, minor, patch);
+  });
+  
+
+  nb::class_<PyValue>(m, "Value", "Value");
     
   nb::class_<PyModule>(m, "Module", "Module")
       .def(nb::init<const std::string &>(), "id"_a)
+      .def_prop_ro("first_global",
+                   [](PyModule &m) { return PyValue(LLVMGetFirstGlobal(m.get())); })
       .def_prop_rw("id",
                    [](PyModule &m) { return m.getModuleIdentifier(); },
                    [](PyModule &m, const std::string &id)
@@ -355,4 +448,5 @@ void populateCore(nb::module_ &m) {
                    nb::for_setter(nb::sig("def id(self, id: str, /) -> None")),
                    nb::for_getter("Get the module identifier.\nOrigin Function: LLVMSetModuleIdentifier."),
                    nb::for_setter("Set the module identifier.\nOrigin Function: LLVMGetModuleIdentifier."));
+
 }

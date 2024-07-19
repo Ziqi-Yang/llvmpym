@@ -4,6 +4,8 @@
 
 /pyrightconfig.json
 
+.env
+
 __pycache__
 
 *.egg-info

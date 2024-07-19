@@ -4,6 +4,7 @@
 = nanobind example
 - https://github.com/Krande/nanobind-minimal/blob/main/src/nano_min.cpp
 - https://github.com/leapmotion/pyopticam/blob/main/src/pyopticam_ext.cpp
+- https://github.com/laggykiller/apngasm-python/blob/master/src/apngasm_python.cpp
 
 = CI related res
 - https://github.com/vovkos/llvm-package-windows
@@ -22,3 +23,10 @@ may not working correctly, since it will looks into our source code directly
 first I think. For in-place testing, you can copy the generated `llvmpym_ext`
 directory(e.g. `.venv/lib/python3.12/site-packages/llvmpym/llvmpym_ext`) to corresponding place in source code directory.
 
+= NOTE Note
++ Currently Pickling (thus deepcopy) is not supported, consider the we are not supported to know the internal change of LLVM when built on LLVM-C layer
+
+= TODO Check
+== Core
++ LLVMAttributeIndex: should we create another type or just alias it at the python side (but it is an unsigned int)? (Maybe we just use the function name to represent it, but unsigned int?)
+    + and check two anonymous enum values just before its typedef
