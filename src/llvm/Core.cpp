@@ -153,38 +153,38 @@ void populateCore(nb::module_ &m) {
       .value("TargetExtTypeKind", LLVMTypeKind::LLVMTargetExtTypeKind, "Target extension type");
 
   nb::enum_<LLVMLinkage>(m, "Linkage", "Linkage")
-      .value("ExternalLinkage", LLVMLinkage::LLVMExternalLinkage)
+      .value("ExternalLinkage", LLVMLinkage::LLVMExternalLinkage, "Externally visible function")
       .value("AvailableExternallyLinkage", LLVMLinkage::LLVMAvailableExternallyLinkage)
-      .value("LinkOnceAnyLinkage", LLVMLinkage::LLVMLinkOnceAnyLinkage)
-      .value("LinkOnceODRLinkage", LLVMLinkage::LLVMLinkOnceODRLinkage)
-      .value("LinkOnceODRAutoHideLinkage", LLVMLinkage::LLVMLinkOnceODRAutoHideLinkage)
-      .value("WeakAnyLinkage", LLVMLinkage::LLVMWeakAnyLinkage)
-      .value("WeakODRLinkage", LLVMLinkage::LLVMWeakODRLinkage)
-      .value("AppendingLinkage", LLVMLinkage::LLVMAppendingLinkage)
-      .value("InternalLinkage", LLVMLinkage::LLVMInternalLinkage)
-      .value("PrivateLinkage", LLVMLinkage::LLVMPrivateLinkage)
-      .value("DLLImportLinkage", LLVMLinkage::LLVMDLLImportLinkage)
-      .value("DLLExportLinkage", LLVMLinkage::LLVMDLLExportLinkage)
-      .value("ExternalWeakLinkage", LLVMLinkage::LLVMExternalWeakLinkage)
-      .value("GhostLinkage", LLVMLinkage::LLVMGhostLinkage)
-      .value("CommonLinkage", LLVMLinkage::LLVMCommonLinkage)
-      .value("LinkerPrivateLinkage", LLVMLinkage::LLVMLinkerPrivateLinkage)
-      .value("LinkerPrivateWeakLinkage", LLVMLinkage::LLVMLinkerPrivateWeakLinkage);
+      .value("LinkOnceAnyLinkage", LLVMLinkage::LLVMLinkOnceAnyLinkage, "Keep one copy of function when linking (inline)")
+      .value("LinkOnceODRLinkage", LLVMLinkage::LLVMLinkOnceODRLinkage, "Keep one copy of function when linking (inline), but only replaced by something equivalent.")
+      .value("LinkOnceODRAutoHideLinkage", LLVMLinkage::LLVMLinkOnceODRAutoHideLinkage, "Obsolete")
+      .value("WeakAnyLinkage", LLVMLinkage::LLVMWeakAnyLinkage, "Keep one copy of function when linking (weak)")
+      .value("WeakODRLinkage", LLVMLinkage::LLVMWeakODRLinkage, "Same, but only replaced by something equivalent.")
+      .value("AppendingLinkage", LLVMLinkage::LLVMAppendingLinkage, "Special purpose, only applies to global arrays")
+      .value("InternalLinkage", LLVMLinkage::LLVMInternalLinkage, "Rename collisions when linking (static functions)")
+      .value("PrivateLinkage", LLVMLinkage::LLVMPrivateLinkage, "Like Internal, but omit from symbol table")
+      .value("DLLImportLinkage", LLVMLinkage::LLVMDLLImportLinkage, "Obsolete")
+      .value("DLLExportLinkage", LLVMLinkage::LLVMDLLExportLinkage, "Obsolete")
+      .value("ExternalWeakLinkage", LLVMLinkage::LLVMExternalWeakLinkage, "ExternalWeak linkage description")
+      .value("GhostLinkage", LLVMLinkage::LLVMGhostLinkage, "Obsolete")
+      .value("CommonLinkage", LLVMLinkage::LLVMCommonLinkage, "Tentative definitions")
+      .value("LinkerPrivateLinkage", LLVMLinkage::LLVMLinkerPrivateLinkage, "Like Private, but linker removes.")
+      .value("LinkerPrivateWeakLinkage", LLVMLinkage::LLVMLinkerPrivateWeakLinkage, "Like LinkerPrivate, but is weak.");
 
   nb::enum_<LLVMVisibility>(m, "Visibility", "Visibility")
-      .value("DefaultVisibility", LLVMVisibility::LLVMDefaultVisibility)
-      .value("HiddenVisibility", LLVMVisibility::LLVMHiddenVisibility)
-      .value("ProtectedVisibility", LLVMVisibility::LLVMProtectedVisibility);
+      .value("DefaultVisibility", LLVMVisibility::LLVMDefaultVisibility, "The GV is visible")
+      .value("HiddenVisibility", LLVMVisibility::LLVMHiddenVisibility, "The GV is hidden")
+      .value("ProtectedVisibility", LLVMVisibility::LLVMProtectedVisibility, "The GV is protected");
 
   nb::enum_<LLVMUnnamedAddr>(m, "UnnamedAddr", "UnnamedAddr")
-      .value("NoUnnamedAddr", LLVMUnnamedAddr::LLVMNoUnnamedAddr)
-      .value("LocalUnnamedAddr", LLVMUnnamedAddr::LLVMLocalUnnamedAddr)
-      .value("GlobalUnnamedAddr", LLVMUnnamedAddr::LLVMGlobalUnnamedAddr);
+      .value("NoUnnamedAddr", LLVMUnnamedAddr::LLVMNoUnnamedAddr, "Address of the GV is significant.")
+      .value("LocalUnnamedAddr", LLVMUnnamedAddr::LLVMLocalUnnamedAddr, "the GV is locally insignificant.")
+      .value("GlobalUnnamedAddr", LLVMUnnamedAddr::LLVMGlobalUnnamedAddr, "globally insignificant.");
 
   nb::enum_<LLVMDLLStorageClass>(m, "DLLStorageClass", "DLLStorageClass")
       .value("DefaultStorageClass", LLVMDLLStorageClass::LLVMDefaultStorageClass)
-      .value("DLLImportStorageClass", LLVMDLLStorageClass::LLVMDLLImportStorageClass)
-      .value("DLLExportStorageClass", LLVMDLLStorageClass::LLVMDLLExportStorageClass);
+      .value("DLLImportStorageClass", LLVMDLLStorageClass::LLVMDLLImportStorageClass, "Function to be imported from DLL.")
+      .value("DLLExportStorageClass", LLVMDLLStorageClass::LLVMDLLExportStorageClass, "from DLL.");
 
   nb::enum_<LLVMCallConv>(m, "CallConv", "CallConv")
       .value("CCallConv", LLVMCallConv::LLVMCCallConv)
@@ -259,45 +259,71 @@ void populateCore(nb::module_ &m) {
       .value("ConstantTargetNoneValueKind", LLVMValueKind::LLVMConstantTargetNoneValueKind);
 
   nb::enum_<LLVMIntPredicate>(m, "IntPredicate", "IntPredicate")
-      .value("IntEQ", LLVMIntPredicate::LLVMIntEQ)
-      .value("IntNE", LLVMIntPredicate::LLVMIntNE)
-      .value("IntUGT", LLVMIntPredicate::LLVMIntUGT)
-      .value("IntUGE", LLVMIntPredicate::LLVMIntUGE)
-      .value("IntULT", LLVMIntPredicate::LLVMIntULT)
-      .value("IntULE", LLVMIntPredicate::LLVMIntULE)
-      .value("IntSGT", LLVMIntPredicate::LLVMIntSGT)
-      .value("IntSGE", LLVMIntPredicate::LLVMIntSGE)
-      .value("IntSLT", LLVMIntPredicate::LLVMIntSLT)
-      .value("IntSLE", LLVMIntPredicate::LLVMIntSLE);
+      .value("IntEQ", LLVMIntPredicate::LLVMIntEQ, "equal")
+      .value("IntNE", LLVMIntPredicate::LLVMIntNE, "not equal")
+     .value("IntUGT", LLVMIntPredicate::LLVMIntUGT, "unsigned greater than")
+     .value("IntUGE", LLVMIntPredicate::LLVMIntUGE, "unsigned greater or equal")
+     .value("IntULT", LLVMIntPredicate::LLVMIntULT, "unsigned less than")
+     .value("IntULE", LLVMIntPredicate::LLVMIntULE, "unsigned less or equal")
+      .value("IntSGT", LLVMIntPredicate::LLVMIntSGT, "signed greater than")
+      .value("IntSGE", LLVMIntPredicate::LLVMIntSGE, "signed greater or equal")
+      .value("IntSLT", LLVMIntPredicate::LLVMIntSLT, "signed less than")
+      .value("IntSLE", LLVMIntPredicate::LLVMIntSLE, "signed less or equal");
 
   nb::enum_<LLVMRealPredicate>(m, "RealPredicate", "RealPredicate")
-      .value("RealPredicateFalse", LLVMRealPredicate::LLVMRealPredicateFalse)
-      .value("RealOEQ", LLVMRealPredicate::LLVMRealOEQ)
-      .value("RealOGT", LLVMRealPredicate::LLVMRealOGT)
-      .value("RealOGE", LLVMRealPredicate::LLVMRealOGE)
-      .value("RealOLT", LLVMRealPredicate::LLVMRealOLT)
-      .value("RealOLE", LLVMRealPredicate::LLVMRealOLE)
-      .value("RealONE", LLVMRealPredicate::LLVMRealONE)
-      .value("RealORD", LLVMRealPredicate::LLVMRealORD)
-      .value("RealUNO", LLVMRealPredicate::LLVMRealUNO)
-      .value("RealUEQ", LLVMRealPredicate::LLVMRealUEQ)
-      .value("RealUGT", LLVMRealPredicate::LLVMRealUGT)
-      .value("RealUGE", LLVMRealPredicate::LLVMRealUGE)
-      .value("RealULT", LLVMRealPredicate::LLVMRealULT)
-      .value("RealULE", LLVMRealPredicate::LLVMRealULE)
-      .value("RealUNE", LLVMRealPredicate::LLVMRealUNE)
-      .value("RealPredicateTrue", LLVMRealPredicate::LLVMRealPredicateTrue);
+      .value("RealPredicateFalse", LLVMRealPredicate::LLVMRealPredicateFalse, "Always false (always folded)")
+      .value("RealOEQ", LLVMRealPredicate::LLVMRealOEQ, "True if ordered and equal")
+      .value("RealOGT", LLVMRealPredicate::LLVMRealOGT, "True if ordered and greater than")
+      .value("RealOGE", LLVMRealPredicate::LLVMRealOGE, "True if ordered and greater than or equal")
+      .value("RealOLT", LLVMRealPredicate::LLVMRealOLT, "True if ordered and less than")
+      .value("RealOLE", LLVMRealPredicate::LLVMRealOLE, "True if ordered and less than or equal")
+      .value("RealONE", LLVMRealPredicate::LLVMRealONE, "True if ordered and operands are unequal")
+      .value("RealORD", LLVMRealPredicate::LLVMRealORD, "True if ordered (no nans)")
+      .value("RealUNO", LLVMRealPredicate::LLVMRealUNO, "True if unordered: isnan(X) | isnan(Y)")
+      .value("RealUEQ", LLVMRealPredicate::LLVMRealUEQ, "True if unordered or equal")
+      .value("RealUGT", LLVMRealPredicate::LLVMRealUGT, "True if unordered or greater than")
+      .value("RealUGE", LLVMRealPredicate::LLVMRealUGE, "True if unordered, greater than, or equal")
+      .value("RealULT", LLVMRealPredicate::LLVMRealULT, "True if unordered or less than")
+      .value("RealULE", LLVMRealPredicate::LLVMRealULE, "True if unordered, less than, or equal")
+      .value("RealUNE", LLVMRealPredicate::LLVMRealUNE, "True if unordered or not equal")
+      .value("RealPredicateTrue", LLVMRealPredicate::LLVMRealPredicateTrue, "Always true (always folded)");
 
   nb::enum_<LLVMLandingPadClauseTy>(m, "LandingPadClauseTy", "LandingPadClauseTy")
-      .value("LandingPadCatch", LLVMLandingPadClauseTy::LLVMLandingPadCatch)
-      .value("LandingPadFilter", LLVMLandingPadClauseTy::LLVMLandingPadFilter);
+      .value("LandingPadCatch", LLVMLandingPadClauseTy::LLVMLandingPadCatch, "A catch clause")
+      .value("LandingPadFilter", LLVMLandingPadClauseTy::LLVMLandingPadFilter, "A filter clause");
 
-  nb::enum_<LLVMThreadLocalMode>(m, "ThreadLocalMode", "LLVMThreadLocalMode")
+  nb::enum_<LLVMThreadLocalMode>(m, "ThreadLocalMode", "ThreadLocalMode")
       .value("NotThreadLocal", LLVMThreadLocalMode::LLVMNotThreadLocal)
       .value("GeneralDynamicTLSModel", LLVMThreadLocalMode::LLVMGeneralDynamicTLSModel)
       .value("LocalDynamicTLSModel", LLVMThreadLocalMode::LLVMLocalDynamicTLSModel)
       .value("InitialExecTLSModel", LLVMThreadLocalMode::LLVMInitialExecTLSModel)
       .value("LocalExecTLSModel", LLVMThreadLocalMode::LLVMLocalExecTLSModel);
+
+  nb::enum_<LLVMAtomicOrdering>(m, "AtomicOrdering", "AtomicOrdering")
+      .value("AtomicOrderingNotAtomic", LLVMAtomicOrdering::LLVMAtomicOrderingNotAtomic, "A load or store which is not atomic")
+      .value("AtomicOrderingUnordered", LLVMAtomicOrdering::LLVMAtomicOrderingUnordered, "Lowest level of atomicity, guarantees somewhat sane results, lock free.")
+      .value("AtomicOrderingMonotonic", LLVMAtomicOrdering::LLVMAtomicOrderingMonotonic, "guarantees that if you take all the operations affecting a specific address, a consistent ordering exists")
+      .value("AtomicOrderingAcquire", LLVMAtomicOrdering::LLVMAtomicOrderingAcquire, "Acquire provides a barrier of the sort necessary to acquire a lock to access other memory with normal loads and stores.")
+      .value("AtomicOrderingRelease", LLVMAtomicOrdering::LLVMAtomicOrderingRelease, "Release is similar to Acquire, but with a barrier of the sort necessary to release a lock.")
+      .value("AtomicOrderingAcquireRelease", LLVMAtomicOrdering::LLVMAtomicOrderingAcquireRelease, "provides both an Acquire and a Release barrier (for fences and operations which both read and write memory).")
+      .value("AtomicOrderingSequentiallyConsistent", LLVMAtomicOrdering::LLVMAtomicOrderingSequentiallyConsistent, "provides Acquire semantics for loads and Release semantics for stores. Additionally, it guarantees that a total ordering exists between all SequentiallyConsistent operations.");
+
+  nb::enum_<LLVMAtomicRMWBinOp>(m, "LLVMAtomicRMWBinOp", "LLVMAtomicRMWBinOp")
+      .value("LLVMAtomicRMWBinOpXchg", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpXchg, "Set the new value and return the one old")
+      .value("LLVMAtomicRMWBinOpAdd", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpAdd, "Add a value and return the old one")
+      .value("LLVMAtomicRMWBinOpSub", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpSub, "Subtract a value and return the old one")
+      .value("LLVMAtomicRMWBinOpAnd", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpAnd, "And a value and return the old one")
+      .value("LLVMAtomicRMWBinOpNand", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpNand, "Not-And a value and return the old one")
+      .value("LLVMAtomicRMWBinOpOr", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpOr, "OR a value and return the old one")
+      .value("LLVMAtomicRMWBinOpXor", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpXor, "Xor a value and return the old one")
+      .value("LLVMAtomicRMWBinOpMax", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpMax, "Sets the value if it's greater than the original using a signed comparison and return the old one")
+      .value("LLVMAtomicRMWBinOpMin", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpMin, "Sets the value if it's Smaller than the original using a signed comparison and return the old one")
+      .value("LLVMAtomicRMWBinOpUMax", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpUMax, "Sets the value if it's greater than the original using an unsigned comparison and return the old one")
+      .value("LLVMAtomicRMWBinOpUMin", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpUMin, "Sets the value if it's greater than the original using an unsigned comparison and return the old one")
+      .value("LLVMAtomicRMWBinOpFAdd", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpFAdd, "Add a floating point value and return the old one")
+      .value("LLVMAtomicRMWBinOpFSub", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpFSub, "Subtract a floating point value and return the old one")
+      .value("LLVMAtomicRMWBinOpFMax", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpFMax, "Sets the value if it's greater than the original using an floating point comparison and return the old one")
+      .value("LLVMAtomicRMWBinOpFMin", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpFMin, "Sets the value if it's smaller than the original using an floating point comparison and return the old one");
 
     
   nb::class_<PyModule>(m, "Module", "Module")
