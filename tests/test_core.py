@@ -1,3 +1,5 @@
+# Note use `pip install .` to install this package
+# In `pip install --no-build-isolation -ve .` mode it won't work
 from llvmpym.core import *
 
 class TestEnum:
@@ -9,10 +11,10 @@ class TestEnum:
         assert len(UnnamedAddr) == 3
         
     def test_value(self):
-        assert IntPredicate.IntEQ.value == 32
+        assert IntPredicate.EQ.value == 32
 
     def test_docstring(self):
-        assert TypeKind.VoidTypeKind.__doc__ == "type with no size"
+        assert TypeKind.Void.__doc__ == "type with no size"
 
         
 
