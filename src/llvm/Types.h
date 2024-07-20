@@ -4,6 +4,17 @@
 #include <llvm-c/Core.h>
 #include <utility>
 
+#define DEFINE_MOVE_SEMANTICS(ClassName) \
+  ClassName(ClassName&& other) noexcept { \
+    move(std::move(other)); \
+  } \
+  ClassName& operator=(ClassName&& other) noexcept { \
+    if (this != &other) { \
+      move(std::move(other)); \
+    } \
+    return *this; \
+  }
+
 enum class PyAttributeIndex {
   Return = LLVMAttributeReturnIndex,
   Function = LLVMAttributeFunctionIndex
@@ -41,16 +52,7 @@ class PyValue : public NonCopyable {
 public:
   explicit PyValue(LLVMValueRef value) : value(value) {}
 
-  PyValue(PyValue&& other) noexcept {
-    move(std::move(other));
-  }
-
-  PyValue& operator=(PyValue&& other) noexcept {
-    if (this != &other) {
-      move(std::move(other));
-    }
-    return *this;
-  }
+  DEFINE_MOVE_SEMANTICS(PyValue)
 
   void move(PyValue &&other) noexcept {
     value = std::exchange(other.value, nullptr);
@@ -81,16 +83,7 @@ public:
     return context;
   }
 
-  PyContext(PyContext&& other) noexcept : context(nullptr), is_global_context(false) {
-    move(std::move(other));
-  }
-
-  PyContext& operator=(PyContext&& other) noexcept {
-    if (this != &other) {
-      move(std::move(other));
-    }
-    return *this;
-  }
+  DEFINE_MOVE_SEMANTICS(PyContext)
 
   void move(PyContext &&other) noexcept {
     cleanup();
@@ -114,6 +107,21 @@ private:
 
 
 
+class PyDiagnosticInfo : public NonCopyable {
+public:
+  DEFINE_MOVE_SEMANTICS(PyDiagnosticInfo)
+
+  void move(PyDiagnosticInfo &&other) noexcept {
+    diagnosticInfo = std::exchange(other.diagnosticInfo, nullptr);
+  }
+
+private:
+  LLVMDiagnosticInfoRef diagnosticInfo;
+};
+
+
+
+
 class PyModule : public NonCopyable {
 public:
   explicit PyModule(const std::string &id) {
@@ -132,17 +140,7 @@ public:
     return module;
   }
 
-
-  PyModule(PyModule&& other) noexcept {
-    move(std::move(other));
-  }
-
-  PyModule& operator=(PyModule&& other) noexcept {
-    if (this != &other) {
-      move(std::move(other));
-    }
-    return *this;
-  }
+  DEFINE_MOVE_SEMANTICS(PyModule)
 
   void move(PyModule &&other) noexcept {
     cleanup();
