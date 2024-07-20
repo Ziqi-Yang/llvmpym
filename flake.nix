@@ -15,7 +15,6 @@
             (python312.withPackages (ppkgs: with ppkgs; [
               pip
             ]))
-            llvm_18
           ];
         };
       });

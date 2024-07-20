@@ -149,6 +149,15 @@ public:
     }
   }
 
+  explicit PyModule(const std::string &id, PyContext &context) {
+    module = LLVMModuleCreateWithNameInContext(id.c_str(), context.get());
+    if (!module) {
+      throw std::runtime_error("Failed to create LLVM module");
+    }
+  }
+
+  explicit PyModule(LLVMModuleRef module) : module(module) {}
+
   ~PyModule() {
     cleanup();
   }
@@ -173,17 +182,6 @@ private:
       LLVMDisposeModule(module);
       module = nullptr;
     }
-  }
-
-public:
-  void setModuleIdentifier(const std::string &identifier) {
-    LLVMSetModuleIdentifier(module, identifier.c_str(), identifier.size());
-  }
-
-  std::string getModuleIdentifier() const {
-    size_t len;
-    const char *identifier = LLVMGetModuleIdentifier(module, &len);
-    return std::string(identifier, len);
   }
 };
 

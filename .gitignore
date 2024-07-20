@@ -1,6 +1,7 @@
 /.venv
 /dist
 /build
+/llvm-build
 
 /pyrightconfig.json
 

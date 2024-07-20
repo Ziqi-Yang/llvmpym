@@ -42,6 +42,8 @@ find_package(nanobind CONFIG REQUIRED)
 # Find LLVM
 find_package(LLVM REQUIRED CONFIG)
 
+set(LLVM_LIBRARY_DIRS ${LLVM_LIBRARY_DIRS} CACHE STRING "LLVM library directories" FORCE)
+
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
@@ -74,7 +76,7 @@ nanobind_add_module(
   ${LLVM_INCLUDE_DIRS}
 )
 
-llvm_map_components_to_libnames(llvm_libs core)
+llvm_map_components_to_libnames(llvm_libs core transformutils)
 
 # Link against LLVM libraries
 target_link_libraries(llvmpym_ext PRIVATE ${llvm_libs})

@@ -426,7 +426,20 @@ void populateCore(nb::module_ &m) {
            [](PyContext &context, unsigned kind_id, PyType &type) {
              return PyTypeAttribute(LLVMCreateTypeAttribute(context.get(), kind_id, type.get()));
            }, "kind_id"_a, "type"_a,
-           "Create a type attribute");
+           "Create a type attribute")
+      .def("create_string_attribute",
+           [](PyContext &c, const std::string &kind, const std::string &value) {
+             auto raw = LLVMCreateStringAttribute(c.get(),
+                                                  kind.c_str(), kind.size(),
+                                                  value.c_str(), value.size());
+             return PyStringAttribute(raw);
+           })
+      .def("get_type_by_name_2", // TODO also create one in PyType static method
+           [](PyContext &c, const std::string &name) {
+             return PyType(LLVMGetTypeByName2(c.get(), name.c_str()));
+           });
+
+  
   
   nb::class_<PyType>(m, "Type", "Type");
   nb::class_<PyAttribute>(m, "Attribute", "Attribute")
@@ -466,9 +479,10 @@ void populateCore(nb::module_ &m) {
   nb::class_<PyStringAttribute, PyAttribute>(m, "StringAttribute", "StringAttribute")
       .def("__init__",
            [](PyTypeAttribute *t, PyContext &c, const std::string &kind, const std::string &value) {
-             new (t) PyStringAttribute(LLVMCreateStringAttribute(c.get(),
-                                                               kind.c_str(), kind.size(),
-                                                               value.c_str(), value.size()));
+             auto raw = LLVMCreateStringAttribute(c.get(),
+                                                  kind.c_str(), kind.size(),
+                                                  value.c_str(), value.size());
+             new (t) PyStringAttribute(raw);
            }, "context"_a, "kind"_a, "value"_a)
       .def_prop_ro("kind",
                    [](PyStringAttribute &ta) {
@@ -501,16 +515,41 @@ void populateCore(nb::module_ &m) {
 
   nb::class_<PyValue>(m, "Value", "Value");
     
-  nb::class_<PyModule>(m, "Module", "Module")
+  nb::class_<PyModule>(m, "Module",
+     "Modules represent the top-level structure in an LLVM program. An LLVM"
+     "module is effectively a translation unit or a collection of translation "
+     "units merged together.")
       .def(nb::init<const std::string &>(), "id"_a)
       .def_prop_ro("first_global",
                    [](PyModule &m) { return PyValue(LLVMGetFirstGlobal(m.get())); })
       .def_prop_rw("id",
-                   [](PyModule &m) { return m.getModuleIdentifier(); },
-                   [](PyModule &m, const std::string &id) { m.setModuleIdentifier(id); },
+                   [](PyModule &m) {
+                     size_t len;
+                     const char *identifier = LLVMGetModuleIdentifier(m.get(), &len);
+                     return std::string(identifier, len);
+                   },
+                   [](PyModule &m, const std::string &id) {
+                     return LLVMSetModuleIdentifier(m.get(), id.c_str(),
+                                                    id.size());
+                   },
                    nb::for_getter(nb::sig("def id(self, /) -> int")),
                    nb::for_setter(nb::sig("def id(self, id: str, /) -> None")),
-                   nb::for_getter("Get the module identifier.\nOrigin Function: LLVMSetModuleIdentifier."),
-                   nb::for_setter("Set the module identifier.\nOrigin Function: LLVMGetModuleIdentifier."));
+                   nb::for_getter("Get the module identifier.\n"
+                                  "Origin Function: LLVMSetModuleIdentifier."),
+                   nb::for_setter("Set the module identifier.\n"
+                                  "Origin Function: LLVMGetModuleIdentifier."))
+      .def_prop_rw("source_file_name",
+                   [](PyModule &m) {
+                     size_t len;
+                     const char* sfn = LLVMGetSourceFileName(m.get(), &len);
+                     return std::string(sfn, len);
+                   },
+                   [](PyModule &m, const std::string &name) {
+                     return LLVMSetSourceFileName(m.get(), name.c_str(), name.size());
+                   })
+      .def("clone",
+           [](PyModule &m) {
+             return PyModule(LLVMCloneModule(m.get()));
+           }, "Return an exact copy of the specified module.");
 
 }
