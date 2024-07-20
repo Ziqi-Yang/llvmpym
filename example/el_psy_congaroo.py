@@ -8,3 +8,7 @@ if __name__ == '__main__':
     a.id = "Hello"
     print(a.id)
 
+    c = core.Context.get_global_context()
+    # c.should_discard_value_names = True
+    # print(c.should_discard_value_names)
+

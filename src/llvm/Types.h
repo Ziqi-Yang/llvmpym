@@ -62,23 +62,26 @@ private:
 
 
 
-
-
 class PyContext : public NonCopyable {
 public:
-  explicit PyContext() : context(LLVMContextCreate()) {}
+  explicit PyContext() : context(LLVMContextCreate()), is_global_context(false) {}
 
-  explicit PyContext(LLVMContextRef context) : context(context) {}
+  explicit PyContext(LLVMContextRef context, bool is_global_context)
+  : context(context), is_global_context(is_global_context) {}
 
   static PyContext getGlobalContext() {
-    return PyContext(LLVMGetGlobalContext());
+    return PyContext(LLVMGetGlobalContext(), true);
   }
 
   ~PyContext() {
     cleanup();
   }
 
-  PyContext(PyContext&& other) noexcept {
+  LLVMContextRef get() const {
+    return context;
+  }
+
+  PyContext(PyContext&& other) noexcept : context(nullptr), is_global_context(false) {
     move(std::move(other));
   }
 
@@ -92,18 +95,23 @@ public:
   void move(PyContext &&other) noexcept {
     cleanup();
     context = std::exchange(other.context, nullptr);
+    is_global_context = other.is_global_context;
+    other.is_global_context = false;
   }
 
 private:
   LLVMContextRef context;
+  bool is_global_context;
 
   void cleanup() {
-    if (context) {
+    // don't clean global context, which is managed by LLVM
+    if (context && !is_global_context) {
       LLVMContextDispose(context);
       context = nullptr;
     }
   }
 };
+
 
 
 class PyModule : public NonCopyable {

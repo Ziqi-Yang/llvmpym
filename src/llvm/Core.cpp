@@ -352,9 +352,49 @@ void populateCore(nb::module_ &m) {
   // m.def("create_message", &LLVMCreateMessage, "message"_a);
   // m.def("dispose_message", &LLVMDisposeMessage, "message"_a); // error, may need a wrapper for created message
 
-  nb::class_<PyContext>(m, "Context", "Context")
-        .def(nb::init<>())
-        .def_static("get_global_context", &PyContext::getGlobalContext);
+  nb::class_<PyContext>(m, "Context",
+                        "Contexts are execution states for the core LLVM IR system.\n\n"
+                        "Most types are tied to a context instance. Multiple contexts can"
+                        "exist simultaneously. A single context is not thread safe. However,"
+                        "different contexts can execute on different threads simultaneously.")
+      .def(nb::init<>(), "Create a new context.")
+      .def_static("get_global_context", &PyContext::getGlobalContext, "Obtain the global context instance.")
+      .def_prop_ro("diagnostic_context", // TODO more check: in my test it simply None
+                   [](PyContext &c) { return LLVMContextGetDiagnosticContext(c.get()); },
+                   "Get the diagnostic context of this context.")
+      .def_prop_rw("should_discard_value_names", // TODO convert LLVMBool to bool
+                   [](PyContext &c) -> bool { return LLVMContextShouldDiscardValueNames(c.get()) != 0; },
+                   [](PyContext &c, bool discard) {
+                     return LLVMContextSetDiscardValueNames(c.get(), discard);
+                   },
+                   nb::for_getter(nb::sig("def should_discard_value_names(self, /) -> bool")),
+                   nb::for_setter(nb::sig("def should_discard_value_names(self, bool /) -> None")),
+                   nb::for_getter("Retrieve whether the given context is set to"
+                                  "discard all value names.\n\n"
+                                  "Return true if the Context runtime configuration "
+                                  "is set to discard all value names. When true, "
+                                  "only GlobalValue names will be available in the IR."),
+                   nb::for_setter("Set whether the given context discards all value names.\n\n"
+                                  "If true, only the names of GlobalValue objects"
+                                  "will be available in the IR.\n"
+                                  "This can be used to save memory and runtime, "
+                                  "especially in release mode."))
+      .def("set_diagnostic_handler", // FIXME
+           [](PyContext &c, LLVMDiagnosticHandler handler, void * diagnosticContext){
+             return LLVMContextSetDiagnosticHandler(c.get(), handler, diagnosticContext);
+           },
+           "handler"_a, "diagnostic_context"_a,
+           "Set the diagnostic handler for this context.")
+      // .def("get_diagnostic_handler", FIXME
+      //      [](PyContext &c)  { return LLVMContextGetDiagnosticHandler(c.get()); },
+      //      "Get the diagnostic handler of this context.")
+      .def("set_yield_callback", // FIXME
+           [](PyContext &c, LLVMYieldCallback callback, void *opaqueHandle){
+             return LLVMContextSetYieldCallback(c.get(), callback, opaqueHandle);
+           },
+           "callback"_a, "opaque_handle"_a,
+           "Set the yield callback function for this context.");
+       
 
   nb::class_<PyValue>(m, "Value", "Value");
     
@@ -364,8 +404,7 @@ void populateCore(nb::module_ &m) {
                    [](PyModule &m) { return PyValue(LLVMGetFirstGlobal(m.get())); })
       .def_prop_rw("id",
                    [](PyModule &m) { return m.getModuleIdentifier(); },
-                   [](PyModule &m, const std::string &id)
-                     { m.setModuleIdentifier(id); },
+                   [](PyModule &m, const std::string &id) { m.setModuleIdentifier(id); },
                    nb::for_getter(nb::sig("def id(self, /) -> int")),
                    nb::for_setter(nb::sig("def id(self, id: str, /) -> None")),
                    nb::for_getter("Get the module identifier.\nOrigin Function: LLVMSetModuleIdentifier."),

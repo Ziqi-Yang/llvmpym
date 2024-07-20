@@ -2,6 +2,7 @@
 `env SKBUILD_CMAKE_ARGS="-DLLVM_DIR=/home/meowking/proj/llvm/llvm-project_18.1.8/mybuilddir/cmake/modules/CMakeFiles" just`
 
 = nanobind example
+- https://github.com/ml-explore/mlx/tree/main/python/src
 - https://github.com/Krande/nanobind-minimal/blob/main/src/nano_min.cpp
 - https://github.com/leapmotion/pyopticam/blob/main/src/pyopticam_ext.cpp
 - https://github.com/laggykiller/apngasm-python/blob/master/src/apngasm_python.cpp
@@ -32,12 +33,18 @@ directory(e.g. `.venv/lib/python3.12/site-packages/llvmpym/llvmpym_ext`) to corr
 = NOTE Note
 + Currently Pickling (thus deepcopy) is not supported, consider the we are not supported to know the internal change of LLVM when built on LLVM-C layer
 
-= TODO Check
-== Core
+= TODO
+== Check
+=== Core
 + LLVMAttributeIndex: should we create another type or just alias it at the python side (but it is an unsigned int)? (Maybe we just use the function name to represent it, but unsigned int?)
     + and check two anonymous enum values just before its typedef
     
-== Multi-thread
+=== Multi-thread
+
+== Misc
+Doc: if document has `@see LLVMContext::setYieldCallback()`, then we need to also include documents for that function (in C++ header)
+
+
 
 
 
