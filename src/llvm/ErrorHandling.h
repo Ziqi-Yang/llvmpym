@@ -1,8 +1,8 @@
+#ifndef LLVMPYM_ERRORHANLDING_H
+#define LLVMPYM_ERRORHANLDING_H
+
 #include <nanobind/nanobind.h>
 namespace nb = nanobind;
-
-#ifndef ERRORHANLDING_H
-#define ERRORHANLDING_H
 
 void populateErrorHandling(nb::module_ &m);
 

@@ -1,8 +1,9 @@
+#ifndef LLVMPYM_CORE_H
+#define LLVMPYM_CORE_H
+
 #include <nanobind/nanobind.h>
 namespace nb = nanobind;
 
-#ifndef CORE_H
-#define CORE_H
 
 void populateCore(nb::module_ &m);
 

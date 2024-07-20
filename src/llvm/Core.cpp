@@ -2,100 +2,11 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/tuple.h>
 #include <llvm-c/Core.h>
+#include "Core.h"
+#include "Types.h"
 
 namespace nb = nanobind;
 using namespace nb::literals;
-
-enum class PyAttributeIndex {
-  Return = LLVMAttributeReturnIndex,
-  Function = LLVMAttributeFunctionIndex
-};
-
-enum class PyLLVMFastMathFlags {
-  AllowReassoc = LLVMFastMathAllowReassoc,
-  NoNaNs = LLVMFastMathNoNaNs,
-  NoInfs = LLVMFastMathNoInfs,
-  NoSignedZeros = LLVMFastMathNoSignedZeros,
-  AllowReciprocal = LLVMFastMathAllowReciprocal,
-  AllowContract = LLVMFastMathAllowContract,
-  ApproxFunc = LLVMFastMathApproxFunc,
-  None = LLVMFastMathNone,
-  All = LLVMFastMathAll
-};
-
-class PyValue {
-private:
-  LLVMValueRef Value;
-
-public:
-  PyValue(const PyValue &) = delete;
-  PyValue &operator=(const PyValue &) = delete;
-
-  PyValue(PyValue &&other) noexcept : Value(other.Value) {
-    other.Value = nullptr;
-  }
-  
-  PyValue &operator=(PyValue &&other) noexcept {
-    if (this != &other) {
-      Value = other.Value;
-      other.Value = nullptr;
-    }
-    return *this;
-  }
-
-  PyValue(LLVMValueRef value) : Value(value) {}
-};
-
-
-class PyModule {
-private:
-  LLVMModuleRef module;
-
-public:
-  explicit PyModule(const std::string &id) {
-    module = LLVMModuleCreateWithName(id.c_str());
-    if (!module) {
-      throw std::runtime_error("Failed to create LLVM module");
-    }
-  }
-
-  ~PyModule() {
-    if (module) 
-      LLVMDisposeModule(module);
-  }
-
-  PyModule(const PyModule &) = delete;
-  PyModule &operator=(const PyModule &) = delete;
-
-  PyModule(PyModule &&other) noexcept : module(other.module) {
-    other.module = nullptr;
-  }
-	
-  PyModule &operator=(PyModule &&other) noexcept {
-    if (this != &other) {
-      if (module) {
-        LLVMDisposeModule(module);
-      }
-      module = other.module;
-      other.module = nullptr;
-    }
-    return *this;
-  }
-
-  LLVMModuleRef get() {
-    return module;
-  }
-
-  void setModuleIdentifier(const std::string &identifier) {
-    LLVMSetModuleIdentifier(module, identifier.c_str(), identifier.size());
-  }
-
-  std::string getModuleIdentifier() const {
-    size_t len;
-    const char *identifier = LLVMGetModuleIdentifier(module, &len);
-    return std::string(identifier, len);
-  }
-};
 
 
 void populateCore(nb::module_ &m) {
@@ -425,9 +336,6 @@ void populateCore(nb::module_ &m) {
   // TODO LLVMFastMathFlags
 
 
-
-
-
   
 
   // TODO it seems it has no effect in python binding
@@ -444,7 +352,9 @@ void populateCore(nb::module_ &m) {
   // m.def("create_message", &LLVMCreateMessage, "message"_a);
   // m.def("dispose_message", &LLVMDisposeMessage, "message"_a); // error, may need a wrapper for created message
 
-  
+  nb::class_<PyContext>(m, "Context", "Context")
+      .def(nb::init<>())
+      .def_static("get_global_context", &PyContext::getGlobalContext);
   
 
   nb::class_<PyValue>(m, "Value", "Value");
