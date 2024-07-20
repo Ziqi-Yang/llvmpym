@@ -368,8 +368,8 @@ void populateCore(nb::module_ &m) {
         "NB: Attribute names and/or id are subject to change without"
         "going through the C API deprecation cycle.");
 
-  // m.def("get_last_enum_attribute_kind", &LLVMGetLastEnumAttributeKind);
-  
+  m.def("get_last_enum_attribute_kind", &LLVMGetLastEnumAttributeKind);
+
 
   nb::class_<PyContext>(m, "Context",
                         "Contexts are execution states for the core LLVM IR system.\n\n"
@@ -416,9 +416,74 @@ void populateCore(nb::module_ &m) {
       .def("get_md_kind_id",
            [](PyContext &c, const std::string &name) {
              return LLVMGetMDKindIDInContext(c.get(), name.c_str(), name.size());
-           }, "name"_a);
+           }, "name"_a)
+      .def("create_enum_attribute",
+           [](PyContext &c, unsigned kindID, uint64_t val) {
+             return PyEnumAttribute(LLVMCreateEnumAttribute(c.get(), kindID, val));
+           }, "kind_id"_a, "val"_a,
+           "Create an enum attribute.")
+      .def("create_type_attribute",
+           [](PyContext &context, unsigned kind_id, PyType &type) {
+             return PyTypeAttribute(LLVMCreateTypeAttribute(context.get(), kind_id, type.get()));
+           }, "kind_id"_a, "type"_a,
+           "Create a type attribute");
   
+  nb::class_<PyType>(m, "Type", "Type");
+  nb::class_<PyAttribute>(m, "Attribute", "Attribute")
+        .def("is_enum", [](PyAttribute &attr) {
+          return LLVMIsEnumAttribute(attr.get()) != 0;
+        })
+        .def("is_string", [](PyAttribute &attr) {
+          return LLVMIsStringAttribute(attr.get()) != 0;
+        })
+        .def("is_type", [](PyAttribute &attr) {
+          return LLVMIsTypeAttribute(attr.get()) != 0;
+        });
+  nb::class_<PyEnumAttribute, PyAttribute>(m, "EnumAttribute", "EnumAttribute")
+      .def("__init__",
+           [](PyEnumAttribute *t, PyContext &c, unsigned kindID, uint64_t val) {
+             new (t) PyEnumAttribute(LLVMCreateEnumAttribute(c.get(), kindID, val));
+           }, "context"_a, "kind_id"_a, "val"_a)
+      .def_prop_ro("kind",
+                   [](PyEnumAttribute &attr) {
+                     return LLVMGetEnumAttributeKind(attr.get());
+                   }, "attr"_a)
+      .def_prop_ro("value",
+                   [](PyEnumAttribute &attr) {
+                     return LLVMGetEnumAttributeValue(attr.get());
+                   });
 
+  nb::class_<PyTypeAttribute, PyAttribute>(m, "TypeAttribute", "TypeAttribute")
+      .def("__init__",
+           [](PyTypeAttribute *t, PyContext &context, unsigned kind_id, PyType &type) {
+             new (t) PyTypeAttribute(LLVMCreateTypeAttribute(context.get(), kind_id, type.get()));
+           }, "context"_a, "kind_id"_a, "type"_a)
+      .def_prop_ro("value",
+                   [](PyTypeAttribute &ta){
+                     return PyType(LLVMGetTypeAttributeValue(ta.get()));
+                   }, "Get the type attribute's value.");
+
+  nb::class_<PyStringAttribute, PyAttribute>(m, "StringAttribute", "StringAttribute")
+      .def("__init__",
+           [](PyTypeAttribute *t, PyContext &c, const std::string &kind, const std::string &value) {
+             new (t) PyStringAttribute(LLVMCreateStringAttribute(c.get(),
+                                                               kind.c_str(), kind.size(),
+                                                               value.c_str(), value.size()));
+           }, "context"_a, "kind"_a, "value"_a)
+      .def_prop_ro("kind",
+                   [](PyStringAttribute &ta) {
+                     unsigned length;
+                     const char *kind = LLVMGetStringAttributeKind(ta.get(), &length);
+                     return std::string(kind, length);
+                   })
+      .def_prop_ro("value",
+                   [](PyStringAttribute &ta) {
+                     unsigned length;
+                     const char *value = LLVMGetStringAttributeValue(ta.get(), &length);
+                     return std::string(value, length);
+                   }, "Get the type attribute's value.");
+  
+  
   nb::class_<PyDiagnosticInfo>(m, "DiagnosticInfo", "DiagnosticInfo")
       // .def(nb::init<>()) // NOTE currently no constructor function for python, we'll see
       .def_prop_ro("description", // TODO see docstring, may need LLVMDisposeMessage to free the string (destructor)

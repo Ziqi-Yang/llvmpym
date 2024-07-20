@@ -71,8 +71,28 @@ enum class PyLLVMFastMathFlags {
 
 
 DEFINE_PY_WRAPPER_CLASS(PyValue, LLVMValueRef, value)
+DEFINE_PY_WRAPPER_CLASS(PyType, LLVMTypeRef, type)
 DEFINE_PY_WRAPPER_CLASS(PyDiagnosticInfo, LLVMDiagnosticInfoRef, diagnosticInfo)
 DEFINE_PY_WRAPPER_CLASS(PyAttribute, LLVMAttributeRef, attribute)
+
+class PyEnumAttribute : public PyAttribute {
+public:
+  using PyAttribute::PyAttribute;
+};
+
+
+class PyTypeAttribute : public PyAttribute {
+public:
+  using PyAttribute::PyAttribute;
+};
+
+class PyStringAttribute : public PyAttribute {
+public:
+  using PyAttribute::PyAttribute;
+};
+
+
+
 
 
 class PyContext : public NonCopyable {
