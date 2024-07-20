@@ -352,6 +352,25 @@ void populateCore(nb::module_ &m) {
   // m.def("create_message", &LLVMCreateMessage, "message"_a);
   // m.def("dispose_message", &LLVMDisposeMessage, "message"_a); // error, may need a wrapper for created message
 
+
+  m.def("set_mk_kind_id", [](const std::string &name) {
+    return LLVMGetMDKindID(name.c_str(), name.size());
+  }, "name"_a);
+
+  m.def("get_enum_attribute_kind_for_name", [](const std::string &name){
+    return LLVMGetEnumAttributeKindForName(name.c_str(), name.size());
+  }, "name"_a,
+        "Return an unique id given the name of a enum attribute,"
+        "or 0 if no attribute by that name exists.\n\n"
+        "See http://llvm.org/docs/LangRef.html#parameter-attributes"
+        "and http://llvm.org/docs/LangRef.html#function-attributes"
+        "for the list of available attributes.\n\n"
+        "NB: Attribute names and/or id are subject to change without"
+        "going through the C API deprecation cycle.");
+
+  // m.def("get_last_enum_attribute_kind", &LLVMGetLastEnumAttributeKind);
+  
+
   nb::class_<PyContext>(m, "Context",
                         "Contexts are execution states for the core LLVM IR system.\n\n"
                         "Most types are tied to a context instance. Multiple contexts can"
@@ -393,7 +412,26 @@ void populateCore(nb::module_ &m) {
              return LLVMContextSetYieldCallback(c.get(), callback, opaqueHandle);
            },
            "callback"_a, "opaque_handle"_a,
-           "Set the yield callback function for this context.");
+           "Set the yield callback function for this context.")
+      .def("get_md_kind_id",
+           [](PyContext &c, const std::string &name) {
+             return LLVMGetMDKindIDInContext(c.get(), name.c_str(), name.size());
+           }, "name"_a);
+  
+
+  nb::class_<PyDiagnosticInfo>(m, "DiagnosticInfo", "DiagnosticInfo")
+      // .def(nb::init<>()) // NOTE currently no constructor function for python, we'll see
+      .def_prop_ro("description", // TODO see docstring, may need LLVMDisposeMessage to free the string (destructor)
+                   [](PyDiagnosticInfo &d) {
+                     return LLVMGetDiagInfoDescription(d.get());
+                   },
+                   "Return a string representation of the DiagnosticInfo.")
+      .def_prop_ro("severity",
+                   [](PyDiagnosticInfo &d) {
+                     return LLVMGetDiagInfoSeverity(d.get());
+                   },
+                   "Return an enum LLVMDiagnosticSeverity.");
+
        
 
   nb::class_<PyValue>(m, "Value", "Value");

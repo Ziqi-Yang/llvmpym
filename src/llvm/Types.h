@@ -4,6 +4,22 @@
 #include <llvm-c/Core.h>
 #include <utility>
 
+/*
+  We don't define MoveOnly class to also give `Move` operation a default method
+  is because when the sub-class has a custom destructor, the compiler will not
+  automatically generate a move constructor or move assignment operator
+ */
+class NonCopyable {
+public:
+  NonCopyable(const NonCopyable &) = delete;
+  NonCopyable &operator=(const NonCopyable &) = delete;
+
+protected:
+  NonCopyable() = default;
+  virtual ~NonCopyable() = default;
+};
+
+
 #define DEFINE_MOVE_SEMANTICS(ClassName) \
   ClassName(ClassName&& other) noexcept { \
     move(std::move(other)); \
@@ -14,6 +30,27 @@
     } \
     return *this; \
   }
+
+#define DEFINE_PY_WRAPPER_CLASS(ClassName, UnderlyingType, UnderlyingName) \
+  class ClassName : public NonCopyable { \
+  public: \
+    explicit ClassName(UnderlyingType UnderlyingName) \
+    : UnderlyingName(UnderlyingName) {} \
+    \
+    DEFINE_MOVE_SEMANTICS(ClassName) \
+    \
+    void move(ClassName &&other) noexcept { \
+      UnderlyingName = std::exchange(other.UnderlyingName, nullptr); \
+    } \
+    \
+    UnderlyingType get() { \
+      return UnderlyingName; \
+    } \
+    \
+  private: \
+    UnderlyingType UnderlyingName; \
+  };
+
 
 enum class PyAttributeIndex {
   Return = LLVMAttributeReturnIndex,
@@ -32,36 +69,10 @@ enum class PyLLVMFastMathFlags {
   All = LLVMFastMathAll
 };
 
-/*
-  We don't define MoveOnly class to also give `Move` operation a default method
-  is because when the sub-class has a custom destructor, the compiler will not
-  automatically generate a move constructor or move assignment operator
-*/
-class NonCopyable {
-public:
-  NonCopyable(const NonCopyable &) = delete;
-  NonCopyable &operator=(const NonCopyable &) = delete;
 
-protected:
-  NonCopyable() = default;
-  virtual ~NonCopyable() = default;
-};
-
-
-class PyValue : public NonCopyable {
-public:
-  explicit PyValue(LLVMValueRef value) : value(value) {}
-
-  DEFINE_MOVE_SEMANTICS(PyValue)
-
-  void move(PyValue &&other) noexcept {
-    value = std::exchange(other.value, nullptr);
-  }
-  
-private:
-  LLVMValueRef value;
-};
-
+DEFINE_PY_WRAPPER_CLASS(PyValue, LLVMValueRef, value)
+DEFINE_PY_WRAPPER_CLASS(PyDiagnosticInfo, LLVMDiagnosticInfoRef, diagnosticInfo)
+DEFINE_PY_WRAPPER_CLASS(PyAttribute, LLVMAttributeRef, attribute)
 
 
 class PyContext : public NonCopyable {
@@ -105,19 +116,6 @@ private:
   }
 };
 
-
-
-class PyDiagnosticInfo : public NonCopyable {
-public:
-  DEFINE_MOVE_SEMANTICS(PyDiagnosticInfo)
-
-  void move(PyDiagnosticInfo &&other) noexcept {
-    diagnosticInfo = std::exchange(other.diagnosticInfo, nullptr);
-  }
-
-private:
-  LLVMDiagnosticInfoRef diagnosticInfo;
-};
 
 
 
