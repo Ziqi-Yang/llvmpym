@@ -353,9 +353,8 @@ void populateCore(nb::module_ &m) {
   // m.def("dispose_message", &LLVMDisposeMessage, "message"_a); // error, may need a wrapper for created message
 
   nb::class_<PyContext>(m, "Context", "Context")
-      .def(nb::init<>())
-      .def_static("get_global_context", &PyContext::getGlobalContext);
-  
+        .def(nb::init<>())
+        .def_static("get_global_context", &PyContext::getGlobalContext);
 
   nb::class_<PyValue>(m, "Value", "Value");
     

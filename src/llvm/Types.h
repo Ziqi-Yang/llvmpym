@@ -1,6 +1,9 @@
 #ifndef LLVMPYM_TYPES_H
 #define LLVMPYM_TYPES_H
 
+#include <llvm-c/Core.h>
+#include <utility>
+
 enum class PyAttributeIndex {
   Return = LLVMAttributeReturnIndex,
   Function = LLVMAttributeFunctionIndex
@@ -18,75 +21,79 @@ enum class PyLLVMFastMathFlags {
   All = LLVMFastMathAll
 };
 
-
-template <typename Derived>
-class MoveOnly {
+/*
+  We don't define MoveOnly class to also give `Move` operation a default method
+  is because when the sub-class has a custom destructor, the compiler will not
+  automatically generate a move constructor or move assignment operator
+*/
+class NonCopyable {
 public:
-  MoveOnly(const MoveOnly &) = delete;
-  MoveOnly &operator=(const MoveOnly &) = delete;
+  NonCopyable(const NonCopyable &) = delete;
+  NonCopyable &operator=(const NonCopyable &) = delete;
 
-  MoveOnly(MoveOnly &&other) noexcept {
-    static_cast<Derived*>(this)->moveImpl(std::move(other));
+protected:
+  NonCopyable() = default;
+  virtual ~NonCopyable() = default;
+};
+
+
+class PyValue : public NonCopyable {
+public:
+  explicit PyValue(LLVMValueRef value) : value(value) {}
+
+  PyValue(PyValue&& other) noexcept {
+    move(std::move(other));
   }
 
-  MoveOnly &operator=(MoveOnly &&other) noexcept {
+  PyValue& operator=(PyValue&& other) noexcept {
     if (this != &other) {
-      static_cast<Derived*>(this)->moveImpl(std::move(other));
+      move(std::move(other));
     }
     return *this;
   }
 
-protected:
-  MoveOnly() = default;
-  virtual ~MoveOnly() = default;
-
-private:
-  void moveImpl(MoveOnly &&other) noexcept {
-    static_cast<Derived*>(this)->move(std::move(static_cast<Derived&>(other)));
-  }
-};
-
-
-
-class PyValue : public MoveOnly<PyValue> {
-public:
-  PyValue(LLVMValueRef value) : value(value) {}
   void move(PyValue &&other) noexcept {
-    value = other.value;
-    other.value = nullptr;
+    value = std::exchange(other.value, nullptr);
   }
-
+  
 private:
   LLVMValueRef value;
-
 };
 
 
 
-class PyContext : public MoveOnly<PyContext> {
-public:
-  explicit PyContext() {
-    context = LLVMContextCreate();
-  }
 
-  explicit PyContext(LLVMContextRef context) {
-    context = context;
-  }
+
+class PyContext : public NonCopyable {
+public:
+  explicit PyContext() : context(LLVMContextCreate()) {}
+
+  explicit PyContext(LLVMContextRef context) : context(context) {}
 
   static PyContext getGlobalContext() {
     return PyContext(LLVMGetGlobalContext());
   }
-  
+
   ~PyContext() {
     cleanup();
   }
 
+  PyContext(PyContext&& other) noexcept {
+    move(std::move(other));
+  }
+
+  PyContext& operator=(PyContext&& other) noexcept {
+    if (this != &other) {
+      move(std::move(other));
+    }
+    return *this;
+  }
+
   void move(PyContext &&other) noexcept {
     cleanup();
-    context = other.context;
-    other.context = nullptr;
+    context = std::exchange(other.context, nullptr);
   }
-  
+
 private:
   LLVMContextRef context;
 
@@ -99,8 +106,7 @@ private:
 };
 
 
-
-class PyModule : public MoveOnly<PyModule> {
+class PyModule : public NonCopyable {
 public:
   explicit PyModule(const std::string &id) {
     module = LLVMModuleCreateWithName(id.c_str());
@@ -114,16 +120,27 @@ public:
   }
 
   
-  void move(PyModule &&other) noexcept {
-    cleanup();
-    module = other.module;
-    other.module = nullptr;
-  }
-
   LLVMModuleRef get() {
     return module;
   }
 
+
+  PyModule(PyModule&& other) noexcept {
+    move(std::move(other));
+  }
+
+  PyModule& operator=(PyModule&& other) noexcept {
+    if (this != &other) {
+      move(std::move(other));
+    }
+    return *this;
+  }
+
+  void move(PyModule &&other) noexcept {
+    cleanup();
+    module = std::exchange(other.module, nullptr);
+  }
+  
 private:
   LLVMModuleRef module;
 
@@ -134,7 +151,6 @@ private:
     }
   }
 
-  
 public:
   void setModuleIdentifier(const std::string &identifier) {
     LLVMSetModuleIdentifier(module, identifier.c_str(), identifier.size());
@@ -146,7 +162,6 @@ public:
     return std::string(identifier, len);
   }
 };
-
 
 
 

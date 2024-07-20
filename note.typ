@@ -38,3 +38,15 @@ directory(e.g. `.venv/lib/python3.12/site-packages/llvmpym/llvmpym_ext`) to corr
     + and check two anonymous enum values just before its typedef
     
 == Multi-thread
+
+
+
+
+= Example
+== Example custom initiator
+```cpp
+.def("__init__",
+     [](PyContext *t, PyContext &&other) {
+       new (t) PyContext(std::move(other));
+     });
+```
