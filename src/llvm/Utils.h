@@ -8,5 +8,12 @@
     RAW.push_back(w.get()); \
   }
 
+#define WRAP_VECTOR_FROM_DEST(TYPE, NUMBER, RES, DEST) \
+  std::vector<TYPE> RES; \
+  RES.reserve(NUMBER); \
+  for (unsigned i = 0; i < NUMBER; i++) { \
+    RES.push_back(TYPE(DEST[i])); \
+  }
+
 
 #endif

@@ -494,8 +494,7 @@ void bindGlobalFunctions(nb::module_ &m) {
   m.def("t_ppcfp128", [](){ return PyTypeReal(LLVMPPCFP128Type()); },
         "Get type from global context.");
 
-
-  m.def("create_function_type",
+  m.def("t_function",
         [](PyType &returnType, std::vector<PyType> &paramTypes, bool isVarArg) {
           unsigned param_count = paramTypes.size();
           UNWRAP_VECTOR_WRAPPER_CLASS(paramTypes, rawParamTypes, param_count)
@@ -503,6 +502,15 @@ void bindGlobalFunctions(nb::module_ &m) {
                                                  param_count, isVarArg));
         }, "return_type"_a, "param_types"_a, "is_var_arg"_a,
         "Obtain a function type consisting of a specified signature.");
+
+  m.def("t_struct",
+        [](std::vector<PyType> elementTypes, bool packed) {
+          unsigned elem_count = elementTypes.size();
+          UNWRAP_VECTOR_WRAPPER_CLASS(elementTypes, rawElemTypes, elem_count);
+          return PyTypeStruct(LLVMStructType(rawElemTypes.data(), elem_count, packed));
+        },
+        "element_types"_a, "packed"_a,
+        "Create a new structure type in the global context.");
 }
 
 
@@ -559,17 +567,31 @@ void bindTypeClasses(nb::module_ &m) {
       .def_prop_ro("param_types",
                    [](PyTypeFunction &t) {
                      unsigned param_number = LLVMCountParamTypes(t.get());
-                     std::vector<PyType> res;
-                     res.reserve(param_number);
                      LLVMTypeRef *dest;
                      LLVMGetParamTypes(t.get(), dest);
-                     for (unsigned i = 0; i < param_number; i++) {
-                       res.push_back(PyType(dest[i]));
-                     }
+                     WRAP_VECTOR_FROM_DEST(PyTypeFunction, param_number, res, dest);
                      return res;
                    },
                    "Obtain the types of a function's parameters.");
   
+  TypeStructClass
+      .def_prop_ro("name", [](PyTypeStruct &t) { return LLVMGetStructName(t.get()); })
+      .def_prop_ro("elem_number", [](PyTypeStruct &t) { return LLVMCountStructElementTypes(t.get()); })
+      .def_prop_ro("elem_types",
+                   [](PyTypeStruct &t) {
+                     unsigned num = LLVMCountStructElementTypes(t.get());
+                     LLVMTypeRef *dest;
+                     LLVMGetStructElementTypes(t.get(), dest);
+                     WRAP_VECTOR_FROM_DEST(PyTypeStruct, num, res, dest);
+                     return res;
+                   })
+      .def("set_body",
+           [](PyTypeStruct &t, std::vector<PyType> elementTypes, bool packed) {
+             unsigned elem_count = elementTypes.size();
+             UNWRAP_VECTOR_WRAPPER_CLASS(elementTypes, rawElemTypes, elem_count);
+             return LLVMStructSetBody(t.get(), rawElemTypes.data(), elem_count, packed);
+           },
+           "Set the contents of a structure type.");
 }
 
 
@@ -849,7 +871,13 @@ void populateCore(nb::module_ &m) {
              UNWRAP_VECTOR_WRAPPER_CLASS(elementTypes, rawElemTypes, elem_count);
              return PyTypeStruct(LLVMStructTypeInContext(c.get(), rawElemTypes.data(),
                                                   elem_count, packed));
-           })
+           }, "element_types"_a, "packed"_a,
+           "Create a new structure type in context.")
+      .def("t_struct",
+           [](PyContext &c, std::string name) {
+             return PyTypeStruct(LLVMStructCreateNamed(c.get(), name.c_str()));
+           },
+           "Create an empty structure in the context having a specified name.")
       .def_prop_rw("should_discard_value_names", // TODO convert LLVMBool to bool
                    [](PyContext &c) -> bool { return LLVMContextShouldDiscardValueNames(c.get()) != 0; },
                    [](PyContext &c, bool discard) {
@@ -1131,13 +1159,10 @@ void populateCore(nb::module_ &m) {
            "Obtain the number of operands for named metadata in a module.")
       .def("get_named_metadata_operands",
            [](PyModule &m, std::string &name) {
-             LLVMValueRef *dest;
-             std::vector<PyValue> res;
-             LLVMGetNamedMetadataOperands(m.get(), name.c_str(), dest);
              int num = LLVMGetNamedMetadataNumOperands(m.get(), name.c_str());
-             for (size_t i = 0; i < num; i ++) {
-               res.push_back(PyValue(dest[i]));
-             }
+             LLVMValueRef *dest;
+             LLVMGetNamedMetadataOperands(m.get(), name.c_str(), dest);
+             WRAP_VECTOR_FROM_DEST(PyValue, num, res, dest);
              return res;
            }, "name"_a,
            "Obtain the named metadata operands for a module.\n\n"
