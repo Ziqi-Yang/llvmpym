@@ -148,10 +148,17 @@ protected:
       macro(PyInstruction, PyAtomicRMWInst)                  \
       macro(PyInstruction, PyFenceInst)
 
-// #define PY_FOR_EACH_TYPE_SUBCLASS(macro) \
-//   macro(PyType, PyArgument)                           \
-//   macro(PyType, PyBasicBlock)                         \
-
+#define PY_FOR_EACH_TYPE_SUBCLASS(macro) \
+  macro(PyType, PyTypeInt) \
+  macro(PyType, PyTypeReal) \
+  macro(PyType, PyTypeFunction) \
+  macro(PyType, PyTypeSequence) \
+    macro(PyTypeSequence, PyTypeArray) \
+    macro(PyTypeSequence, PyTypePointer) \
+    macro(PyTypeSequence, PyTypeVector) \
+  macro(PyType, PyTypeVoid) \
+  macro(PyType, PyTypeLabel) \
+  macro(PyType, PyTypeOpaque)
 
 
 enum class PyAttributeIndex {
@@ -187,6 +194,7 @@ DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyTypeAttribute);
 DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyStringAttribute);
 
 PY_FOR_EACH_VALUE_SUBCLASS(DEFINE_DIRECT_SUB_CLASS)
+PY_FOR_EACH_TYPE_SUBCLASS(DEFINE_DIRECT_SUB_CLASS)
 
 class PyContext : public NonCopyable {
 public:

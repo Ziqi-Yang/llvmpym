@@ -11,8 +11,7 @@
 namespace nb = nanobind;
 using namespace nb::literals;
 
-
-void populateCore(nb::module_ &m) {
+void bindEnums(nb::module_ &m) {
   nb::enum_<LLVMOpcode>(m, "Opcode", "Opcode")
       .value("Ret", LLVMOpcode::LLVMRet)
       .value("Br", LLVMOpcode::LLVMBr)
@@ -407,10 +406,12 @@ void populateCore(nb::module_ &m) {
        .value("All", PyLLVMFastMathFlags::All);
 
   // TODO LLVMFastMathFlags
+}
 
 
+
+void bindGlobalFunctions(nb::module_ &m) {
   
-
   // TODO it seems it has no effect in python binding
   m.def("shutdown", &LLVMShutdown, "Deallocate and destroy all ManagedStatic variables.");
   
@@ -452,17 +453,261 @@ void populateCore(nb::module_ &m) {
            bool hasSideEffects, bool isAlignStack, LLVMInlineAsmDialect dialect,
            bool canThrow){
           return PyInlineAsm(LLVMGetInlineAsm
-                   (ty.get(), asmString.c_str(), asmString.size(),
-                    constraints.c_str(), constraints.size(),
-                    hasSideEffects, isAlignStack, dialect, canThrow));
+                               (ty.get(), asmString.c_str(), asmString.size(),
+                                constraints.c_str(), constraints.size(),
+                                hasSideEffects, isAlignStack, dialect, canThrow));
         }, "type"_a, "asm"_a, "constraints"_a, "has_side_effects"_a,
         "is_align_stack"_a, "dialect"_a, "can_throw"_a,
         "Create the specified uniqued inline asm string.");
+}
 
 
-  // global ends
-  // ===========================================================================
-  // class definitions
+
+
+
+void bindTypeClasses(nb::module_ &m) {
+  nb::class_<PyType>(m, "Type", "Type");
+  
+  auto TypeIntClass = nb::class_<PyTypeInt, PyType>(m, "TypeInt", "TypeInt");
+  auto TypeRealClass = nb::class_<PyTypeReal, PyType>(m, "TypeReal", "TypeReal");
+  auto TypeFunctionClass = nb::class_<PyTypeFunction, PyType>(m, "TypeFunction", "TypeFunction");
+  auto TypeSequenceClass = nb::class_<PyTypeSequence, PyType>(m, "TypeSequence", "TypeSequence");
+  auto TypeArrayClass = nb::class_<PyTypeArray, PyTypeSequence>(m, "TypeArray", "TypeArray");
+  auto TypePointerClass = nb::class_<PyTypePointer, PyTypeSequence>(m, "TypePointer", "TypePointer");
+  auto TypeVectorClass = nb::class_<PyTypeVector, PyTypeSequence>(m, "TypeVector", "TypeVector");
+  auto TypeVoidClass = nb::class_<PyTypeVoid, PyType>(m, "TypeVoid", "TypeVoid");
+  auto TypeLabelClass = nb::class_<PyTypeLabel, PyType>(m, "TypeLabel", "TypeLabel");
+  auto TypeOpaqueClass = nb::class_<PyTypeOpaque, PyType>(m, "TypeOpaque", "TypeOpaque");
+}
+
+
+
+
+
+
+void bindValueClasses(nb::module_ &m) {
+  nb::class_<PyValue>(m, "Value", "Value");
+  
+  // PyValue sub-classes (see Types.h)
+  auto ArgumentClass = nb::class_<PyArgument, PyValue>(m, "Argument", "Argument");
+  auto BasicBlockClass = nb::class_<PyBasicBlock, PyValue>(m, "BasicBlock", "BasicBlock");
+  auto InlineAsmClass = nb::class_<PyInlineAsm, PyValue>(m, "InlineAsm", "InlineAsm");
+  auto UserClass = nb::class_<PyUser, PyValue>(m, "User", "User");
+  auto ConstantClass = nb::class_<PyConstant, PyUser>(m, "Constant", "Constant");
+  auto BlockAddressClass = nb::class_<PyBlockAddress, PyConstant>(m, "BlockAddress", "BlockAddress");
+  auto ConstantAggregateZeroClass = nb::class_<PyConstantAggregateZero, PyConstant>(m, "ConstantAggregateZero", "ConstantAggregateZero");
+  auto ConstantArrayClass = nb::class_<PyConstantArray, PyConstant>(m, "ConstantArray", "ConstantArray");
+  auto ConstantDataSequentialClass = nb::class_<PyConstantDataSequential, PyConstant>(m, "ConstantDataSequential", "ConstantDataSequential");
+  auto ConstantDataArrayClass = nb::class_<PyConstantDataArray, PyConstantDataSequential>(m, "ConstantDataArray", "ConstantDataArray");
+  auto ConstantDataVectorClass = nb::class_<PyConstantDataVector, PyConstantDataSequential>(m, "ConstantDataVector", "ConstantDataVector");
+  auto ConstantExprClass = nb::class_<PyConstantExpr, PyConstant>(m, "ConstantExpr", "ConstantExpr");
+  auto ConstantFPClass = nb::class_<PyConstantFP, PyConstant>(m, "ConstantFP", "ConstantFP");
+  auto ConstantIntClass = nb::class_<PyConstantInt, PyConstant>(m, "ConstantInt", "ConstantInt");
+  auto ConstantPointerNullClass = nb::class_<PyConstantPointerNull, PyConstant>(m, "ConstantPointerNull", "ConstantPointerNull");
+  auto ConstantStructClass = nb::class_<PyConstantStruct, PyConstant>(m, "ConstantStruct", "ConstantStruct");
+  auto ConstantTokenNoneClass = nb::class_<PyConstantTokenNone, PyConstant>(m, "ConstantTokenNone", "ConstantTokenNone");
+  auto ConstantVectorClass = nb::class_<PyConstantVector, PyConstant>(m, "ConstantVector", "ConstantVector");
+  auto GlobalValueClass = nb::class_<PyGlobalValue, PyConstant>(m, "GlobalValue", "GlobalValue");
+  auto GlobalAliasClass = nb::class_<PyGlobalAlias, PyGlobalValue>(m, "GlobalAlias", "GlobalAlias");
+  auto GlobalObjectClass = nb::class_<PyGlobalObject, PyGlobalValue>(m, "GlobalObject", "GlobalObject");
+  auto FunctionClass = nb::class_<PyFunction, PyGlobalObject>(m, "Function", "Function");
+  auto GlobalVariableClass = nb::class_<PyGlobalVariable, PyGlobalObject>(m, "GlobalVariable", "GlobalVariable");
+  auto GlobalIFuncClass = nb::class_<PyGlobalIFunc, PyGlobalObject>(m, "GlobalIFunc", "GlobalIFunc");
+  auto UndefValueClass = nb::class_<PyUndefValue, PyConstant>(m, "UndefValue", "UndefValue");
+  auto PoisonValueClass = nb::class_<PyPoisonValue, PyConstant>(m, "PoisonValue", "PoisonValue");
+  auto InstructionClass = nb::class_<PyInstruction, PyUser>(m, "Instruction", "Instruction");
+  auto UnaryOperatorClass = nb::class_<PyUnaryOperator, PyInstruction>(m, "UnaryOperator", "UnaryOperator");
+  auto BinaryOperatorClass = nb::class_<PyBinaryOperator, PyInstruction>(m, "BinaryOperator", "BinaryOperator");
+  auto CallInstClass = nb::class_<PyCallInst, PyInstruction>(m, "CallInst", "CallInst");
+  auto IntrinsicInstClass = nb::class_<PyIntrinsicInst, PyCallInst>(m, "IntrinsicInst", "IntrinsicInst");
+  auto DbgInfoIntrinsicClass = nb::class_<PyDbgInfoIntrinsic, PyIntrinsicInst>(m, "DbgInfoIntrinsic", "DbgInfoIntrinsic");
+  auto DbgVariableIntrinsicClass = nb::class_<PyDbgVariableIntrinsic, PyDbgInfoIntrinsic>(m, "DbgVariableIntrinsic", "DbgVariableIntrinsic");
+  auto DbgDeclareInstClass = nb::class_<PyDbgDeclareInst, PyDbgVariableIntrinsic>(m, "DbgDeclareInst", "DbgDeclareInst");
+  auto DbgLabelInstClass = nb::class_<PyDbgLabelInst, PyIntrinsicInst>(m, "DbgLabelInst", "DbgLabelInst");
+  auto mIntrinsicClass = nb::class_<MemIntrinsic, PyIntrinsicInst>(m, "mIntrinsic", "mIntrinsic");
+  auto MemCpyInstClass = nb::class_<PyMemCpyInst, PyIntrinsicInst>(m, "MemCpyInst", "MemCpyInst");
+  auto MemMoveInstClass = nb::class_<PyMemMoveInst, PyIntrinsicInst>(m, "MemMoveInst", "MemMoveInst");
+  auto MemSetInstClass = nb::class_<PyMemSetInst, PyIntrinsicInst>(m, "MemSetInst", "MemSetInst");
+  auto CmpInstClass = nb::class_<PyCmpInst, PyInstruction>(m, "CmpInst", "CmpInst");
+  auto FCmpInstClass = nb::class_<PyFCmpInst, PyCmpInst>(m, "FCmpInst", "FCmpInst");
+  auto ICmpInstClass = nb::class_<PyICmpInst, PyCmpInst>(m, "ICmpInst", "ICmpInst");
+  auto ExtractElementInstClass = nb::class_<PyExtractElementInst, PyInstruction>(m, "ExtractElementInst", "ExtractElementInst");
+  auto GetElementPtrInstClass = nb::class_<PyGetElementPtrInst, PyInstruction>(m, "GetElementPtrInst", "GetElementPtrInst");
+  auto InsertElementInstClass = nb::class_<PyInsertElementInst, PyInstruction>(m, "InsertElementInst", "InsertElementInst");
+  auto InsertValueInstClass = nb::class_<PyInsertValueInst, PyInstruction>(m, "InsertValueInst", "InsertValueInst");
+  auto LandingPadInstClass = nb::class_<PyLandingPadInst, PyInstruction>(m, "LandingPadInst", "LandingPadInst");
+  auto PHINodeClass = nb::class_<PyPHINode, PyInstruction>(m, "PHINode", "PHINode");
+  auto SelectInstClass = nb::class_<PySelectInst, PyInstruction>(m, "SelectInst", "SelectInst");
+  auto ShuffleVectorInstClass = nb::class_<PyShuffleVectorInst, PyInstruction>(m, "ShuffleVectorInst", "ShuffleVectorInst");
+  auto StoreInstClass = nb::class_<PyStoreInst, PyInstruction>(m, "StoreInst", "StoreInst");
+  auto BranchInstClass = nb::class_<PyBranchInst, PyInstruction>(m, "BranchInst", "BranchInst");
+  auto IndirectBrInstClass = nb::class_<PyIndirectBrInst, PyInstruction>(m, "IndirectBrInst", "IndirectBrInst");
+  auto InvokeInstClass = nb::class_<PyInvokeInst, PyInstruction>(m, "InvokeInst", "InvokeInst");
+  auto ReturnInstClass = nb::class_<PyReturnInst, PyInstruction>(m, "ReturnInst", "ReturnInst");
+  auto SwitchInstClass = nb::class_<PySwitchInst, PyInstruction>(m, "SwitchInst", "SwitchInst");
+  auto UnreachableInstClass = nb::class_<PyUnreachableInst, PyInstruction>(m, "UnreachableInst", "UnreachableInst");
+  auto ResumeInstClass = nb::class_<PyResumeInst, PyInstruction>(m, "ResumeInst", "ResumeInst");
+  auto CleanupReturnInstClass = nb::class_<PyCleanupReturnInst, PyInstruction>(m, "CleanupReturnInst", "CleanupReturnInst");
+  auto CatchReturnInstClass = nb::class_<PyCatchReturnInst, PyInstruction>(m, "CatchReturnInst", "CatchReturnInst");
+  auto CatchSwitchInstClass = nb::class_<PyCatchSwitchInst, PyInstruction>(m, "CatchSwitchInst", "CatchSwitchInst");
+  auto CallBrInstClass = nb::class_<PyCallBrInst, PyInstruction>(m, "CallBrInst", "CallBrInst");
+  auto FuncletPadInstClass = nb::class_<PyFuncletPadInst, PyInstruction>(m, "FuncletPadInst", "FuncletPadInst");
+  auto CatchPadInstClass = nb::class_<PyCatchPadInst, PyFuncletPadInst>(m, "CatchPadInst", "CatchPadInst");
+  auto CleanupPadInstClass = nb::class_<PyCleanupPadInst, PyFuncletPadInst>(m, "CleanupPadInst", "CleanupPadInst");
+  auto UnaryInstructionClass = nb::class_<PyUnaryInstruction, PyInstruction>(m, "UnaryInstruction", "UnaryInstruction");
+  auto AllocaInstClass = nb::class_<PyAllocaInst, PyUnaryInstruction>(m, "AllocaInst", "AllocaInst");
+  auto CastInstClass = nb::class_<PyCastInst, PyUnaryInstruction>(m, "CastInst", "CastInst");
+  auto AddrSpaceCastInstClass = nb::class_<PyAddrSpaceCastInst, PyCastInst>(m, "AddrSpaceCastInst", "AddrSpaceCastInst");
+  auto BitCastInstClass = nb::class_<PyBitCastInst, PyCastInst>(m, "BitCastInst", "BitCastInst");
+  auto FPExtInstClass = nb::class_<PyFPExtInst, PyCastInst>(m, "FPExtInst", "FPExtInst");
+  auto FPToSIInstClass = nb::class_<PyFPToSIInst, PyCastInst>(m, "FPToSIInst", "FPToSIInst");
+  auto FPToUIInstClass = nb::class_<PyFPToUIInst, PyCastInst>(m, "FPToUIInst", "FPToUIInst");
+  auto FPTruncInstClass = nb::class_<PyFPTruncInst, PyCastInst>(m, "FPTruncInst", "FPTruncInst");
+  auto IntToPtrInstClass = nb::class_<PyIntToPtrInst, PyCastInst>(m, "IntToPtrInst", "IntToPtrInst");
+  auto PtrToIntInstClass = nb::class_<PyPtrToIntInst, PyCastInst>(m, "PtrToIntInst", "PtrToIntInst");
+  auto SExtInstClass = nb::class_<PySExtInst, PyCastInst>(m, "SExtInst", "SExtInst");
+  auto SIToFPInstClass = nb::class_<PySIToFPInst, PyCastInst>(m, "SIToFPInst", "SIToFPInst");
+  auto TruncInstClass = nb::class_<PyTruncInst, PyCastInst>(m, "TruncInst", "TruncInst");
+  auto UIToFPInstClass = nb::class_<PyUIToFPInst, PyCastInst>(m, "UIToFPInst", "UIToFPInst");
+  auto ZExtInstClass = nb::class_<PyZExtInst, PyCastInst>(m, "ZExtInst", "ZExtInst");
+  auto ExtractValueInstClass = nb::class_<PyExtractValueInst, PyUnaryInstruction>(m, "ExtractValueInst", "ExtractValueInst");
+  auto LoadInstClass = nb::class_<PyLoadInst, PyUnaryInstruction>(m, "LoadInst", "LoadInst");
+  auto VAArgInstClass = nb::class_<PyVAArgInst, PyUnaryInstruction>(m, "VAArgInst", "VAArgInst");
+  auto FreezeInstClass = nb::class_<PyFreezeInst, PyUnaryInstruction>(m, "FreezeInst", "FreezeInst");
+  auto AtomicCmpXchgInstClass = nb::class_<PyAtomicCmpXchgInst, PyInstruction>(m, "AtomicCmpXchgInst", "AtomicCmpXchgInst");
+  auto AtomicRMWInstClass = nb::class_<PyAtomicRMWInst, PyInstruction>(m, "AtomicRMWInst", "AtomicRMWInst");
+  auto FenceInstClass = nb::class_<PyFenceInst, PyInstruction>(m, "FenceInst", "FenceInst");
+
+  InlineAsmClass
+    .def_prop_ro("str",
+                 [](PyInlineAsm &iasm) {
+                   size_t len;
+                   const char *str = LLVMGetInlineAsmAsmString(iasm.get(), &len);
+                   return std::string(str, len);
+                 },
+                 "Get the template string used for an inline assembly snippet.")
+    .def_prop_ro("constraint_str",
+                 [](PyInlineAsm &iasm) {
+                   size_t len;
+                   const char *str = LLVMGetInlineAsmConstraintString(iasm.get(), &len);
+                   return std::string(str, len);
+                 },
+                 "Get the raw constraint string for an inline assembly snippet.")
+    .def_prop_ro("dialect",
+                 [](PyInlineAsm &iasm) {
+                   return LLVMGetInlineAsmDialect(iasm.get());
+                 },
+                 "Get the dialect used by the inline asm snippet.")
+    .def_prop_ro("function_type",
+                 [](PyInlineAsm &iasm) {
+                   return PyType(LLVMGetInlineAsmFunctionType(iasm.get()));
+                 },
+                 "Get the function type of the inline assembly snippet. "
+                 "The same type that was passed into :func:`get_inline_asm` originally.")
+    .def_prop_ro("has_side_effects",
+                 [](PyInlineAsm &iasm) {
+                   return LLVMGetInlineAsmHasSideEffects(iasm.get()) != 0;
+                 },
+                 "Get if the inline asm snippet has side effects.")
+    .def_prop_ro("needs_aligned_stack",
+                 [](PyInlineAsm &iasm) {
+                   return LLVMGetInlineAsmNeedsAlignedStack(iasm.get()) != 0;
+                 })
+    .def_prop_ro("can_unwind",
+                 [](PyInlineAsm &iasm) {
+                   return LLVMGetInlineAsmCanUnwind(iasm.get()) != 0;
+                 });
+
+  InstructionClass
+      .def_prop_ro("debug_loc_directory",
+                   [](PyInstruction &i) {
+                     unsigned len;
+                     const char *res = LLVMGetDebugLocDirectory(i.get(), &len);
+                     return std::string(res, len);
+                   },
+                   "Return the directory of the debug location for this value")
+      .def_prop_ro("debug_loc_filename",
+                   [](PyInstruction &i) {
+                     unsigned len;
+                     const char *res = LLVMGetDebugLocFilename(i.get(), &len);
+                     return std::string(res, len);
+                   },
+                   "Return the filename of the debug location for this value.")
+      .def_prop_ro("debug_loc_line",
+                   [](PyInstruction &i) { return LLVMGetDebugLocLine(i.get()); },
+                   "Return the line number of the debug location for this value")
+      .def_prop_ro("debug_loc_column",
+                   [](PyInstruction &i) { return LLVMGetDebugLocColumn(i.get()); },
+                   "Return the column number of the debug location for this value");
+
+  GlobalVariableClass
+      .def_prop_ro("debug_loc_directory",
+                   [](PyGlobalVariable &v) {
+                     unsigned len;
+                     const char *res = LLVMGetDebugLocDirectory(v.get(), &len);
+                     return std::string(res, len);
+                   },
+                   "Return the directory of the debug location for this value")
+      .def_prop_ro("debug_loc_filename",
+                   [](PyGlobalVariable &v) {
+                     unsigned len;
+                     const char *res = LLVMGetDebugLocFilename(v.get(), &len);
+                     return std::string(res, len);
+                   },
+                   "Return the filename of the debug location for this value")
+      .def_prop_ro("debug_loc_line",
+                   [](PyGlobalVariable &v) { return LLVMGetDebugLocLine(v.get()); },
+                   "Return the line number of the debug location for this value");
+
+  FunctionClass
+      .def_prop_ro("next",
+                   [](PyFunction &f) -> std::optional<PyFunction> {
+                     auto res = LLVMGetNextFunction(f.get());
+                     if (res != nullptr)
+                       return PyFunction(res);
+                     return std::nullopt;
+                   },
+                   "Advance a Function iterator to the next Function.\n\n"
+                   "Returns NULL if the iterator was already at the end and there are no more"
+                   "functions.")
+      .def_prop_ro("previous",
+                   [](PyFunction &f) -> std::optional<PyFunction> {
+                     auto res = LLVMGetPreviousFunction(f.get());
+                     if (res != nullptr)
+                       return PyFunction(res);
+                     return std::nullopt;
+                   },
+                   "Decrement a Function iterator to the previous Function.\n\n"
+                   "Returns NULL if the iterator was already at the beginning and there are"
+                   "no previous functions.")
+      .def_prop_ro("debug_loc_directory",
+                   [](PyFunction &f) {
+                     unsigned len;
+                     const char *res = LLVMGetDebugLocDirectory(f.get(), &len);
+                     return std::string(res, len);
+                   },
+                   "Return the directory of the debug location for this value")
+      .def_prop_ro("debug_loc_filename",
+                   [](PyFunction &f) {
+                     unsigned len;
+                     const char *res = LLVMGetDebugLocFilename(f.get(), &len);
+                     return std::string(res, len);
+                   },
+                   "Return the filename of the debug location for this value")
+      .def_prop_ro("debug_loc_line",
+                   [](PyFunction &f) { return LLVMGetDebugLocLine(f.get()); },
+                   "Return the line number of the debug location for this value");
+}
+
+
+
+
+
+
+void populateCore(nb::module_ &m) {
+  bindEnums(m);
+  bindTypeClasses(m);
+  bindValueClasses(m);
 
   nb::class_<PyContext>
     (m, "Context",
@@ -537,7 +782,6 @@ void populateCore(nb::module_ &m) {
 
   
   
-  nb::class_<PyType>(m, "Type", "Type");
   nb::class_<PyAttribute>(m, "Attribute", "Attribute")
         .def("is_enum", [](PyAttribute &attr) {
           return LLVMIsEnumAttribute(attr.get()) != 0;
@@ -863,219 +1107,4 @@ void populateCore(nb::module_ &m) {
 
   // nb::class_<PyModuleFlagEntry_>(m, "ModuleFlagEntry", "ModuleFlagEntry");
   nb::class_<PyMetadata>(m, "Metadata", "Metadata");
-
-
-  // ===========================================================================
-  nb::class_<PyValue>(m, "Value", "Value");
-  
-  // PyValue sub-classes (see Types.h)
-  auto ArgumentClass = nb::class_<PyArgument, PyValue>(m, "Argument", "Argument");
-  auto BasicBlockClass = nb::class_<PyBasicBlock, PyValue>(m, "BasicBlock", "BasicBlock");
-  auto InlineAsmClass = nb::class_<PyInlineAsm, PyValue>(m, "InlineAsm", "InlineAsm");
-  auto UserClass = nb::class_<PyUser, PyValue>(m, "User", "User");
-  auto ConstantClass = nb::class_<PyConstant, PyUser>(m, "Constant", "Constant");
-  auto BlockAddressClass = nb::class_<PyBlockAddress, PyConstant>(m, "BlockAddress", "BlockAddress");
-  auto ConstantAggregateZeroClass = nb::class_<PyConstantAggregateZero, PyConstant>(m, "ConstantAggregateZero", "ConstantAggregateZero");
-  auto ConstantArrayClass = nb::class_<PyConstantArray, PyConstant>(m, "ConstantArray", "ConstantArray");
-  auto ConstantDataSequentialClass = nb::class_<PyConstantDataSequential, PyConstant>(m, "ConstantDataSequential", "ConstantDataSequential");
-  auto ConstantDataArrayClass = nb::class_<PyConstantDataArray, PyConstantDataSequential>(m, "ConstantDataArray", "ConstantDataArray");
-  auto ConstantDataVectorClass = nb::class_<PyConstantDataVector, PyConstantDataSequential>(m, "ConstantDataVector", "ConstantDataVector");
-  auto ConstantExprClass = nb::class_<PyConstantExpr, PyConstant>(m, "ConstantExpr", "ConstantExpr");
-  auto ConstantFPClass = nb::class_<PyConstantFP, PyConstant>(m, "ConstantFP", "ConstantFP");
-  auto ConstantIntClass = nb::class_<PyConstantInt, PyConstant>(m, "ConstantInt", "ConstantInt");
-  auto ConstantPointerNullClass = nb::class_<PyConstantPointerNull, PyConstant>(m, "ConstantPointerNull", "ConstantPointerNull");
-  auto ConstantStructClass = nb::class_<PyConstantStruct, PyConstant>(m, "ConstantStruct", "ConstantStruct");
-  auto ConstantTokenNoneClass = nb::class_<PyConstantTokenNone, PyConstant>(m, "ConstantTokenNone", "ConstantTokenNone");
-  auto ConstantVectorClass = nb::class_<PyConstantVector, PyConstant>(m, "ConstantVector", "ConstantVector");
-  auto GlobalValueClass = nb::class_<PyGlobalValue, PyConstant>(m, "GlobalValue", "GlobalValue");
-  auto GlobalAliasClass = nb::class_<PyGlobalAlias, PyGlobalValue>(m, "GlobalAlias", "GlobalAlias");
-  auto GlobalObjectClass = nb::class_<PyGlobalObject, PyGlobalValue>(m, "GlobalObject", "GlobalObject");
-  auto FunctionClass = nb::class_<PyFunction, PyGlobalObject>(m, "Function", "Function");
-  auto GlobalVariableClass = nb::class_<PyGlobalVariable, PyGlobalObject>(m, "GlobalVariable", "GlobalVariable");
-  auto GlobalIFuncClass = nb::class_<PyGlobalIFunc, PyGlobalObject>(m, "GlobalIFunc", "GlobalIFunc");
-  auto UndefValueClass = nb::class_<PyUndefValue, PyConstant>(m, "UndefValue", "UndefValue");
-  auto PoisonValueClass = nb::class_<PyPoisonValue, PyConstant>(m, "PoisonValue", "PoisonValue");
-  auto InstructionClass = nb::class_<PyInstruction, PyUser>(m, "Instruction", "Instruction");
-  auto UnaryOperatorClass = nb::class_<PyUnaryOperator, PyInstruction>(m, "UnaryOperator", "UnaryOperator");
-  auto BinaryOperatorClass = nb::class_<PyBinaryOperator, PyInstruction>(m, "BinaryOperator", "BinaryOperator");
-  auto CallInstClass = nb::class_<PyCallInst, PyInstruction>(m, "CallInst", "CallInst");
-  auto IntrinsicInstClass = nb::class_<PyIntrinsicInst, PyCallInst>(m, "IntrinsicInst", "IntrinsicInst");
-  auto DbgInfoIntrinsicClass = nb::class_<PyDbgInfoIntrinsic, PyIntrinsicInst>(m, "DbgInfoIntrinsic", "DbgInfoIntrinsic");
-  auto DbgVariableIntrinsicClass = nb::class_<PyDbgVariableIntrinsic, PyDbgInfoIntrinsic>(m, "DbgVariableIntrinsic", "DbgVariableIntrinsic");
-  auto DbgDeclareInstClass = nb::class_<PyDbgDeclareInst, PyDbgVariableIntrinsic>(m, "DbgDeclareInst", "DbgDeclareInst");
-  auto DbgLabelInstClass = nb::class_<PyDbgLabelInst, PyIntrinsicInst>(m, "DbgLabelInst", "DbgLabelInst");
-  auto mIntrinsicClass = nb::class_<MemIntrinsic, PyIntrinsicInst>(m, "mIntrinsic", "mIntrinsic");
-  auto MemCpyInstClass = nb::class_<PyMemCpyInst, PyIntrinsicInst>(m, "MemCpyInst", "MemCpyInst");
-  auto MemMoveInstClass = nb::class_<PyMemMoveInst, PyIntrinsicInst>(m, "MemMoveInst", "MemMoveInst");
-  auto MemSetInstClass = nb::class_<PyMemSetInst, PyIntrinsicInst>(m, "MemSetInst", "MemSetInst");
-  auto CmpInstClass = nb::class_<PyCmpInst, PyInstruction>(m, "CmpInst", "CmpInst");
-  auto FCmpInstClass = nb::class_<PyFCmpInst, PyCmpInst>(m, "FCmpInst", "FCmpInst");
-  auto ICmpInstClass = nb::class_<PyICmpInst, PyCmpInst>(m, "ICmpInst", "ICmpInst");
-  auto ExtractElementInstClass = nb::class_<PyExtractElementInst, PyInstruction>(m, "ExtractElementInst", "ExtractElementInst");
-  auto GetElementPtrInstClass = nb::class_<PyGetElementPtrInst, PyInstruction>(m, "GetElementPtrInst", "GetElementPtrInst");
-  auto InsertElementInstClass = nb::class_<PyInsertElementInst, PyInstruction>(m, "InsertElementInst", "InsertElementInst");
-  auto InsertValueInstClass = nb::class_<PyInsertValueInst, PyInstruction>(m, "InsertValueInst", "InsertValueInst");
-  auto LandingPadInstClass = nb::class_<PyLandingPadInst, PyInstruction>(m, "LandingPadInst", "LandingPadInst");
-  auto PHINodeClass = nb::class_<PyPHINode, PyInstruction>(m, "PHINode", "PHINode");
-  auto SelectInstClass = nb::class_<PySelectInst, PyInstruction>(m, "SelectInst", "SelectInst");
-  auto ShuffleVectorInstClass = nb::class_<PyShuffleVectorInst, PyInstruction>(m, "ShuffleVectorInst", "ShuffleVectorInst");
-  auto StoreInstClass = nb::class_<PyStoreInst, PyInstruction>(m, "StoreInst", "StoreInst");
-  auto BranchInstClass = nb::class_<PyBranchInst, PyInstruction>(m, "BranchInst", "BranchInst");
-  auto IndirectBrInstClass = nb::class_<PyIndirectBrInst, PyInstruction>(m, "IndirectBrInst", "IndirectBrInst");
-  auto InvokeInstClass = nb::class_<PyInvokeInst, PyInstruction>(m, "InvokeInst", "InvokeInst");
-  auto ReturnInstClass = nb::class_<PyReturnInst, PyInstruction>(m, "ReturnInst", "ReturnInst");
-  auto SwitchInstClass = nb::class_<PySwitchInst, PyInstruction>(m, "SwitchInst", "SwitchInst");
-  auto UnreachableInstClass = nb::class_<PyUnreachableInst, PyInstruction>(m, "UnreachableInst", "UnreachableInst");
-  auto ResumeInstClass = nb::class_<PyResumeInst, PyInstruction>(m, "ResumeInst", "ResumeInst");
-  auto CleanupReturnInstClass = nb::class_<PyCleanupReturnInst, PyInstruction>(m, "CleanupReturnInst", "CleanupReturnInst");
-  auto CatchReturnInstClass = nb::class_<PyCatchReturnInst, PyInstruction>(m, "CatchReturnInst", "CatchReturnInst");
-  auto CatchSwitchInstClass = nb::class_<PyCatchSwitchInst, PyInstruction>(m, "CatchSwitchInst", "CatchSwitchInst");
-  auto CallBrInstClass = nb::class_<PyCallBrInst, PyInstruction>(m, "CallBrInst", "CallBrInst");
-  auto FuncletPadInstClass = nb::class_<PyFuncletPadInst, PyInstruction>(m, "FuncletPadInst", "FuncletPadInst");
-  auto CatchPadInstClass = nb::class_<PyCatchPadInst, PyFuncletPadInst>(m, "CatchPadInst", "CatchPadInst");
-  auto CleanupPadInstClass = nb::class_<PyCleanupPadInst, PyFuncletPadInst>(m, "CleanupPadInst", "CleanupPadInst");
-  auto UnaryInstructionClass = nb::class_<PyUnaryInstruction, PyInstruction>(m, "UnaryInstruction", "UnaryInstruction");
-  auto AllocaInstClass = nb::class_<PyAllocaInst, PyUnaryInstruction>(m, "AllocaInst", "AllocaInst");
-  auto CastInstClass = nb::class_<PyCastInst, PyUnaryInstruction>(m, "CastInst", "CastInst");
-  auto AddrSpaceCastInstClass = nb::class_<PyAddrSpaceCastInst, PyCastInst>(m, "AddrSpaceCastInst", "AddrSpaceCastInst");
-  auto BitCastInstClass = nb::class_<PyBitCastInst, PyCastInst>(m, "BitCastInst", "BitCastInst");
-  auto FPExtInstClass = nb::class_<PyFPExtInst, PyCastInst>(m, "FPExtInst", "FPExtInst");
-  auto FPToSIInstClass = nb::class_<PyFPToSIInst, PyCastInst>(m, "FPToSIInst", "FPToSIInst");
-  auto FPToUIInstClass = nb::class_<PyFPToUIInst, PyCastInst>(m, "FPToUIInst", "FPToUIInst");
-  auto FPTruncInstClass = nb::class_<PyFPTruncInst, PyCastInst>(m, "FPTruncInst", "FPTruncInst");
-  auto IntToPtrInstClass = nb::class_<PyIntToPtrInst, PyCastInst>(m, "IntToPtrInst", "IntToPtrInst");
-  auto PtrToIntInstClass = nb::class_<PyPtrToIntInst, PyCastInst>(m, "PtrToIntInst", "PtrToIntInst");
-  auto SExtInstClass = nb::class_<PySExtInst, PyCastInst>(m, "SExtInst", "SExtInst");
-  auto SIToFPInstClass = nb::class_<PySIToFPInst, PyCastInst>(m, "SIToFPInst", "SIToFPInst");
-  auto TruncInstClass = nb::class_<PyTruncInst, PyCastInst>(m, "TruncInst", "TruncInst");
-  auto UIToFPInstClass = nb::class_<PyUIToFPInst, PyCastInst>(m, "UIToFPInst", "UIToFPInst");
-  auto ZExtInstClass = nb::class_<PyZExtInst, PyCastInst>(m, "ZExtInst", "ZExtInst");
-  auto ExtractValueInstClass = nb::class_<PyExtractValueInst, PyUnaryInstruction>(m, "ExtractValueInst", "ExtractValueInst");
-  auto LoadInstClass = nb::class_<PyLoadInst, PyUnaryInstruction>(m, "LoadInst", "LoadInst");
-  auto VAArgInstClass = nb::class_<PyVAArgInst, PyUnaryInstruction>(m, "VAArgInst", "VAArgInst");
-  auto FreezeInstClass = nb::class_<PyFreezeInst, PyUnaryInstruction>(m, "FreezeInst", "FreezeInst");
-  auto AtomicCmpXchgInstClass = nb::class_<PyAtomicCmpXchgInst, PyInstruction>(m, "AtomicCmpXchgInst", "AtomicCmpXchgInst");
-  auto AtomicRMWInstClass = nb::class_<PyAtomicRMWInst, PyInstruction>(m, "AtomicRMWInst", "AtomicRMWInst");
-  auto FenceInstClass = nb::class_<PyFenceInst, PyInstruction>(m, "FenceInst", "FenceInst");
-
-  InlineAsmClass
-    .def_prop_ro("str",
-                 [](PyInlineAsm &iasm) {
-                   size_t len;
-                   const char *str = LLVMGetInlineAsmAsmString(iasm.get(), &len);
-                   return std::string(str, len);
-                 },
-                 "Get the template string used for an inline assembly snippet.")
-    .def_prop_ro("constraint_str",
-                 [](PyInlineAsm &iasm) {
-                   size_t len;
-                   const char *str = LLVMGetInlineAsmConstraintString(iasm.get(), &len);
-                   return std::string(str, len);
-                 },
-                 "Get the raw constraint string for an inline assembly snippet.")
-    .def_prop_ro("dialect",
-                 [](PyInlineAsm &iasm) {
-                   return LLVMGetInlineAsmDialect(iasm.get());
-                 },
-                 "Get the dialect used by the inline asm snippet.")
-    .def_prop_ro("function_type",
-                 [](PyInlineAsm &iasm) {
-                   return PyType(LLVMGetInlineAsmFunctionType(iasm.get()));
-                 },
-                 "Get the function type of the inline assembly snippet. "
-                 "The same type that was passed into :func:`get_inline_asm` originally.")
-    .def_prop_ro("has_side_effects",
-                 [](PyInlineAsm &iasm) {
-                   return LLVMGetInlineAsmHasSideEffects(iasm.get()) != 0;
-                 },
-                 "Get if the inline asm snippet has side effects.")
-    .def_prop_ro("needs_aligned_stack",
-                 [](PyInlineAsm &iasm) {
-                   return LLVMGetInlineAsmNeedsAlignedStack(iasm.get()) != 0;
-                 })
-    .def_prop_ro("can_unwind",
-                 [](PyInlineAsm &iasm) {
-                   return LLVMGetInlineAsmCanUnwind(iasm.get()) != 0;
-                 });
-
-  InstructionClass
-      .def_prop_ro("debug_loc_directory",
-                   [](PyInstruction &i) {
-                     unsigned len;
-                     const char *res = LLVMGetDebugLocDirectory(i.get(), &len);
-                     return std::string(res, len);
-                   },
-                   "Return the directory of the debug location for this value")
-      .def_prop_ro("debug_loc_filename",
-                   [](PyInstruction &i) {
-                     unsigned len;
-                     const char *res = LLVMGetDebugLocFilename(i.get(), &len);
-                     return std::string(res, len);
-                   },
-                   "Return the filename of the debug location for this value.")
-      .def_prop_ro("debug_loc_line",
-                   [](PyInstruction &i) { return LLVMGetDebugLocLine(i.get()); },
-                   "Return the line number of the debug location for this value")
-      .def_prop_ro("debug_loc_column",
-                   [](PyInstruction &i) { return LLVMGetDebugLocColumn(i.get()); },
-                   "Return the column number of the debug location for this value");
-
-  GlobalVariableClass
-      .def_prop_ro("debug_loc_directory",
-                   [](PyGlobalVariable &v) {
-                     unsigned len;
-                     const char *res = LLVMGetDebugLocDirectory(v.get(), &len);
-                     return std::string(res, len);
-                   },
-                   "Return the directory of the debug location for this value")
-      .def_prop_ro("debug_loc_filename",
-                   [](PyGlobalVariable &v) {
-                     unsigned len;
-                     const char *res = LLVMGetDebugLocFilename(v.get(), &len);
-                     return std::string(res, len);
-                   },
-                   "Return the filename of the debug location for this value")
-      .def_prop_ro("debug_loc_line",
-                   [](PyGlobalVariable &v) { return LLVMGetDebugLocLine(v.get()); },
-                   "Return the line number of the debug location for this value");
-
-  FunctionClass
-      .def_prop_ro("next",
-                   [](PyFunction &f) -> std::optional<PyFunction> {
-                     auto res = LLVMGetNextFunction(f.get());
-                     if (res != nullptr)
-                       return PyFunction(res);
-                     return std::nullopt;
-                   },
-                   "Advance a Function iterator to the next Function.\n\n"
-                   "Returns NULL if the iterator was already at the end and there are no more"
-                   "functions.")
-      .def_prop_ro("previous",
-                   [](PyFunction &f) -> std::optional<PyFunction> {
-                     auto res = LLVMGetPreviousFunction(f.get());
-                     if (res != nullptr)
-                       return PyFunction(res);
-                     return std::nullopt;
-                   },
-                   "Decrement a Function iterator to the previous Function.\n\n"
-                   "Returns NULL if the iterator was already at the beginning and there are"
-                   "no previous functions.")
-      .def_prop_ro("debug_loc_directory",
-                   [](PyFunction &f) {
-                     unsigned len;
-                     const char *res = LLVMGetDebugLocDirectory(f.get(), &len);
-                     return std::string(res, len);
-               },
-               "Return the directory of the debug location for this value")
-      .def_prop_ro("debug_loc_filename",
-                   [](PyFunction &f) {
-                     unsigned len;
-                     const char *res = LLVMGetDebugLocFilename(f.get(), &len);
-                     return std::string(res, len);
-                   },
-                   "Return the filename of the debug location for this value")
-      .def_prop_ro("debug_loc_line",
-                   [](PyFunction &f) { return LLVMGetDebugLocLine(f.get()); },
-                   "Return the line number of the debug location for this value");
-  
 }
