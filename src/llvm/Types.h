@@ -31,7 +31,7 @@ protected:
     return *this; \
   }
 
-#define DEFINE_PY_WRAPPER_CLASS(ClassName, UnderlyingType, UnderlyingName) \
+#define DEFINE_PY_WRAPPER_CLASS_NONCOPYABLE(ClassName, UnderlyingType, UnderlyingName) \
   class ClassName : public NonCopyable { \
   public: \
     explicit ClassName(UnderlyingType UnderlyingName) \
@@ -43,13 +43,30 @@ protected:
       UnderlyingName = std::exchange(other.UnderlyingName, nullptr); \
     } \
     \
-    UnderlyingType get() { \
+    UnderlyingType get() const { \
       return UnderlyingName; \
     } \
     \
   private: \
     UnderlyingType UnderlyingName; \
   };
+
+
+#define DEFINE_PY_WRAPPER_CLASS_COPYABLE(ClassName, UnderlyingType, UnderlyingName) \
+  class ClassName { \
+  public: \
+    explicit ClassName(UnderlyingType UnderlyingName) \
+    : UnderlyingName(UnderlyingName) {} \
+    \
+    UnderlyingType get() const { \
+      return UnderlyingName; \
+    } \
+    \
+  private: \
+    UnderlyingType UnderlyingName; \
+  };
+
+
 
 #define DEFINE_DIRECT_SUB_CLASS(ParentClassName, ClassName) \
   class ClassName : public ParentClassName { \
@@ -179,12 +196,12 @@ enum class PyLLVMFastMathFlags {
 };
 
 
-DEFINE_PY_WRAPPER_CLASS(PyValue, LLVMValueRef, value)
-DEFINE_PY_WRAPPER_CLASS(PyType, LLVMTypeRef, type)
-DEFINE_PY_WRAPPER_CLASS(PyDiagnosticInfo, LLVMDiagnosticInfoRef, diagnosticInfo)
-DEFINE_PY_WRAPPER_CLASS(PyAttribute, LLVMAttributeRef, attribute)
-DEFINE_PY_WRAPPER_CLASS(PyMetadata, LLVMMetadataRef, metadata)
-DEFINE_PY_WRAPPER_CLASS(PyNamedMDNode, LLVMNamedMDNodeRef, namedMDNode)
+DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyValue, LLVMValueRef, value)
+DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyType, LLVMTypeRef, type)
+DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyDiagnosticInfo, LLVMDiagnosticInfoRef, diagnosticInfo)
+DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyAttribute, LLVMAttributeRef, attribute)
+DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyMetadata, LLVMMetadataRef, metadata)
+DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyNamedMDNode, LLVMNamedMDNodeRef, namedMDNode)
 
 // typedef LLVMModuleFlagEntry *LLVMModuleFlagEntry_;
 // DEFINE_PY_WRAPPER_CLASS(PyModuleFlagEntry, LLVMModuleFlagEntry_, moduleFlagEntry)

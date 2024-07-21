@@ -3,6 +3,7 @@
 #include <nanobind/stl/tuple.h>
 #include <nanobind/stl/vector.h>
 #include <nanobind/stl/optional.h>
+#include <nanobind/stl/unique_ptr.h>
 #include <optional>
 #include <llvm-c/Core.h>
 #include "Core.h"
@@ -11,7 +12,7 @@
 namespace nb = nanobind;
 using namespace nb::literals;
 
-void bindEnums(nb::module_ &m) {
+inline void bindEnums(nb::module_ &m) {
   nb::enum_<LLVMOpcode>(m, "Opcode", "Opcode")
       .value("Ret", LLVMOpcode::LLVMRet)
       .value("Br", LLVMOpcode::LLVMBr)
@@ -492,6 +493,23 @@ void bindGlobalFunctions(nb::module_ &m) {
         "Get type from global context.");
   m.def("t_ppcfp128", [](){ return PyTypeReal(LLVMPPCFP128Type()); },
         "Get type from global context.");
+
+
+  m.def("create_function_type",
+        [](PyType &returnType, std::vector<PyType> &paramTypes, bool isVarArg) {
+          unsigned param_count = paramTypes.size();
+          
+          std::vector<LLVMTypeRef> rawParamTypes;
+          rawParamTypes.reserve(param_count);
+          
+          for (const auto& pt : paramTypes) {
+            rawParamTypes.push_back(pt.get());
+          }
+          
+          return PyTypeFunction(LLVMFunctionType(returnType.get(), rawParamTypes.data(),
+                                                 param_count, isVarArg));
+        }, "return_type"_a, "param_types"_a, "is_var_arg"_a,
+        "Obtain a function type consisting of a specified signature.");
 }
 
 
@@ -762,6 +780,7 @@ void bindValueClasses(nb::module_ &m) {
 
 void populateCore(nb::module_ &m) {
   bindEnums(m);
+  bindGlobalFunctions(m);
   bindTypeClasses(m);
   bindValueClasses(m);
 
