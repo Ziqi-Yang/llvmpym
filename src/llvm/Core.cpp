@@ -536,11 +536,7 @@ void bindTypeClasses(nb::module_ &m) {
              return res;
            });
   
-  auto TypeIntClass = nb::class_<PyTypeInt, PyType>(m, "TypeInt", "TypeInt")
-      .def_prop_ro("width",
-                   [](PyType &t) { return LLVMGetIntTypeWidth(t.get()); });
-
-  
+  auto TypeIntClass = nb::class_<PyTypeInt, PyType>(m, "TypeInt", "TypeInt");
   auto TypeRealClass = nb::class_<PyTypeReal, PyType>(m, "TypeReal", "TypeReal");
   auto TypeFunctionClass = nb::class_<PyTypeFunction, PyType>(m, "TypeFunction", "TypeFunction");
   auto TypeSequenceClass = nb::class_<PyTypeSequence, PyType>(m, "TypeSequence", "TypeSequence");
@@ -551,6 +547,35 @@ void bindTypeClasses(nb::module_ &m) {
   auto TypeLabelClass = nb::class_<PyTypeLabel, PyType>(m, "TypeLabel", "TypeLabel");
   auto TypeOpaqueClass = nb::class_<PyTypeOpaque, PyType>(m, "TypeOpaque", "TypeOpaque");
 
+
+
+  TypeIntClass
+      .def_prop_ro("width",
+                   [](PyTypeInt &t) { return LLVMGetIntTypeWidth(t.get()); });
+
+  TypeFunctionClass
+      .def_prop_ro("is_vararg",
+                   [](PyTypeFunction &t) { return LLVMIsFunctionVarArg(t.get()) != 0; },
+                   "Returns whether a function type is variadic.")
+      .def_prop_ro("return_type",
+                   [](PyTypeFunction &t) { return PyType(LLVMGetReturnType(t.get())); },
+                   "Obtain the Type this function Type returns.")
+      .def_prop_ro("param_number",
+                   [](PyTypeFunction &t) { return LLVMCountParamTypes(t.get()); },
+                   "Obtain the number of parameters this function accepts.")
+      .def_prop_ro("param_types",
+                   [](PyTypeFunction &t) {
+                     unsigned param_number = LLVMCountParamTypes(t.get());
+                     std::vector<PyType> res;
+                     res.reserve(param_number);
+                     LLVMTypeRef *dest;
+                     LLVMGetParamTypes(t.get(), dest);
+                     for (unsigned i = 0; i < param_number; i++) {
+                       res.push_back(PyType(dest[i]));
+                     }
+                     return res;
+                   },
+                   "Obtain the types of a function's parameters.");
   
 }
 
