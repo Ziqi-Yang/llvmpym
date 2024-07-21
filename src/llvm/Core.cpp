@@ -3,11 +3,11 @@
 #include <nanobind/stl/tuple.h>
 #include <nanobind/stl/vector.h>
 #include <nanobind/stl/optional.h>
-#include <nanobind/stl/unique_ptr.h>
 #include <optional>
 #include <llvm-c/Core.h>
 #include "Core.h"
 #include "Types.h"
+#include "Utils.h"
 
 namespace nb = nanobind;
 using namespace nb::literals;
@@ -498,14 +498,7 @@ void bindGlobalFunctions(nb::module_ &m) {
   m.def("create_function_type",
         [](PyType &returnType, std::vector<PyType> &paramTypes, bool isVarArg) {
           unsigned param_count = paramTypes.size();
-          
-          std::vector<LLVMTypeRef> rawParamTypes;
-          rawParamTypes.reserve(param_count);
-          
-          for (const auto& pt : paramTypes) {
-            rawParamTypes.push_back(pt.get());
-          }
-          
+          UNWRAP_VECTOR_WRAPPER_CLASS(paramTypes, rawParamTypes, param_count)
           return PyTypeFunction(LLVMFunctionType(returnType.get(), rawParamTypes.data(),
                                                  param_count, isVarArg));
         }, "return_type"_a, "param_types"_a, "is_var_arg"_a,
@@ -538,14 +531,14 @@ void bindTypeClasses(nb::module_ &m) {
   
   auto TypeIntClass = nb::class_<PyTypeInt, PyType>(m, "TypeInt", "TypeInt");
   auto TypeRealClass = nb::class_<PyTypeReal, PyType>(m, "TypeReal", "TypeReal");
-  auto TypeFunctionClass = nb::class_<PyTypeFunction, PyType>(m, "TypeFunction", "TypeFunction");
+  auto TypeFunctionClass = nb::class_<PyTypeFunction, PyType> (m, "TypeFunction", "TypeFunction");
   auto TypeSequenceClass = nb::class_<PyTypeSequence, PyType>(m, "TypeSequence", "TypeSequence");
   auto TypeArrayClass = nb::class_<PyTypeArray, PyTypeSequence>(m, "TypeArray", "TypeArray");
   auto TypePointerClass = nb::class_<PyTypePointer, PyTypeSequence>(m, "TypePointer", "TypePointer");
   auto TypeVectorClass = nb::class_<PyTypeVector, PyTypeSequence>(m, "TypeVector", "TypeVector");
   auto TypeVoidClass = nb::class_<PyTypeVoid, PyType>(m, "TypeVoid", "TypeVoid");
   auto TypeLabelClass = nb::class_<PyTypeLabel, PyType>(m, "TypeLabel", "TypeLabel");
-  auto TypeOpaqueClass = nb::class_<PyTypeOpaque, PyType>(m, "TypeOpaque", "TypeOpaque");
+  auto TypeStructClass = nb::class_<PyTypeStruct, PyType> (m, "TypeStruct", "TypeStruct");
 
 
 
@@ -820,37 +813,43 @@ void populateCore(nb::module_ &m) {
       .def_prop_ro("diagnostic_context", // TODO more check: in my test it simply None
                    [](PyContext &c) { return LLVMContextGetDiagnosticContext(c.get()); },
                    "Get the diagnostic context of this context.")
-      .def_prop_ro("t_int1",
-                   [](PyContext &c) { return PyTypeInt(LLVMInt1TypeInContext(c.get())); })
-      .def_prop_ro("t_int8",
-                   [](PyContext &c) { return PyTypeInt(LLVMInt8TypeInContext(c.get())); })
-      .def_prop_ro("t_int16",
-                   [](PyContext &c) { return PyTypeInt(LLVMInt16TypeInContext(c.get())); })
-      .def_prop_ro("t_int32",
-                   [](PyContext &c) { return PyTypeInt(LLVMInt32TypeInContext(c.get())); })
-      .def_prop_ro("t_int64",
-                   [](PyContext &c) { return PyTypeInt(LLVMInt64TypeInContext(c.get())); })
-      .def_prop_ro("t_int128",
-                   [](PyContext &c) { return PyTypeInt(LLVMInt128TypeInContext(c.get())); })
-      .def_prop_ro("t_half",
-                   [](PyContext &c) { return PyTypeReal(LLVMHalfTypeInContext(c.get())); })
-      .def_prop_ro("t_bfloat",
-                   [](PyContext &c) { return PyTypeReal(LLVMBFloatTypeInContext(c.get())); })
-      .def_prop_ro("t_float",
-                   [](PyContext &c) { return PyTypeReal(LLVMFloatTypeInContext(c.get())); })
-      .def_prop_ro("t_double",
-                   [](PyContext &c) { return PyTypeReal(LLVMDoubleTypeInContext(c.get())); })
-      .def_prop_ro("t_x86fp80",
-                   [](PyContext &c) { return PyTypeReal(LLVMX86FP80TypeInContext(c.get())); })
-      .def_prop_ro("t_fp128",
-                   [](PyContext &c) { return PyTypeReal(LLVMFP128TypeInContext(c.get())); })
-      .def_prop_ro("t_ppcfp128",
-                   [](PyContext &c) { return PyTypeReal(LLVMPPCFP128TypeInContext(c.get())); })
-
-      .def("get_int_type",
+      .def("t_int",
            [](PyContext &c, unsigned numBits) {
              return PyTypeInt(LLVMIntTypeInContext(c.get(), numBits));
            }, "num_bits"_a)
+      .def("t_int1",
+           [](PyContext &c) { return PyTypeInt(LLVMInt1TypeInContext(c.get())); })
+      .def("t_int8",
+           [](PyContext &c) { return PyTypeInt(LLVMInt8TypeInContext(c.get())); })
+      .def("t_int16",
+           [](PyContext &c) { return PyTypeInt(LLVMInt16TypeInContext(c.get())); })
+      .def("t_int32",
+           [](PyContext &c) { return PyTypeInt(LLVMInt32TypeInContext(c.get())); })
+      .def("t_int64",
+           [](PyContext &c) { return PyTypeInt(LLVMInt64TypeInContext(c.get())); })
+      .def("t_int128",
+           [](PyContext &c) { return PyTypeInt(LLVMInt128TypeInContext(c.get())); })
+      .def("t_half",
+           [](PyContext &c) { return PyTypeReal(LLVMHalfTypeInContext(c.get())); })
+      .def("t_bfloat",
+           [](PyContext &c) { return PyTypeReal(LLVMBFloatTypeInContext(c.get())); })
+      .def("t_float",
+           [](PyContext &c) { return PyTypeReal(LLVMFloatTypeInContext(c.get())); })
+      .def("t_double",
+           [](PyContext &c) { return PyTypeReal(LLVMDoubleTypeInContext(c.get())); })
+      .def("t_x86fp80",
+           [](PyContext &c) { return PyTypeReal(LLVMX86FP80TypeInContext(c.get())); })
+      .def("t_fp128",
+           [](PyContext &c) { return PyTypeReal(LLVMFP128TypeInContext(c.get())); })
+      .def("t_ppcfp128",
+                   [](PyContext &c) { return PyTypeReal(LLVMPPCFP128TypeInContext(c.get())); })
+      .def("t_struct",
+           [](PyContext &c, std::vector<PyType> &elementTypes, bool packed) {
+             unsigned elem_count = elementTypes.size();
+             UNWRAP_VECTOR_WRAPPER_CLASS(elementTypes, rawElemTypes, elem_count);
+             return PyTypeStruct(LLVMStructTypeInContext(c.get(), rawElemTypes.data(),
+                                                  elem_count, packed));
+           })
       .def_prop_rw("should_discard_value_names", // TODO convert LLVMBool to bool
                    [](PyContext &c) -> bool { return LLVMContextShouldDiscardValueNames(c.get()) != 0; },
                    [](PyContext &c, bool discard) {

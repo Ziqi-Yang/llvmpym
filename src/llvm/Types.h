@@ -175,7 +175,7 @@ protected:
     macro(PyTypeSequence, PyTypeVector) \
   macro(PyType, PyTypeVoid) \
   macro(PyType, PyTypeLabel) \
-  macro(PyType, PyTypeOpaque)
+  macro(PyType, PyTypeStruct)
 
 
 enum class PyAttributeIndex {
