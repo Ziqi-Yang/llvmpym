@@ -51,6 +51,103 @@ protected:
     UnderlyingType UnderlyingName; \
   };
 
+#define DEFINE_DIRECT_SUB_CLASS(ParentClassName, ClassName) \
+  class ClassName : public ParentClassName { \
+  public: \
+    using ParentClassName::ParentClassName; \
+  };
+
+
+#define PY_FOR_EACH_VALUE_SUBCLASS(macro) \
+  macro(PyValue, PyArgument)                           \
+  macro(PyValue, PyBasicBlock)                         \
+  macro(PyValue, PyInlineAsm)                          \
+  macro(PyValue, PyUser)                               \
+    macro(PyUser, PyConstant)                         \
+      macro(PyConstant, PyBlockAddress)                   \
+      macro(PyConstant, PyConstantAggregateZero)          \
+      macro(PyConstant, PyConstantArray)                  \
+      macro(PyConstant, PyConstantDataSequential)         \
+        macro(PyConstantDataSequential, PyConstantDataArray)            \
+        macro(PyConstantDataSequential, PyConstantDataVector)           \
+      macro(PyConstant, PyConstantExpr)                   \
+      macro(PyConstant, PyConstantFP)                     \
+      macro(PyConstant, PyConstantInt)                    \
+      macro(PyConstant, PyConstantPointerNull)            \
+      macro(PyConstant, PyConstantStruct)                 \
+      macro(PyConstant, PyConstantTokenNone)              \
+      macro(PyConstant, PyConstantVector)                 \
+      macro(PyConstant, PyGlobalValue)                    \
+        macro(PyGlobalValue, PyGlobalAlias)                  \
+        macro(PyGlobalValue, PyGlobalObject)                 \
+          macro(PyGlobalObject, PyFunction)                   \
+          macro(PyGlobalObject, PyGlobalVariable)             \
+          macro(PyGlobalObject, PyGlobalIFunc)                \
+      macro(PyConstant, PyUndefValue)                     \
+      macro(PyConstant, PyPoisonValue)                    \
+    macro(PyUser, PyInstruction)                      \
+      macro(PyInstruction, PyUnaryOperator)                  \
+      macro(PyInstruction, PyBinaryOperator)                 \
+      macro(PyInstruction, PyCallInst)                       \
+        macro(PyCallInst, PyIntrinsicInst)                \
+          macro(PyIntrinsicInst, PyDbgInfoIntrinsic)           \
+            macro(PyDbgInfoIntrinsic, PyDbgVariableIntrinsic)     \
+              macro(PyDbgVariableIntrinsic, PyDbgDeclareInst)         \
+            macro(PyIntrinsicInst, PyDbgLabelInst)             \
+          macro(PyIntrinsicInst, MemIntrinsic)               \
+            macro(PyIntrinsicInst, PyMemCpyInst)               \
+            macro(PyIntrinsicInst, PyMemMoveInst)              \
+            macro(PyIntrinsicInst, PyMemSetInst)               \
+      macro(PyInstruction, PyCmpInst)                        \
+        macro(PyCmpInst, PyFCmpInst)                     \
+        macro(PyCmpInst, PyICmpInst)                     \
+      macro(PyInstruction, PyExtractElementInst)             \
+      macro(PyInstruction, PyGetElementPtrInst)              \
+      macro(PyInstruction, PyInsertElementInst)              \
+      macro(PyInstruction, PyInsertValueInst)                \
+      macro(PyInstruction, PyLandingPadInst)                 \
+      macro(PyInstruction, PyPHINode)                        \
+      macro(PyInstruction, PySelectInst)                     \
+      macro(PyInstruction, PyShuffleVectorInst)              \
+      macro(PyInstruction, PyStoreInst)                      \
+      macro(PyInstruction, PyBranchInst)                     \
+      macro(PyInstruction, PyIndirectBrInst)                 \
+      macro(PyInstruction, PyInvokeInst)                     \
+      macro(PyInstruction, PyReturnInst)                     \
+      macro(PyInstruction, PySwitchInst)                     \
+      macro(PyInstruction, PyUnreachableInst)                \
+      macro(PyInstruction, PyResumeInst)                     \
+      macro(PyInstruction, PyCleanupReturnInst)              \
+      macro(PyInstruction, PyCatchReturnInst)                \
+      macro(PyInstruction, PyCatchSwitchInst)                \
+      macro(PyInstruction, PyCallBrInst)                     \
+      macro(PyInstruction, PyFuncletPadInst)                 \
+        macro(PyFuncletPadInst, PyCatchPadInst)                 \
+        macro(PyFuncletPadInst, PyCleanupPadInst)               \
+      macro(PyInstruction, PyUnaryInstruction)               \
+        macro(PyUnaryInstruction, PyAllocaInst)                   \
+        macro(PyUnaryInstruction, PyCastInst)                     \
+          macro(PyCastInst, PyAddrSpaceCastInst)          \
+          macro(PyCastInst, PyBitCastInst)                \
+          macro(PyCastInst, PyFPExtInst)                  \
+          macro(PyCastInst, PyFPToSIInst)                 \
+          macro(PyCastInst, PyFPToUIInst)                 \
+          macro(PyCastInst, PyFPTruncInst)                \
+          macro(PyCastInst, PyIntToPtrInst)               \
+          macro(PyCastInst, PyPtrToIntInst)               \
+          macro(PyCastInst, PySExtInst)                   \
+          macro(PyCastInst, PySIToFPInst)                 \
+          macro(PyCastInst, PyTruncInst)                  \
+          macro(PyCastInst, PyUIToFPInst)                 \
+          macro(PyCastInst, PyZExtInst)                   \
+        macro(PyUnaryInstruction, PyExtractValueInst)             \
+        macro(PyUnaryInstruction, PyLoadInst)                     \
+        macro(PyUnaryInstruction, PyVAArgInst)                    \
+        macro(PyUnaryInstruction, PyFreezeInst)                   \
+      macro(PyInstruction, PyAtomicCmpXchgInst)              \
+      macro(PyInstruction, PyAtomicRMWInst)                  \
+      macro(PyInstruction, PyFenceInst)
+
 
 enum class PyAttributeIndex {
   Return = LLVMAttributeReturnIndex,
@@ -74,26 +171,16 @@ DEFINE_PY_WRAPPER_CLASS(PyValue, LLVMValueRef, value)
 DEFINE_PY_WRAPPER_CLASS(PyType, LLVMTypeRef, type)
 DEFINE_PY_WRAPPER_CLASS(PyDiagnosticInfo, LLVMDiagnosticInfoRef, diagnosticInfo)
 DEFINE_PY_WRAPPER_CLASS(PyAttribute, LLVMAttributeRef, attribute)
+DEFINE_PY_WRAPPER_CLASS(PyMetadata, LLVMMetadataRef, metadata)
 
-class PyEnumAttribute : public PyAttribute {
-public:
-  using PyAttribute::PyAttribute;
-};
+// typedef LLVMModuleFlagEntry *LLVMModuleFlagEntry_;
+// DEFINE_PY_WRAPPER_CLASS(PyModuleFlagEntry, LLVMModuleFlagEntry_, moduleFlagEntry)
 
+DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyEnumAttribute);
+DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyTypeAttribute);
+DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyStringAttribute);
 
-class PyTypeAttribute : public PyAttribute {
-public:
-  using PyAttribute::PyAttribute;
-};
-
-class PyStringAttribute : public PyAttribute {
-public:
-  using PyAttribute::PyAttribute;
-};
-
-
-
-
+PY_FOR_EACH_VALUE_SUBCLASS(DEFINE_DIRECT_SUB_CLASS)
 
 class PyContext : public NonCopyable {
 public:
