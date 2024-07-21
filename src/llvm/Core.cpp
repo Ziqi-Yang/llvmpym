@@ -106,23 +106,35 @@ void populateCore(nb::module_ &m) {
   
 
   nb::enum_<LLVMLinkage>(m, "Linkage", "Linkage")
-      .value("External", LLVMLinkage::LLVMExternalLinkage, "Externally visible function")
+      .value("External", LLVMLinkage::LLVMExternalLinkage,
+             "Externally visible function")
       .value("AvailableExternally", LLVMLinkage::LLVMAvailableExternallyLinkage)
-      .value("LinkOnceAny", LLVMLinkage::LLVMLinkOnceAnyLinkage, "Keep one copy of function when linking (inline)")
-      .value("LinkOnceODR", LLVMLinkage::LLVMLinkOnceODRLinkage, "Keep one copy of function when linking (inline), but only replaced by something equivalent.")
+      .value("LinkOnceAny", LLVMLinkage::LLVMLinkOnceAnyLinkage,
+             "Keep one copy of function when linking (inline)")
+      .value("LinkOnceODR", LLVMLinkage::LLVMLinkOnceODRLinkage,
+             "Keep one copy of function when linking (inline), but only replaced"
+             " by something equivalent.")
       .value("LinkOnceODRAutoHide", LLVMLinkage::LLVMLinkOnceODRAutoHideLinkage, "Obsolete")
-      .value("WeakAny", LLVMLinkage::LLVMWeakAnyLinkage, "Keep one copy of function when linking (weak)")
-      .value("WeakODR", LLVMLinkage::LLVMWeakODRLinkage, "Same, but only replaced by something equivalent.")
-      .value("Appending", LLVMLinkage::LLVMAppendingLinkage, "Special purpose, only applies to global arrays")
-      .value("Internal", LLVMLinkage::LLVMInternalLinkage, "Rename collisions when linking (static functions)")
-      .value("Private", LLVMLinkage::LLVMPrivateLinkage, "Like Internal, but omit from symbol table")
+      .value("WeakAny", LLVMLinkage::LLVMWeakAnyLinkage,
+             "Keep one copy of function when linking (weak)")
+      .value("WeakODR", LLVMLinkage::LLVMWeakODRLinkage,
+             "Same, but only replaced by something equivalent.")
+      .value("Appending", LLVMLinkage::LLVMAppendingLinkage,
+             "Special purpose, only applies to global arrays")
+      .value("Internal", LLVMLinkage::LLVMInternalLinkage,
+             "Rename collisions when linking (static functions)")
+      .value("Private", LLVMLinkage::LLVMPrivateLinkage,
+             "Like Internal, but omit from symbol table")
       .value("DLLImport", LLVMLinkage::LLVMDLLImportLinkage, "Obsolete")
       .value("DLLExport", LLVMLinkage::LLVMDLLExportLinkage, "Obsolete")
-      .value("ExternalWeak", LLVMLinkage::LLVMExternalWeakLinkage, "ExternalWeak linkage description")
+      .value("ExternalWeak", LLVMLinkage::LLVMExternalWeakLinkage,
+             "ExternalWeak linkage description")
       .value("Ghost", LLVMLinkage::LLVMGhostLinkage, "Obsolete")
       .value("Common", LLVMLinkage::LLVMCommonLinkage, "Tentative definitions")
-      .value("LinkerPrivate", LLVMLinkage::LLVMLinkerPrivateLinkage, "Like Private, but linker removes.")
-      .value("LinkerPrivateWeak", LLVMLinkage::LLVMLinkerPrivateWeakLinkage, "Like LinkerPrivate, but is weak.");
+      .value("LinkerPrivate", LLVMLinkage::LLVMLinkerPrivateLinkage,
+             "Like Private, but linker removes.")
+      .value("LinkerPrivateWeak", LLVMLinkage::LLVMLinkerPrivateWeakLinkage,
+             "Like LinkerPrivate, but is weak.");
   
 
   nb::enum_<LLVMVisibility>(m, "Visibility", "Visibility")
@@ -263,31 +275,65 @@ void populateCore(nb::module_ &m) {
   
 
   nb::enum_<LLVMAtomicOrdering>(m, "AtomicOrdering", "AtomicOrdering")
-      .value("NotAtomic", LLVMAtomicOrdering::LLVMAtomicOrderingNotAtomic, "A load or store which is not atomic")
-      .value("Unordered", LLVMAtomicOrdering::LLVMAtomicOrderingUnordered, "Lowest level of atomicity, guarantees somewhat sane results, lock free.")
-      .value("Monotonic", LLVMAtomicOrdering::LLVMAtomicOrderingMonotonic, "guarantees that if you take all the operations affecting a specific address, a consistent ordering exists")
-      .value("Acquire", LLVMAtomicOrdering::LLVMAtomicOrderingAcquire, "Acquire provides a barrier of the sort necessary to acquire a lock to access other memory with normal loads and stores.")
-      .value("Release", LLVMAtomicOrdering::LLVMAtomicOrderingRelease, "Release is similar to Acquire, but with a barrier of the sort necessary to release a lock.")
-      .value("AcquireRelease", LLVMAtomicOrdering::LLVMAtomicOrderingAcquireRelease, "provides both an Acquire and a Release barrier (for fences and operations which both read and write memory).")
-      .value("SequentiallyConsistent", LLVMAtomicOrdering::LLVMAtomicOrderingSequentiallyConsistent, "provides Acquire semantics for loads and Release semantics for stores. Additionally, it guarantees that a total ordering exists between all SequentiallyConsistent operations.");
+      .value("NotAtomic", LLVMAtomicOrdering::LLVMAtomicOrderingNotAtomic,
+             "A load or store which is not atomic")
+      .value("Unordered", LLVMAtomicOrdering::LLVMAtomicOrderingUnordered,
+             "Lowest level of atomicity, guarantees somewhat sane results, lock free.")
+      .value("Monotonic", LLVMAtomicOrdering::LLVMAtomicOrderingMonotonic,
+             "guarantees that if you take all the operations affecting a specific"
+             " address, a consistent ordering exists")
+      .value("Acquire", LLVMAtomicOrdering::LLVMAtomicOrderingAcquire,
+             "Acquire provides a barrier of the sort necessary to acquire a lock"
+             " to access other memory with normal loads and stores.")
+      .value("Release", LLVMAtomicOrdering::LLVMAtomicOrderingRelease,
+             "Release is similar to Acquire, but with a barrier of the sort "
+             "necessary to release a lock.")
+      .value("AcquireRelease", LLVMAtomicOrdering::LLVMAtomicOrderingAcquireRelease,
+             "provides both an Acquire and a Release barrier (for fences and "
+             "operations which both read and write memory).")
+      .value("SequentiallyConsistent", LLVMAtomicOrdering::LLVMAtomicOrderingSequentiallyConsistent,
+             "provides Acquire semantics for loads and Release semantics for "
+             "stores. Additionally, it guarantees that a total ordering exists "
+             "between all SequentiallyConsistent operations.");
   
 
   nb::enum_<LLVMAtomicRMWBinOp>(m, "AtomicRMWBinOp", "AtomicRMWBinOp")
-      .value("Xchg", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpXchg, "Set the new value and return the one old")
-      .value("Add", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpAdd, "Add a value and return the old one")
-      .value("Sub", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpSub, "Subtract a value and return the old one")
-      .value("And", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpAnd, "And a value and return the old one")
-      .value("Nand", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpNand, "Not-And a value and return the old one")
-      .value("Or", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpOr, "OR a value and return the old one")
-      .value("Xor", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpXor, "Xor a value and return the old one")
-      .value("Max", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpMax, "Sets the value if it's greater than the original using a signed comparison and return the old one")
-      .value("Min", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpMin, "Sets the value if it's Smaller than the original using a signed comparison and return the old one")
-      .value("UMax", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpUMax, "Sets the value if it's greater than the original using an unsigned comparison and return the old one")
-      .value("UMin", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpUMin, "Sets the value if it's greater than the original using an unsigned comparison and return the old one")
-      .value("FAdd", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpFAdd, "Add a floating point value and return the old one")
-      .value("FSub", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpFSub, "Subtract a floating point value and return the old one")
-      .value("FMax", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpFMax, "Sets the value if it's greater than the original using an floating point comparison and return the old one")
-      .value("FMin", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpFMin, "Sets the value if it's smaller than the original using an floating point comparison and return the old one");
+      .value("Xchg", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpXchg,
+             "Set the new value and return the one old")
+      .value("Add", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpAdd,
+             "Add a value and return the old one")
+      .value("Sub", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpSub,
+             "Subtract a value and return the old one")
+      .value("And", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpAnd,
+             "And a value and return the old one")
+      .value("Nand", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpNand,
+             "Not-And a value and return the old one")
+      .value("Or", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpOr,
+             "OR a value and return the old one")
+      .value("Xor", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpXor,
+             "Xor a value and return the old one")
+      .value("Max", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpMax,
+             "Sets the value if it's greater than the original using a signed "
+             "comparison and return the old one")
+      .value("Min", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpMin,
+             "Sets the value if it's Smaller than the original using a signed "
+             "comparison and return the old one")
+      .value("UMax", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpUMax,
+             "Sets the value if it's greater than the original using an unsigned"
+             " comparison and return the old one")
+      .value("UMin", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpUMin,
+             "Sets the value if it's greater than the original using an unsigned"
+             " comparison and return the old one")
+      .value("FAdd", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpFAdd,
+             "Add a floating point value and return the old one")
+      .value("FSub", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpFSub,
+             "Subtract a floating point value and return the old one")
+      .value("FMax", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpFMax,
+             "Sets the value if it's greater than the original using an floating"
+             " point comparison and return the old one")
+      .value("FMin", LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpFMin,
+             "Sets the value if it's smaller than the original using an floating"
+             " point comparison and return the old one");
   
 
   nb::enum_<LLVMDiagnosticSeverity>(m, "DiagnosticSeverity", "DiagnosticSeverity")
@@ -304,12 +350,36 @@ void populateCore(nb::module_ &m) {
 
   // TODO move into Module?
   nb::enum_<LLVMModuleFlagBehavior>(m, "ModuleFlagBehavior", "ModuleFlagBehavior")
-       .value("Error", LLVMModuleFlagBehavior::LLVMModuleFlagBehaviorError, "Adds a requirement that another module flag be present and have a specified value after linking is performed. The value must be a metadata pair, where the first element of the pair is the ID of the module flag to be restricted, and the second element of the pair is the value the module flag should be restricted to. This behavior can be used to restrict the allowable results (via triggering of an error) of linking IDs with the **Override** behavior.")
-       .value("Warning", LLVMModuleFlagBehavior::LLVMModuleFlagBehaviorWarning, "Emits a warning if two values disagree. The result value will be the operand for the flag from the first module being linked.")
-       .value("Require", LLVMModuleFlagBehavior::LLVMModuleFlagBehaviorRequire, "Adds a requirement that another module flag be present and have a specified value after linking is performed. The value must be a metadata pair, where the first element of the pair is the ID of the module flag to be restricted, and the second element of the pair is the value the module flag should be restricted to. This behavior can be used to restrict the allowable results (via triggering of an error) of linking IDs with the **Override** behavior.")
-       .value("Override", LLVMModuleFlagBehavior::LLVMModuleFlagBehaviorOverride, "Uses the specified value, regardless of the behavior or value of the other module. If both modules specify **Override**, but the values differ, an error will be emitted.")
-       .value("Append", LLVMModuleFlagBehavior::LLVMModuleFlagBehaviorAppend, "Appends the two values, which are required to be metadata nodes.")
-       .value("AppendUnique", LLVMModuleFlagBehavior::LLVMModuleFlagBehaviorAppendUnique, "Appends the two values, which are required to be metadata nodes. However, duplicate entries in the second list are dropped during the append operation.");
+       .value("Error", LLVMModuleFlagBehavior::LLVMModuleFlagBehaviorError,
+              "Adds a requirement that another module flag be present and have "
+              "a specified value after linking is performed. The value must be "
+              "a metadata pair, where the first element of the pair is the ID "
+              "of the module flag to be restricted, and the second element of "
+              "the pair is the value the module flag should be restricted to. "
+              "This behavior can be used to restrict the allowable results (via"
+              " triggering of an error) of linking IDs with the **Override** "
+              "behavior.")
+       .value("Warning", LLVMModuleFlagBehavior::LLVMModuleFlagBehaviorWarning,
+              "Emits a warning if two values disagree. The result value will be "
+              "the operand for the flag from the first module being linked.")
+       .value("Require", LLVMModuleFlagBehavior::LLVMModuleFlagBehaviorRequire,
+              "Adds a requirement that another module flag be present and have "
+              "a specified value after linking is performed. The value must be "
+              "a metadata pair, where the first element of the pair is the ID of"
+              " the module flag to be restricted, and the second element of the "
+              "pair is the value the module flag should be restricted to. This "
+              "behavior can be used to restrict the allowable results (via "
+              "triggering of an error) of linking IDs with the **Override** behavior.")
+       .value("Override", LLVMModuleFlagBehavior::LLVMModuleFlagBehaviorOverride,
+              "Uses the specified value, regardless of the behavior or value of "
+              "the other module. If both modules specify **Override**, but the "
+              "values differ, an error will be emitted.")
+       .value("Append", LLVMModuleFlagBehavior::LLVMModuleFlagBehaviorAppend,
+              "Appends the two values, which are required to be metadata nodes.")
+       .value("AppendUnique", LLVMModuleFlagBehavior::LLVMModuleFlagBehaviorAppendUnique,
+              "Appends the two values, which are required to be metadata nodes. "
+              "However, duplicate entries in the second list are dropped during "
+              "the append operation.");
 
   nb::enum_<PyAttributeIndex>(m, "AttributeIndex", "AttributeIndex")
       .value("Return", PyAttributeIndex::Return)
@@ -342,12 +412,15 @@ void populateCore(nb::module_ &m) {
   // TODO it seems it has no effect in python binding
   m.def("shutdown", &LLVMShutdown, "Deallocate and destroy all ManagedStatic variables.");
   
-  m.def("get_version", []() {
-    unsigned major, minor, patch;
-    LLVMGetVersion(&major, &minor, &patch);
-    return std::make_tuple(major, minor, patch);
-  }, "Return the major, minor, and patch version of LLVM\n"
-     "The version components are returned via the function's three output parameters or skipped if a NULL pointer was supplied.");
+  m.def("get_version",
+        []() {
+          unsigned major, minor, patch;
+          LLVMGetVersion(&major, &minor, &patch);
+          return std::make_tuple(major, minor, patch);
+        },
+        "Return the major, minor, and patch version of LLVM\n"
+        "The version components are returned via the function's three output "
+        "parameters or skipped if a NULL pointer was supplied.");
 
   // NOTE these two functions are useless in Python?
   // m.def("create_message", &LLVMCreateMessage, "message"_a);
@@ -358,9 +431,10 @@ void populateCore(nb::module_ &m) {
     return LLVMGetMDKindID(name.c_str(), name.size());
   }, "name"_a);
 
-  m.def("get_enum_attribute_kind_for_name", [](const std::string &name){
-    return LLVMGetEnumAttributeKindForName(name.c_str(), name.size());
-  }, "name"_a,
+  m.def("get_enum_attribute_kind_for_name",
+        [](const std::string &name){
+          return LLVMGetEnumAttributeKindForName(name.c_str(), name.size());
+        }, "name"_a,
         "Return an unique id given the name of a enum attribute,"
         "or 0 if no attribute by that name exists.\n\n"
         "See http://llvm.org/docs/LangRef.html#parameter-attributes"
@@ -371,12 +445,34 @@ void populateCore(nb::module_ &m) {
 
   m.def("get_last_enum_attribute_kind", &LLVMGetLastEnumAttributeKind);
 
+  m.def("get_inline_asm",
+        [](PyType &ty, std::string asmString, std::string constraints,
+           bool hasSideEffects, bool isAlignStack, LLVMInlineAsmDialect dialect,
+           bool canThrow){
+          return PyInlineAsm(LLVMGetInlineAsm
+                   (ty.get(), asmString.c_str(), asmString.size(),
+                    constraints.c_str(), constraints.size(),
+                    hasSideEffects, isAlignStack, dialect, canThrow));
+        }, "type"_a, "asm"_a, "constraints"_a, "has_side_effects"_a,
+        "is_align_stack"_a, "dialect"_a, "can_throw"_a,
+        "Create the specified uniqued inline asm string.");
 
-  nb::class_<PyContext>(m, "Context",
-                        "Contexts are execution states for the core LLVM IR system.\n\n"
-                        "Most types are tied to a context instance. Multiple contexts can"
-                        "exist simultaneously. A single context is not thread safe. However,"
-                        "different contexts can execute on different threads simultaneously.")
+  m.def("get_inline_asm_asm_string",
+        [](PyInlineAsm &iasm) {
+          
+        });
+
+
+  // global ends
+  // ===========================================================================
+  // class definitions
+
+  nb::class_<PyContext>
+    (m, "Context",
+     "Contexts are execution states for the core LLVM IR system.\n\n"
+     "Most types are tied to a context instance. Multiple contexts can"
+     "exist simultaneously. A single context is not thread safe. However,"
+     "different contexts can execute on different threads simultaneously.")
       .def(nb::init<>(), "Create a new context.")
       .def_static("get_global_context", &PyContext::getGlobalContext, "Obtain the global context instance.")
       .def_prop_ro("diagnostic_context", // TODO more check: in my test it simply None
@@ -389,16 +485,18 @@ void populateCore(nb::module_ &m) {
                    },
                    nb::for_getter(nb::sig("def should_discard_value_names(self, /) -> bool")),
                    nb::for_setter(nb::sig("def should_discard_value_names(self, bool /) -> None")),
-                   nb::for_getter("Retrieve whether the given context is set to"
-                                  "discard all value names.\n\n"
-                                  "Return true if the Context runtime configuration "
-                                  "is set to discard all value names. When true, "
-                                  "only GlobalValue names will be available in the IR."),
-                   nb::for_setter("Set whether the given context discards all value names.\n\n"
-                                  "If true, only the names of GlobalValue objects"
-                                  "will be available in the IR.\n"
-                                  "This can be used to save memory and runtime, "
-                                  "especially in release mode."))
+                   nb::for_getter
+                     ("Retrieve whether the given context is set to"
+                      "discard all value names.\n\n"
+                      "Return true if the Context runtime configuration "
+                      "is set to discard all value names. When true, "
+                      "only GlobalValue names will be available in the IR."),
+                   nb::for_setter
+                     ("Set whether the given context discards all value names.\n\n"
+                      "If true, only the names of GlobalValue objects"
+                      "will be available in the IR.\n"
+                      "This can be used to save memory and runtime, "
+                      "especially in release mode."))
       .def("set_diagnostic_handler", // FIXME
            [](PyContext &c, LLVMDiagnosticHandler handler, void * diagnosticContext){
              return LLVMContextSetDiagnosticHandler(c.get(), handler, diagnosticContext);
@@ -745,4 +843,7 @@ void populateCore(nb::module_ &m) {
   auto AtomicCmpXchgInstClass = nb::class_<PyAtomicCmpXchgInst, PyInstruction>(m, "AtomicCmpXchgInst", "AtomicCmpXchgInst");
   auto AtomicRMWInstClass = nb::class_<PyAtomicRMWInst, PyInstruction>(m, "AtomicRMWInst", "AtomicRMWInst");
   auto FenceInstClass = nb::class_<PyFenceInst, PyInstruction>(m, "FenceInst", "FenceInst");
+
+
+  
 }
