@@ -459,6 +459,24 @@ void bindGlobalFunctions(nb::module_ &m) {
         }, "type"_a, "asm"_a, "constraints"_a, "has_side_effects"_a,
         "is_align_stack"_a, "dialect"_a, "can_throw"_a,
         "Create the specified uniqued inline asm string.");
+
+
+  m.def("int1", []() { return PyTypeInt(LLVMInt1Type()); },
+        "Get type from global context.");
+  m.def("int8", []() { return PyTypeInt(LLVMInt8Type()); },
+        "Get type from global context.");
+  m.def("int16", []() { return PyTypeInt(LLVMInt16Type()); },
+        "Get type from global context.");
+  m.def("int32", []() { return PyTypeInt(LLVMInt32Type()); },
+        "Get type from global context.");
+  m.def("int64", []() { return PyTypeInt(LLVMInt64Type()); },
+        "Get from global context.");
+  m.def("int128", []() { return PyTypeInt(LLVMInt128Type()); },
+        "Get type from global context.");
+  m.def("get_int_type",
+        [](unsigned numBits) { return PyTypeInt(LLVMIntType(numBits)); },
+        "num_bits"_a,
+        "Get type from global context.");
 }
 
 
@@ -485,7 +503,11 @@ void bindTypeClasses(nb::module_ &m) {
              return res;
            });
   
-  auto TypeIntClass = nb::class_<PyTypeInt, PyType>(m, "TypeInt", "TypeInt");
+  auto TypeIntClass = nb::class_<PyTypeInt, PyType>(m, "TypeInt", "TypeInt")
+      .def_prop_ro("width",
+                   [](PyType &t) { return LLVMGetIntTypeWidth(t.get()); });
+
+  
   auto TypeRealClass = nb::class_<PyTypeReal, PyType>(m, "TypeReal", "TypeReal");
   auto TypeFunctionClass = nb::class_<PyTypeFunction, PyType>(m, "TypeFunction", "TypeFunction");
   auto TypeSequenceClass = nb::class_<PyTypeSequence, PyType>(m, "TypeSequence", "TypeSequence");
