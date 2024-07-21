@@ -2,6 +2,8 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/tuple.h>
 #include <nanobind/stl/vector.h>
+#include <nanobind/stl/optional.h>
+#include <optional>
 #include <llvm-c/Core.h>
 #include "Core.h"
 #include "Types.h"
@@ -457,11 +459,6 @@ void populateCore(nb::module_ &m) {
         "is_align_stack"_a, "dialect"_a, "can_throw"_a,
         "Create the specified uniqued inline asm string.");
 
-  m.def("get_inline_asm_asm_string",
-        [](PyInlineAsm &iasm) {
-          
-        });
-
 
   // global ends
   // ===========================================================================
@@ -613,10 +610,28 @@ void populateCore(nb::module_ &m) {
                    },
                    "Return an enum LLVMDiagnosticSeverity.");
 
-       
+  nb::class_<PyNamedMDNode>(m, "NamedMDNode", "NamedMDNode")
+      .def_prop_ro("next",
+                   [](PyNamedMDNode &nmdn) -> std::optional<PyNamedMDNode>{
+                     auto res = LLVMGetNextNamedMetadata(nmdn.get());
+                     if (res != nullptr) 
+                       return PyNamedMDNode(res);
+                     return std::nullopt;
+                   },
+                   "Advance a NamedMDNode iterator to the next NamedMDNode.\n\n"
+                   "Returns NULL if the iterator was already at the end and there"
+                   " are no more named metadata nodes.")
+      .def_prop_ro("prev",
+                   [](PyNamedMDNode &nmdn) -> std::optional<PyNamedMDNode> {
+                     auto res = LLVMGetPreviousNamedMetadata(nmdn.get());
+                     if (res != nullptr)
+                       return PyNamedMDNode(res);
+                     return std::nullopt;
+                   },
+                   "Decrement a NamedMDNode iterator to the previous NamedMDNode.\n\n"
+                   "Returns NULL if the iterator was already at the beginning and there are"
+                   "no previous named metadata nodes.");
 
-  nb::class_<PyValue>(m, "Value", "Value");
-    
   nb::class_<PyModule>(m, "Module",
      "Modules represent the top-level structure in an LLVM program. An LLVM"
      "module is effectively a translation unit or a collection of translation "
@@ -624,6 +639,23 @@ void populateCore(nb::module_ &m) {
       .def(nb::init<const std::string &>(), "id"_a)
       .def_prop_ro("first_global",
                    [](PyModule &m) { return PyValue(LLVMGetFirstGlobal(m.get())); })
+      .def_prop_ro("first_named_metadata",
+                   [](PyModule &m) {
+                     return PyNamedMDNode(LLVMGetFirstNamedMetadata(m.get()));
+                   },
+                   "Obtain an iterator to the first NamedMDNode in a Module.")
+      .def_prop_ro("last_named_metadata",
+                   [](PyModule &m) {
+                     return PyNamedMDNode(LLVMGetLastNamedMetadata(m.get()));
+                   },
+                   "Obtain an iterator to the last NamedMDNode in a Module.")
+      .def_prop_ro("context",
+                   [](PyModule &m) {
+                     LLVMContextRef global_context = LLVMGetGlobalContext();
+                     LLVMContextRef context = LLVMGetModuleContext(m.get());
+                     return PyContext(context, global_context == context);
+                   },
+                   "Obtain the context to which this module is associated.")
       .def_prop_rw("id",
                    [](PyModule &m) {
                      size_t len;
@@ -668,12 +700,29 @@ void populateCore(nb::module_ &m) {
                    nb::for_setter(nb::sig("def triple(self, triple: str, /) -> None")),
                    nb::for_getter("Obtain the target triple for a module."),
                    nb::for_setter("Set the target triple for a module."))
+      .def("get_named_metadata",
+           [](PyModule &m, std::string &name) -> std::optional<PyNamedMDNode> {
+             auto res = LLVMGetNamedMetadata(m.get(), name.c_str(), name.size());
+             if (res != nullptr)
+               return PyNamedMDNode(res);
+             return std::nullopt;
+           }, "name"_a,
+           "Retrieve a NamedMDNode with the given name, returning NULL if no such"
+           "node exists.")
+      .def("get_or_insert_named_metadata",
+           [](PyModule &m, std::string &name) {
+             return PyNamedMDNode
+                      (LLVMGetOrInsertNamedMetadata
+                         (m.get(), name.c_str(), name.size()));
+           }, "name"_a,
+           "Retrieve a NamedMDNode with the given name, creating a new node if no such"
+           "node exists.")
       .def("clone",
            [](PyModule &m) {
              return PyModule(LLVMCloneModule(m.get()));
            }, "Return an exact copy of the specified module.")
       // NOTE: I think LLVM C api has a bug: https://github.com/llvm/llvm-project/pull/99800
-      // NOTE: currently all LLVMModuleFlagEntry related function are not binded
+      // FIXME: currently all LLVMModuleFlagEntry related function are not binded
       // .def("copy_module_flags_metadata",
       //      [](PyModule &m) {
       //        size_t Len;
@@ -746,7 +795,12 @@ void populateCore(nb::module_ &m) {
        .def("append_inline_asm",
             [](PyModule &m, std::string &iasm) {
               return LLVMAppendModuleInlineAsm(m.get(), iasm.c_str(), iasm.size());
-            });
+            })
+      .def("get_type_by_name",
+           [](PyModule &m, std::string &name) {
+             return PyType(LLVMGetTypeByName(m.get(), name.c_str()));
+           }, "name"_a,
+           "Deprecated: Use LLVMGetTypeByName2 instead.");
 
 
   // nb::class_<PyModuleFlagEntry_>(m, "ModuleFlagEntry", "ModuleFlagEntry");
@@ -754,6 +808,7 @@ void populateCore(nb::module_ &m) {
 
 
   // ===========================================================================
+  nb::class_<PyValue>(m, "Value", "Value");
   // PyValue sub-classes (see Types.h)
   auto ArgumentClass = nb::class_<PyArgument, PyValue>(m, "Argument", "Argument");
   auto BasicBlockClass = nb::class_<PyBasicBlock, PyValue>(m, "BasicBlock", "BasicBlock");
@@ -844,6 +899,44 @@ void populateCore(nb::module_ &m) {
   auto AtomicRMWInstClass = nb::class_<PyAtomicRMWInst, PyInstruction>(m, "AtomicRMWInst", "AtomicRMWInst");
   auto FenceInstClass = nb::class_<PyFenceInst, PyInstruction>(m, "FenceInst", "FenceInst");
 
-
+  InlineAsmClass
+    .def_prop_ro("str",
+                 [](PyInlineAsm &iasm) {
+                   size_t len;
+                   const char *str = LLVMGetInlineAsmAsmString(iasm.get(), &len);
+                   return std::string(str, len);
+                 },
+                 "Get the template string used for an inline assembly snippet.")
+    .def_prop_ro("constraint_str",
+                 [](PyInlineAsm &iasm) {
+                   size_t len;
+                   const char *str = LLVMGetInlineAsmConstraintString(iasm.get(), &len);
+                   return std::string(str, len);
+                 },
+                 "Get the raw constraint string for an inline assembly snippet.")
+    .def_prop_ro("dialect",
+                 [](PyInlineAsm &iasm) {
+                   return LLVMGetInlineAsmDialect(iasm.get());
+                 },
+                 "Get the dialect used by the inline asm snippet.")
+    .def_prop_ro("function_type",
+                 [](PyInlineAsm &iasm) {
+                   return PyType(LLVMGetInlineAsmFunctionType(iasm.get()));
+                 },
+                 "Get the function type of the inline assembly snippet. "
+                 "The same type that was passed into :func:`get_inline_asm` originally.")
+    .def_prop_ro("has_side_effects",
+                 [](PyInlineAsm &iasm) {
+                   return LLVMGetInlineAsmHasSideEffects(iasm.get()) != 0;
+                 },
+                 "Get if the inline asm snippet has side effects.")
+    .def_prop_ro("needs_aligned_stack",
+                 [](PyInlineAsm &iasm) {
+                   return LLVMGetInlineAsmNeedsAlignedStack(iasm.get()) != 0;
+                 })
+    .def_prop_ro("can_unwind",
+                 [](PyInlineAsm &iasm) {
+                   return LLVMGetInlineAsmCanUnwind(iasm.get()) != 0;
+                 });
   
 }

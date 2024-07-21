@@ -172,6 +172,7 @@ DEFINE_PY_WRAPPER_CLASS(PyType, LLVMTypeRef, type)
 DEFINE_PY_WRAPPER_CLASS(PyDiagnosticInfo, LLVMDiagnosticInfoRef, diagnosticInfo)
 DEFINE_PY_WRAPPER_CLASS(PyAttribute, LLVMAttributeRef, attribute)
 DEFINE_PY_WRAPPER_CLASS(PyMetadata, LLVMMetadataRef, metadata)
+DEFINE_PY_WRAPPER_CLASS(PyNamedMDNode, LLVMNamedMDNodeRef, namedMDNode)
 
 // typedef LLVMModuleFlagEntry *LLVMModuleFlagEntry_;
 // DEFINE_PY_WRAPPER_CLASS(PyModuleFlagEntry, LLVMModuleFlagEntry_, moduleFlagEntry)
