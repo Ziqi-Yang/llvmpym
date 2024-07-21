@@ -630,7 +630,14 @@ void populateCore(nb::module_ &m) {
                    },
                    "Decrement a NamedMDNode iterator to the previous NamedMDNode.\n\n"
                    "Returns NULL if the iterator was already at the beginning and there are"
-                   "no previous named metadata nodes.");
+                   "no previous named metadata nodes.")
+      .def_prop_ro("name",
+                   [](PyNamedMDNode &nmdn) {
+                     size_t len;
+                     const char *name =  LLVMGetNamedMetadataName(nmdn.get(), &len);
+                     return std::string(name, len);
+                   },
+                   "Retrieve the name of a NamedMDNode.");
 
   nb::class_<PyModule>(m, "Module",
      "Modules represent the top-level structure in an LLVM program. An LLVM"
@@ -700,6 +707,26 @@ void populateCore(nb::module_ &m) {
                    nb::for_setter(nb::sig("def triple(self, triple: str, /) -> None")),
                    nb::for_getter("Obtain the target triple for a module."),
                    nb::for_setter("Set the target triple for a module."))
+      .def_prop_ro("first_function",
+                   [](PyModule &m) {
+                     return PyFunction(LLVMGetFirstFunction(m.get()));
+                   },
+                   "Obtain an iterator to the first Function in a Module.")
+      .def_prop_ro("last_function",
+                   [](PyModule &m) {
+                     return PyFunction(LLVMGetLastFunction(m.get()));
+                   },
+                   "Obtain an iterator to the last Function in a Module.")
+      .def("add_function",
+           [](PyModule &m, std::string &name, PyType &functionTy) {
+             return PyFunction(LLVMAddFunction(m.get(), name.c_str(), functionTy.get()));
+           }, "name"_a, "function_type"_a,
+           "Add a function to a module under a specified name.")
+      .def("get_named_function",
+           [](PyModule &m, std::string &name) {
+             return PyFunction(LLVMGetNamedFunction(m.get(), name.c_str()));
+           }, "name"_a,
+           "Obtain a Function value from a Module by its name.")
       .def("get_named_metadata",
            [](PyModule &m, std::string &name) -> std::optional<PyNamedMDNode> {
              auto res = LLVMGetNamedMetadata(m.get(), name.c_str(), name.size());
@@ -717,6 +744,32 @@ void populateCore(nb::module_ &m) {
            }, "name"_a,
            "Retrieve a NamedMDNode with the given name, creating a new node if no such"
            "node exists.")
+      .def("get_named_metadata_num_operands",
+           [](PyModule &m, std::string &name) {
+             return LLVMGetNamedMetadataNumOperands(m.get(), name.c_str());
+           }, "name"_a,
+           "Obtain the number of operands for named metadata in a module.")
+      .def("get_named_metadata_operands",
+           [](PyModule &m, std::string &name) {
+             LLVMValueRef *dest;
+             std::vector<PyValue> res;
+             LLVMGetNamedMetadataOperands(m.get(), name.c_str(), dest);
+             int num = LLVMGetNamedMetadataNumOperands(m.get(), name.c_str());
+             for (size_t i = 0; i < num; i ++) {
+               res.push_back(PyValue(dest[i]));
+             }
+             return res;
+           }, "name"_a,
+           "Obtain the named metadata operands for a module.\n\n"
+           "The passed LLVMValueRef pointer should refer to an array of"
+           "LLVMValueRef at least LLVMGetNamedMetadataNumOperands long. This"
+           "array will be populated with the LLVMValueRef instances. Each"
+           "instance corresponds to a llvm::MDNode.")
+      .def("add_named_metadata_operand",
+           [](PyModule &m, std::string &name, PyValue &val) {
+             return LLVMAddNamedMetadataOperand(m.get(), name.c_str(), val.get());
+           },
+           "Add an operand to named metadata.")
       .def("clone",
            [](PyModule &m) {
              return PyModule(LLVMCloneModule(m.get()));
@@ -792,6 +845,11 @@ void populateCore(nb::module_ &m) {
               return LLVMSetModuleInlineAsm2(m.get(), iasm.c_str(), iasm.size());
             }, "asm"_a,
             "Set inline assembly for a module.")
+       .def("set_inline_asm",
+            [](PyModule &m, std::string &iasm) {
+              return LLVMSetModuleInlineAsm(m.get(), iasm.c_str());
+            },
+            "Deprecated: Use :func:`set_inline_asm2` instead.")
        .def("append_inline_asm",
             [](PyModule &m, std::string &iasm) {
               return LLVMAppendModuleInlineAsm(m.get(), iasm.c_str(), iasm.size());
@@ -809,6 +867,7 @@ void populateCore(nb::module_ &m) {
 
   // ===========================================================================
   nb::class_<PyValue>(m, "Value", "Value");
+  
   // PyValue sub-classes (see Types.h)
   auto ArgumentClass = nb::class_<PyArgument, PyValue>(m, "Argument", "Argument");
   auto BasicBlockClass = nb::class_<PyBasicBlock, PyValue>(m, "BasicBlock", "BasicBlock");
@@ -938,5 +997,85 @@ void populateCore(nb::module_ &m) {
                  [](PyInlineAsm &iasm) {
                    return LLVMGetInlineAsmCanUnwind(iasm.get()) != 0;
                  });
+
+  InstructionClass
+      .def_prop_ro("debug_loc_directory",
+                   [](PyInstruction &i) {
+                     unsigned len;
+                     const char *res = LLVMGetDebugLocDirectory(i.get(), &len);
+                     return std::string(res, len);
+                   },
+                   "Return the directory of the debug location for this value")
+      .def_prop_ro("debug_loc_filename",
+                   [](PyInstruction &i) {
+                     unsigned len;
+                     const char *res = LLVMGetDebugLocFilename(i.get(), &len);
+                     return std::string(res, len);
+                   },
+                   "Return the filename of the debug location for this value.")
+      .def_prop_ro("debug_loc_line",
+                   [](PyInstruction &i) { return LLVMGetDebugLocLine(i.get()); },
+                   "Return the line number of the debug location for this value")
+      .def_prop_ro("debug_loc_column",
+                   [](PyInstruction &i) { return LLVMGetDebugLocColumn(i.get()); },
+                   "Return the column number of the debug location for this value");
+
+  GlobalVariableClass
+      .def_prop_ro("debug_loc_directory",
+                   [](PyGlobalVariable &v) {
+                     unsigned len;
+                     const char *res = LLVMGetDebugLocDirectory(v.get(), &len);
+                     return std::string(res, len);
+                   },
+                   "Return the directory of the debug location for this value")
+      .def_prop_ro("debug_loc_filename",
+                   [](PyGlobalVariable &v) {
+                     unsigned len;
+                     const char *res = LLVMGetDebugLocFilename(v.get(), &len);
+                     return std::string(res, len);
+                   },
+                   "Return the filename of the debug location for this value")
+      .def_prop_ro("debug_loc_line",
+                   [](PyGlobalVariable &v) { return LLVMGetDebugLocLine(v.get()); },
+                   "Return the line number of the debug location for this value");
+
+  FunctionClass
+      .def_prop_ro("next",
+                   [](PyFunction &f) -> std::optional<PyFunction> {
+                     auto res = LLVMGetNextFunction(f.get());
+                     if (res != nullptr)
+                       return PyFunction(res);
+                     return std::nullopt;
+                   },
+                   "Advance a Function iterator to the next Function.\n\n"
+                   "Returns NULL if the iterator was already at the end and there are no more"
+                   "functions.")
+      .def_prop_ro("previous",
+                   [](PyFunction &f) -> std::optional<PyFunction> {
+                     auto res = LLVMGetPreviousFunction(f.get());
+                     if (res != nullptr)
+                       return PyFunction(res);
+                     return std::nullopt;
+                   },
+                   "Decrement a Function iterator to the previous Function.\n\n"
+                   "Returns NULL if the iterator was already at the beginning and there are"
+                   "no previous functions.")
+      .def_prop_ro("debug_loc_directory",
+                   [](PyFunction &f) {
+                     unsigned len;
+                     const char *res = LLVMGetDebugLocDirectory(f.get(), &len);
+                     return std::string(res, len);
+               },
+               "Return the directory of the debug location for this value")
+      .def_prop_ro("debug_loc_filename",
+                   [](PyFunction &f) {
+                     unsigned len;
+                     const char *res = LLVMGetDebugLocFilename(f.get(), &len);
+                     return std::string(res, len);
+                   },
+                   "Return the filename of the debug location for this value")
+      .def_prop_ro("debug_loc_line",
+                   [](PyFunction &f) { return LLVMGetDebugLocLine(f.get()); },
+                   "Return the line number of the debug location for this value");
   
 }

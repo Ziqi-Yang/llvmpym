@@ -148,6 +148,11 @@ protected:
       macro(PyInstruction, PyAtomicRMWInst)                  \
       macro(PyInstruction, PyFenceInst)
 
+// #define PY_FOR_EACH_TYPE_SUBCLASS(macro) \
+//   macro(PyType, PyArgument)                           \
+//   macro(PyType, PyBasicBlock)                         \
+
+
 
 enum class PyAttributeIndex {
   Return = LLVMAttributeReturnIndex,
