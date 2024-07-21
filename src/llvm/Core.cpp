@@ -461,21 +461,36 @@ void bindGlobalFunctions(nb::module_ &m) {
         "Create the specified uniqued inline asm string.");
 
 
-  m.def("int1", []() { return PyTypeInt(LLVMInt1Type()); },
+  m.def("t_int1", []() { return PyTypeInt(LLVMInt1Type()); },
         "Get type from global context.");
-  m.def("int8", []() { return PyTypeInt(LLVMInt8Type()); },
+  m.def("t_int8", []() { return PyTypeInt(LLVMInt8Type()); },
         "Get type from global context.");
-  m.def("int16", []() { return PyTypeInt(LLVMInt16Type()); },
+  m.def("t_int16", []() { return PyTypeInt(LLVMInt16Type()); },
         "Get type from global context.");
-  m.def("int32", []() { return PyTypeInt(LLVMInt32Type()); },
+  m.def("t_int32", []() { return PyTypeInt(LLVMInt32Type()); },
         "Get type from global context.");
-  m.def("int64", []() { return PyTypeInt(LLVMInt64Type()); },
+  m.def("t_int64", []() { return PyTypeInt(LLVMInt64Type()); },
         "Get from global context.");
-  m.def("int128", []() { return PyTypeInt(LLVMInt128Type()); },
+  m.def("t_int128", []() { return PyTypeInt(LLVMInt128Type()); },
         "Get type from global context.");
   m.def("get_int_type",
         [](unsigned numBits) { return PyTypeInt(LLVMIntType(numBits)); },
         "num_bits"_a,
+        "Get type from global context.");
+
+  m.def("t_half", [](){ return PyTypeReal(LLVMHalfType()); },
+        "Get type from global context.");
+  m.def("t_bfloat", [](){ return PyTypeReal(LLVMBFloatType()); },
+        "Get type from global context.");
+  m.def("t_float", [](){ return PyTypeReal(LLVMFloatType()); },
+        "Get type from global context.");
+  m.def("t_double", [](){ return PyTypeReal(LLVMDoubleType()); },
+        "Get type from global context.");
+  m.def("t_x86fp80", [](){ return PyTypeReal(LLVMX86FP80Type()); },
+        "Get type from global context.");
+  m.def("t_fp128", [](){ return PyTypeReal(LLVMFP128Type()); },
+        "Get type from global context.");
+  m.def("t_ppcfp128", [](){ return PyTypeReal(LLVMPPCFP128Type()); },
         "Get type from global context.");
 }
 
@@ -761,18 +776,33 @@ void populateCore(nb::module_ &m) {
       .def_prop_ro("diagnostic_context", // TODO more check: in my test it simply None
                    [](PyContext &c) { return LLVMContextGetDiagnosticContext(c.get()); },
                    "Get the diagnostic context of this context.")
-      .def_prop_ro("int1",
+      .def_prop_ro("t_int1",
                    [](PyContext &c) { return PyTypeInt(LLVMInt1TypeInContext(c.get())); })
-      .def_prop_ro("int8",
+      .def_prop_ro("t_int8",
                    [](PyContext &c) { return PyTypeInt(LLVMInt8TypeInContext(c.get())); })
-      .def_prop_ro("int16",
+      .def_prop_ro("t_int16",
                    [](PyContext &c) { return PyTypeInt(LLVMInt16TypeInContext(c.get())); })
-      .def_prop_ro("int32",
+      .def_prop_ro("t_int32",
                    [](PyContext &c) { return PyTypeInt(LLVMInt32TypeInContext(c.get())); })
-      .def_prop_ro("int64",
+      .def_prop_ro("t_int64",
                    [](PyContext &c) { return PyTypeInt(LLVMInt64TypeInContext(c.get())); })
-      .def_prop_ro("int128",
+      .def_prop_ro("t_int128",
                    [](PyContext &c) { return PyTypeInt(LLVMInt128TypeInContext(c.get())); })
+      .def_prop_ro("t_half",
+                   [](PyContext &c) { return PyTypeReal(LLVMHalfTypeInContext(c.get())); })
+      .def_prop_ro("t_bfloat",
+                   [](PyContext &c) { return PyTypeReal(LLVMBFloatTypeInContext(c.get())); })
+      .def_prop_ro("t_float",
+                   [](PyContext &c) { return PyTypeReal(LLVMFloatTypeInContext(c.get())); })
+      .def_prop_ro("t_double",
+                   [](PyContext &c) { return PyTypeReal(LLVMDoubleTypeInContext(c.get())); })
+      .def_prop_ro("t_x86fp80",
+                   [](PyContext &c) { return PyTypeReal(LLVMX86FP80TypeInContext(c.get())); })
+      .def_prop_ro("t_fp128",
+                   [](PyContext &c) { return PyTypeReal(LLVMFP128TypeInContext(c.get())); })
+      .def_prop_ro("t_ppcfp128",
+                   [](PyContext &c) { return PyTypeReal(LLVMPPCFP128TypeInContext(c.get())); })
+
       .def("get_int_type",
            [](PyContext &c, unsigned numBits) {
              return PyTypeInt(LLVMIntTypeInContext(c.get(), numBits));
