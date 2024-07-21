@@ -203,6 +203,12 @@ public:
   explicit PyContext(LLVMContextRef context, bool is_global_context)
   : context(context), is_global_context(is_global_context) {}
 
+  explicit PyContext(LLVMContextRef context) : context(context) {
+    // TODO check
+    LLVMContextRef global_context = LLVMGetGlobalContext();
+    is_global_context = global_context == context;
+  }
+
   static PyContext getGlobalContext() {
     return PyContext(LLVMGetGlobalContext(), true);
   }

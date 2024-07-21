@@ -466,7 +466,24 @@ void bindGlobalFunctions(nb::module_ &m) {
 
 
 void bindTypeClasses(nb::module_ &m) {
-  nb::class_<PyType>(m, "Type", "Type");
+  nb::class_<PyType>(m, "Type", "Type")
+      .def_prop_ro("kind",
+                   [](PyType &t) { return LLVMGetTypeKind(t.get()); },
+                   "Obtain the enumerated type of a Type instance.")
+      .def_prop_ro("is_sized",
+                   [](PyType &t) { return LLVMTypeIsSized(t.get()) != 0; },
+                   "Whether the type has a known size.\n\n"
+                   "Things that don't have a size are abstract types, labels, and void.a")
+      .def_prop_ro("context",
+                   [](PyType &t) { return PyContext(LLVMGetTypeContext(t.get())); },
+                   "Obtain the context to which this type instance is associated.")
+      .def("__str__",
+           [](PyType &t) {
+             char *str = LLVMPrintTypeToString(t.get());
+             std::string res(str);
+             LLVMDisposeMessage(str);
+             return res;
+           });
   
   auto TypeIntClass = nb::class_<PyTypeInt, PyType>(m, "TypeInt", "TypeInt");
   auto TypeRealClass = nb::class_<PyTypeReal, PyType>(m, "TypeReal", "TypeReal");
@@ -478,6 +495,8 @@ void bindTypeClasses(nb::module_ &m) {
   auto TypeVoidClass = nb::class_<PyTypeVoid, PyType>(m, "TypeVoid", "TypeVoid");
   auto TypeLabelClass = nb::class_<PyTypeLabel, PyType>(m, "TypeLabel", "TypeLabel");
   auto TypeOpaqueClass = nb::class_<PyTypeOpaque, PyType>(m, "TypeOpaque", "TypeOpaque");
+
+  
 }
 
 
@@ -720,6 +739,22 @@ void populateCore(nb::module_ &m) {
       .def_prop_ro("diagnostic_context", // TODO more check: in my test it simply None
                    [](PyContext &c) { return LLVMContextGetDiagnosticContext(c.get()); },
                    "Get the diagnostic context of this context.")
+      .def_prop_ro("int1",
+                   [](PyContext &c) { return PyTypeInt(LLVMInt1TypeInContext(c.get())); })
+      .def_prop_ro("int8",
+                   [](PyContext &c) { return PyTypeInt(LLVMInt8TypeInContext(c.get())); })
+      .def_prop_ro("int16",
+                   [](PyContext &c) { return PyTypeInt(LLVMInt16TypeInContext(c.get())); })
+      .def_prop_ro("int32",
+                   [](PyContext &c) { return PyTypeInt(LLVMInt32TypeInContext(c.get())); })
+      .def_prop_ro("int64",
+                   [](PyContext &c) { return PyTypeInt(LLVMInt64TypeInContext(c.get())); })
+      .def_prop_ro("int128",
+                   [](PyContext &c) { return PyTypeInt(LLVMInt128TypeInContext(c.get())); })
+      .def("get_int_type",
+           [](PyContext &c, unsigned numBits) {
+             return PyTypeInt(LLVMIntTypeInContext(c.get(), numBits));
+           }, "num_bits"_a)
       .def_prop_rw("should_discard_value_names", // TODO convert LLVMBool to bool
                    [](PyContext &c) -> bool { return LLVMContextShouldDiscardValueNames(c.get()) != 0; },
                    [](PyContext &c, bool discard) {
@@ -902,9 +937,7 @@ void populateCore(nb::module_ &m) {
                    "Obtain an iterator to the last NamedMDNode in a Module.")
       .def_prop_ro("context",
                    [](PyModule &m) {
-                     LLVMContextRef global_context = LLVMGetGlobalContext();
-                     LLVMContextRef context = LLVMGetModuleContext(m.get());
-                     return PyContext(context, global_context == context);
+                     return PyContext(LLVMGetModuleContext(m.get()));
                    },
                    "Obtain the context to which this module is associated.")
       .def_prop_rw("id",
@@ -961,6 +994,14 @@ void populateCore(nb::module_ &m) {
                      return PyFunction(LLVMGetLastFunction(m.get()));
                    },
                    "Obtain an iterator to the last Function in a Module.")
+      .def("__str__",
+           [](PyModule &m) {
+             char *str = LLVMPrintModuleToString(m.get());
+             std::string strCopy(str);
+             LLVMDisposeMessage(str);
+             return strCopy;
+           },
+           "Return a string representation of the module")
       .def("add_function",
            [](PyModule &m, std::string &name, PyType &functionTy) {
              return PyFunction(LLVMAddFunction(m.get(), name.c_str(), functionTy.get()));
@@ -1069,32 +1110,24 @@ void populateCore(nb::module_ &m) {
            }, "filename"_a,
            "Print a representation of a module to a file. The ErrorMessage needs to be"
            "disposed with LLVMDisposeMessage. Returns 0 on success, 1 otherwise.")
-       .def("print",
-            [](PyModule &m) {
-              char *str = LLVMPrintModuleToString(m.get());
-              std::string strCopy(str);
-              LLVMDisposeMessage(str);
-              return strCopy;
-            },
-            "Return a string representation of the module")
-       .def("get_inline_asm",
-            [](PyModule &m) {
-              size_t len;
-              const char *iasm = LLVMGetModuleInlineAsm(m.get(), &len);
-              return std::string(iasm, len);
-            },
-            "Get inline assembly for a module.")
-       .def("set_inline_asm2",
-            [](PyModule &m, std::string &iasm) {
-              return LLVMSetModuleInlineAsm2(m.get(), iasm.c_str(), iasm.size());
-            }, "asm"_a,
-            "Set inline assembly for a module.")
-       .def("set_inline_asm",
-            [](PyModule &m, std::string &iasm) {
-              return LLVMSetModuleInlineAsm(m.get(), iasm.c_str());
-            },
-            "Deprecated: Use :func:`set_inline_asm2` instead.")
-       .def("append_inline_asm",
+      .def("get_inline_asm",
+           [](PyModule &m) {
+             size_t len;
+             const char *iasm = LLVMGetModuleInlineAsm(m.get(), &len);
+             return std::string(iasm, len);
+           },
+           "Get inline assembly for a module.")
+      .def("set_inline_asm2",
+           [](PyModule &m, std::string &iasm) {
+             return LLVMSetModuleInlineAsm2(m.get(), iasm.c_str(), iasm.size());
+           }, "asm"_a,
+           "Set inline assembly for a module.")
+      .def("set_inline_asm",
+           [](PyModule &m, std::string &iasm) {
+             return LLVMSetModuleInlineAsm(m.get(), iasm.c_str());
+           },
+           "Deprecated: Use :func:`set_inline_asm2` instead.")
+      .def("append_inline_asm",
             [](PyModule &m, std::string &iasm) {
               return LLVMAppendModuleInlineAsm(m.get(), iasm.c_str(), iasm.size());
             })
