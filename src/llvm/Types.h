@@ -169,13 +169,18 @@ protected:
   macro(PyType, PyTypeInt) \
   macro(PyType, PyTypeReal) \
   macro(PyType, PyTypeFunction) \
+  macro(PyType, PyTypeStruct) \
   macro(PyType, PyTypeSequence) \
     macro(PyTypeSequence, PyTypeArray) \
     macro(PyTypeSequence, PyTypePointer) \
     macro(PyTypeSequence, PyTypeVector) \
   macro(PyType, PyTypeVoid) \
   macro(PyType, PyTypeLabel) \
-  macro(PyType, PyTypeStruct)
+  macro(PyType, PyTypeX86MMX) \
+  macro(PyType, PyTypeX86AMX) \
+  macro(PyType, PyTypeToken) \
+  macro(PyType, PyTypeMetadata) \
+  macro(PyType, PyTypeTargetExt) 
 
 
 enum class PyAttributeIndex {

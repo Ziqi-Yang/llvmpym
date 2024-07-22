@@ -499,15 +499,19 @@ void bindTypeClasses(nb::module_ &m) {
   auto TypeIntClass = nb::class_<PyTypeInt, PyType>(m, "TypeInt", "TypeInt");
   auto TypeRealClass = nb::class_<PyTypeReal, PyType>(m, "TypeReal", "TypeReal");
   auto TypeFunctionClass = nb::class_<PyTypeFunction, PyType> (m, "TypeFunction", "TypeFunction");
+  auto TypeStructClass = nb::class_<PyTypeStruct, PyType> (m, "TypeStruct", "TypeStruct");
   auto TypeSequenceClass = nb::class_<PyTypeSequence, PyType>(m, "TypeSequence", "TypeSequence");
   auto TypeArrayClass = nb::class_<PyTypeArray, PyTypeSequence>(m, "TypeArray", "TypeArray");
   auto TypePointerClass = nb::class_<PyTypePointer, PyTypeSequence>(m, "TypePointer", "TypePointer");
   auto TypeVectorClass = nb::class_<PyTypeVector, PyTypeSequence>(m, "TypeVector", "TypeVector");
   auto TypeVoidClass = nb::class_<PyTypeVoid, PyType>(m, "TypeVoid", "TypeVoid");
   auto TypeLabelClass = nb::class_<PyTypeLabel, PyType>(m, "TypeLabel", "TypeLabel");
-  auto TypeStructClass = nb::class_<PyTypeStruct, PyType> (m, "TypeStruct", "TypeStruct");
-
-
+  auto TypeX86MMXClass = nb::class_<PyTypeX86MMX, PyType>(m, "TypeX86MMX", "TypeX86MMX");
+  auto TypeX86AMXClass = nb::class_<PyTypeX86AMX, PyType>(m, "TypeX86AMX", "TypeX86AMX");
+  auto TypeTokenClass = nb::class_<PyTypeToken, PyType>(m, "TypeToken", "TypeToken");
+  auto TypeMetadataClass = nb::class_<PyTypeMetadata, PyType>(m, "TypeMetadata", "TypeMetadata");
+  auto TypeTargetExtClass = nb::class_<PyTypeTargetExt, PyType>(m, "TypeTargetExt", "TypeTargetExt");
+  
 
   TypeIntClass
       .def("__init__",
@@ -680,9 +684,105 @@ void bindTypeClasses(nb::module_ &m) {
       .def_prop_ro("element_type", // TODO test pointer type
                    [](PyTypeSequence &t) { return PyType(LLVMGetElementType(t.get())); });
 
-  // TypeArrayClass
-  //     .def
-      
+  TypeArrayClass
+      .def("__init__", // NOTE LLVMArrayType and LLVMArrayType2 are nearly the same
+           [](PyTypeArray *t, PyType &elementType, unsigned elementCount) {
+             new (t) PyTypeArray(LLVMArrayType(elementType.get(), elementCount));
+           },
+           "elem_type"_a, "elem_count"_a,
+           "Create a fixed size array type that refers to a specific type.\n\n"
+           "The created type will exist in the context that its element type"
+           "exists in.")
+      .def_prop_ro("length", // LLVMGetArrayLength and LLVMGetArrayLength2 are nearly the same
+                   [](PyTypeArray &t) { return LLVMGetArrayLength(t.get()); });
+
+
+  TypePointerClass
+      .def("__init__",
+           [](PyTypePointer *t, PyContext &c, unsigned AddressSpace) {
+             new (t) PyTypePointer(LLVMPointerTypeInContext(c.get(), AddressSpace));
+           },
+           "context"_a, "address_space"_a,
+           "Create an opaque pointer type in a context.")
+      .def("__init__",
+           [](PyTypePointer *t, PyType &ElementType, unsigned AddressSpace) {
+             new (t) PyTypePointer(LLVMPointerType(ElementType.get(), AddressSpace));
+           },
+           "elem_type"_a, "address_space"_a,
+           "Create a pointer type that points to a defined type.\n\n"
+           "The created type will exist in the context that its pointee type"
+           "exists in.")
+      .def_prop_ro("is_opaque",
+                   [](PyTypePointer &t) { return LLVMPointerTypeIsOpaque(t.get()); })
+      .def_prop_ro("address_space",
+                   [](PyTypePointer &t) { return LLVMGetPointerAddressSpace(t.get()); });
+
+  TypeVectorClass
+      .def("__init__",
+           [](PyTypeVector *t, PyType &ElementType, unsigned ElementCount, bool IsScalable) {
+             if (IsScalable) {
+               new (t) PyTypeVector(LLVMScalableVectorType(ElementType.get(), ElementCount));
+             } else {
+               new (t) PyTypeVector(LLVMVectorType(ElementType.get(), ElementCount));
+             }
+           },
+           "elem_type"_a, "elem_count"_a, "is_scalable"_a,
+           "The created type will exist in the context thats its element type"
+           "exists in.")
+      .def_prop_ro("__len__",
+                   [](PyTypeVector &t) { return LLVMGetVectorSize(t.get()); });
+  TypeVoidClass
+      .def("__init__",
+           [](PyTypeVoid *t, PyContext &c) {
+             new (t) PyTypeVoid(LLVMVoidTypeInContext(c.get()));
+           })
+      .def_static("global",
+                  []() { return PyTypeVoid(LLVMVoidType()); } );
+  TypeLabelClass
+        .def("__init__",
+             [](PyTypeLabel *t, PyContext &c) {
+               new (t) PyTypeLabel(LLVMLabelTypeInContext(c.get()));
+             })
+        .def_static("global",
+                    []() { return PyTypeLabel(LLVMLabelType()); } );
+
+
+  TypeX86MMXClass
+      .def("__init__",
+           [](PyTypeX86MMX *t, PyContext &c) {
+             new (t) PyTypeX86MMX(LLVMX86MMXTypeInContext(c.get()));
+           })
+      .def_static("global",
+                  []() { return PyTypeX86MMX(LLVMX86MMXType()); } );
+
+
+  TypeX86AMXClass
+       .def("__init__",
+            [](PyTypeX86AMX *t, PyContext &c) {
+              new (t) PyTypeX86AMX(LLVMX86AMXTypeInContext(c.get()));
+            })
+       .def_static("global",
+                   []() { return PyTypeX86AMX(LLVMX86AMXType()); } );
+
+
+  TypeTokenClass
+      .def("__init__",
+           [](PyTypeToken *t, PyContext &c) {
+             new (t) PyTypeToken(LLVMTokenTypeInContext(c.get()));
+           });
+
+  TypeMetadataClass
+      .def("__init__",
+           [](PyTypeMetadata *t, PyContext &c) {
+             new (t) PyTypeMetadata(LLVMMetadataTypeInContext(c.get()));
+           });
+
+  // TypeTargetExtClass
+  //       .def("__init__",
+  //            [](PyTypeVoid *t, PyContext &c) {
+  //              new (t) PyTypeVoid(LLVMVoidTypeInContext(c.get()));
+  //            });
+
 }
 
 
@@ -805,7 +905,7 @@ void bindValueClasses(nb::module_ &m) {
                  "Get the dialect used by the inline asm snippet.")
     .def_prop_ro("function_type",
                  [](PyInlineAsm &iasm) {
-                   return PyType(LLVMGetInlineAsmFunctionType(iasm.get()));
+                   return PyTypeFunction(LLVMGetInlineAsmFunctionType(iasm.get()));
                  },
                  "Get the function type of the inline assembly snippet. "
                  "The same type that was passed into :func:`get_inline_asm` originally.")
