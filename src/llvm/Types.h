@@ -350,6 +350,8 @@ DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyDiagnosticInfo, LLVMDiagnosticInfoRef, diagno
 DEFINE_PY_WRAPPER_CLASS_COPYABLE_POLYMORPHIC(PyAttribute, LLVMAttributeRef, attribute)
 DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyMetadata, LLVMMetadataRef, metadata)
 DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyNamedMDNode, LLVMNamedMDNodeRef, namedMDNode)
+DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyUse, LLVMUseRef, Use)
+
 
 // typedef LLVMModuleFlagEntry *LLVMModuleFlagEntry_;
 // DEFINE_PY_WRAPPER_CLASS(PyModuleFlagEntry, LLVMModuleFlagEntry_, moduleFlagEntry)

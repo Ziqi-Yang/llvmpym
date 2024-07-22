@@ -613,7 +613,28 @@ void bindTypeClasses(nb::module_ &m) {
                      LLVMGetSubtypes(t.get(), arr);
                      WRAP_VECTOR_FROM_DEST(PyTypeSequence, num, res, arr);
                      return res;
-                   });
+                   })
+      .def_prop_ro("Null",
+                  [](PyType &t) {
+                    return PyValueAuto(LLVMConstNull(t.get()));
+                  }, "type"_a,
+                  "Obtain a constant value referring to the null instance of the type.")
+      .def_prop_ro("AllOnes",
+                  [](PyTypeInt &t) {
+                    return PyValueAuto(LLVMConstAllOnes(t.get()));
+                  }, "type"_a,
+                  "Obtain a constant value referring to the instance of the type"
+                  "consisting of all ones.")
+      .def_prop_ro("Undef",
+                  [](PyType &t) {
+                    return PyUndefValue(LLVMGetUndef(t.get()));
+                  }, "type"_a,
+                  "Obtain a constant value referring to an undefined value of a type.")
+      .def_prop_ro("Poison",
+                  [](PyType &t) {
+                    return PyPoisonValue(LLVMGetPoison(t.get()));
+                  }, "type"_a,
+                  "Obtain a constant value referring to a poison value of a type.");
   
   auto TypeIntClass = nb::class_<PyTypeInt, PyType>(m, "IntType", "IntType");
   auto TypeRealClass = nb::class_<PyTypeReal, PyType>(m, "RealType", "RealType");
@@ -1034,6 +1055,7 @@ void bindValueClasses(nb::module_ &m) {
                    [](PyValue &v) { return PyTypeAuto(LLVMTypeOf(v.get())); })
       .def_prop_ro("kind",
                    [](PyValue &v) { return LLVMGetValueKind(v.get()); })
+      // NOTE LLVMSetValueName and LLVMGetValueName are depreciated
       .def_prop_rw("name",
                    [](PyValue &v) {
                      size_t len;
@@ -1050,6 +1072,8 @@ void bindValueClasses(nb::module_ &m) {
                     [](PyValue &v) { return LLVMIsUndef(v.get()) != 0; })
        .def_prop_ro("is_poisonous",
                     [](PyValue &v) { return LLVMIsPoison(v.get()) != 0;})
+       .def_prop_ro("first_use",
+                    [](PyValue &v) { return PyUse(LLVMGetFirstUse(v.get())); })
        .def("dump",
             [](PyValue &v) { return LLVMDumpValue(v.get()); },
             "Dump a representation of a value to stderr.")
@@ -1198,6 +1222,53 @@ void bindValueClasses(nb::module_ &m) {
       .def_prop_ro("debug_loc_line",
                    [](PyFunction &f) { return LLVMGetDebugLocLine(f.get()); },
                    "Return the line number of the debug location for this value");
+
+  UserClass
+      .def("get_operand",
+           [](PyUser &u, unsigned index) {
+             return PyValueAuto(LLVMGetOperand(u.get(), index));
+           }, "index"_a,
+           "Obtain an operand at a specific index.")
+      .def("get_operand_use",
+           [](PyUser &u, unsigned index) {
+             return PyUse(LLVMGetOperandUse(u.get(), index));
+           },
+           "Obtain the use of an operand at a specific index")
+      .def("set_operand",
+           [](PyUser &u, unsigned index, PyValue &v) {
+             return LLVMSetOperand(u.get(), index, v.get());
+           },
+           "Set an operand at a specific index")
+       .def_prop_ro("operands_number",
+                    [](PyUser &u) {
+                      return LLVMGetNumOperands(u.get());
+                    });
+
+  ConstantClass
+      // note these constructors are also available in TypeClass
+      .def_static("Null",
+                  [](PyType &t) {
+                    return PyValueAuto(LLVMConstNull(t.get()));
+                  }, "type"_a,
+                  "Obtain a constant value referring to the null instance of the type.")
+      .def_static("AllOnes",
+                  [](PyTypeInt &t) {
+                    return PyValueAuto(LLVMConstAllOnes(t.get()));
+                  }, "type"_a,
+                  "Obtain a constant value referring to the instance of the type"
+                  "consisting of all ones.")
+      .def_static("Undef",
+                  [](PyType &t) {
+                    return PyUndefValue(LLVMGetUndef(t.get()));
+                  }, "type"_a,
+                  "Obtain a constant value referring to an undefined value of a type.")
+      .def_static("Poison",
+                  [](PyType &t) {
+                    return PyPoisonValue(LLVMGetPoison(t.get()));
+                  }, "type"_a,
+                  "Obtain a constant value referring to a poison value of a type.")
+      .def_prop_ro("is_null",
+                   [](PyConstant &c) { return LLVMIsNull(c.get()) != 0; });
 }
 
 
@@ -1598,4 +1669,22 @@ void populateCore(nb::module_ &m) {
 
   // nb::class_<PyModuleFlagEntry_>(m, "ModuleFlagEntry", "ModuleFlagEntry");
   nb::class_<PyMetadata>(m, "Metadata", "Metadata");
+  
+  nb::class_<PyUse>(m, "Use", "Use")
+      .def_prop_ro("next",
+                   [](PyUse &u) -> std::optional<PyUse> {
+                     auto res = LLVMGetNextUse(u.get());
+                     if (res)
+                       return PyUse(res);
+                     return std::nullopt;
+                   },
+                   "Obtain the next use of a value.\n\n"
+                   "This effectively advances the iterator. It returns NULL if you are on"
+                   "the final use and no more are available.")
+      .def_prop_ro("user",
+                   [](PyUse &u) { return PyUser(LLVMGetUser(u.get())); },
+                   "Obtain the user value for a user.\n",
+                   "The returned value corresponds to a llvm::User type.")
+      .def_prop_ro("used_value",
+                   [](PyUse &u) { return PyValueAuto(LLVMGetUsedValue(u.get())); });
 }
