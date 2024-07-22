@@ -518,43 +518,43 @@ void bindTypeClasses(nb::module_ &m) {
            [](PyTypeInt *t, PyContext &c, unsigned numBits) {
              new (t) PyTypeInt(LLVMIntTypeInContext(c.get(), numBits));
            }, "context"_a, "num_bits"_a)
-      .def_static("int1",
+      .def_static("Int1",
                   [](PyContext &c) { return PyTypeInt(LLVMInt1TypeInContext(c.get())); },
                   "context"_a)
-      .def_static("int8",
+      .def_static("Int8",
                   [](PyContext &c) { return PyTypeInt(LLVMInt8TypeInContext(c.get())); },
                   "context"_a)
-      .def_static("int16",
+      .def_static("Int16",
                   [](PyContext &c) { return PyTypeInt(LLVMInt16TypeInContext(c.get())); },
                   "context"_a)
-      .def_static("int32",
+      .def_static("Int32",
                   [](PyContext &c) { return PyTypeInt(LLVMInt32TypeInContext(c.get())); },
                   "context"_a)
-      .def_static("int64",
+      .def_static("Int64",
                   [](PyContext &c) { return PyTypeInt(LLVMInt64TypeInContext(c.get())); },
                   "context"_a)
-      .def_static("int128",
+      .def_static("Int128",
                   [](PyContext &c) { return PyTypeInt(LLVMInt128TypeInContext(c.get())); },
                   "context"_a)
-      .def_static("global_int1",
+      .def_prop_ro_static("GlobalInt1",
                   []() { return PyTypeInt(LLVMInt1Type()); },
                   "Get type from global context.")
-      .def_static("global_int8",
+      .def_prop_ro_static("GlobalInt8",
                   []() { return PyTypeInt(LLVMInt8Type()); },
                   "Get type from global context.")
-      .def_static("global_int16",
+      .def_prop_ro_static("GlobalInt16",
                   []() { return PyTypeInt(LLVMInt16Type()); },
                   "Get type from global context.")
-      .def_static("global_int32",
+      .def_prop_ro_static("GlobalInt32",
                   []() { return PyTypeInt(LLVMInt32Type()); },
                   "Get type from global context.")
-      .def_static("global_int64",
+      .def_prop_ro_static("GlobalInt64",
                   []() { return PyTypeInt(LLVMInt64Type()); },
                   "Get type from global context.")
-      .def_static("global_int128",
+      .def_prop_ro_static("GlobalInt128",
                   []() { return PyTypeInt(LLVMInt128Type()); },
                   "Get type from global context.")
-      .def_static("global_construct",
+      .def_static("global",
                   [](unsigned numBits) { return PyTypeInt(LLVMIntType(numBits)); },
                   "Get type from global context.")
       .def_prop_ro("width",
@@ -562,40 +562,40 @@ void bindTypeClasses(nb::module_ &m) {
   
 
   TypeRealClass
-      .def_static("half",
+      .def_static("Half",
                   [](PyContext &c) { return PyTypeReal(LLVMHalfTypeInContext(c.get())); },
                   "context"_a)
-      .def_static("bfloat",
+      .def_static("Bfloat",
                   [](PyContext &c) { return PyTypeReal(LLVMBFloatTypeInContext(c.get())); },
                   "context"_a)
-      .def_static("float",
+      .def_static("Float",
                   [](PyContext &c) { return PyTypeReal(LLVMFloatTypeInContext(c.get())); },
                   "context"_a)
-      .def_static("t_double",
+      .def_static("Double",
                   [](PyContext &c) { return PyTypeReal(LLVMDoubleTypeInContext(c.get())); },
                   "context"_a)
-      .def_static("x86fp80",
+      .def_static("X86FP80",
                   [](PyContext &c) { return PyTypeReal(LLVMX86FP80TypeInContext(c.get())); },
                   "context"_a)
-      .def_static("fp128",
+      .def_static("FP128",
                   [](PyContext &c) { return PyTypeReal(LLVMFP128TypeInContext(c.get())); },
                   "context"_a)
-      .def_static("ppcfp128",
+      .def_static("PPCFP128",
                   [](PyContext &c) { return PyTypeReal(LLVMPPCFP128TypeInContext(c.get())); },
                   "context"_a)
-      .def_static("global_half", [](){ return PyTypeReal(LLVMHalfType()); },
+      .def_prop_ro_static("GlobalHalf", [](){ return PyTypeReal(LLVMHalfType()); },
                   "Get type from global context.")
-      .def_static("global_bfloat", [](){ return PyTypeReal(LLVMBFloatType()); },
+      .def_prop_ro_static("GlobalBfloat", [](){ return PyTypeReal(LLVMBFloatType()); },
                   "Get type from global context.")
-      .def_static("global_float", [](){ return PyTypeReal(LLVMFloatType()); },
+      .def_prop_ro_static("GlobalFloat", [](){ return PyTypeReal(LLVMFloatType()); },
                   "Get type from global context.")
-      .def_static("global_double", [](){ return PyTypeReal(LLVMDoubleType()); },
+      .def_prop_ro_static("GlobalDouble", [](){ return PyTypeReal(LLVMDoubleType()); },
                   "Get type from global context.")
-      .def_static("global_x86fp80", [](){ return PyTypeReal(LLVMX86FP80Type()); },
+      .def_prop_ro_static("GlobalX86FP80", [](){ return PyTypeReal(LLVMX86FP80Type()); },
                   "Get type from global context.")
-      .def_static("global_fp128", [](){ return PyTypeReal(LLVMFP128Type()); },
+      .def_prop_ro_static("GlobalFP128", [](){ return PyTypeReal(LLVMFP128Type()); },
                   "Get type from global context.")
-      .def_static("global_ppcfp128", [](){ return PyTypeReal(LLVMPPCFP128Type()); },
+      .def_prop_ro_static("GlobalPPCFP128", [](){ return PyTypeReal(LLVMPPCFP128Type()); },
                   "Get type from global context.");
 
 
@@ -641,7 +641,7 @@ void bindTypeClasses(nb::module_ &m) {
              new (t) PyTypeStruct(LLVMStructCreateNamed(c.get(), name.c_str()));
            }, "context"_a, "name"_a,
            "Create an empty structure in the context having a specified name.")
-      .def_static("global_struct",
+      .def_static("global",
         [](std::vector<PyType> elementTypes, bool packed) {
           unsigned elem_count = elementTypes.size();
           UNWRAP_VECTOR_WRAPPER_CLASS(elementTypes, rawElemTypes, elem_count);
@@ -729,30 +729,33 @@ void bindTypeClasses(nb::module_ &m) {
            "elem_type"_a, "elem_count"_a, "is_scalable"_a,
            "The created type will exist in the context thats its element type"
            "exists in.")
-      .def_prop_ro("__len__",
+      .def_prop_ro_static("__len__",
                    [](PyTypeVector &t) { return LLVMGetVectorSize(t.get()); });
   TypeVoidClass
       .def("__init__",
            [](PyTypeVoid *t, PyContext &c) {
              new (t) PyTypeVoid(LLVMVoidTypeInContext(c.get()));
-           })
-      .def_static("global",
+           },
+           "context"_a)
+      .def_prop_ro_static("Global",
                   []() { return PyTypeVoid(LLVMVoidType()); } );
   TypeLabelClass
-        .def("__init__",
-             [](PyTypeLabel *t, PyContext &c) {
-               new (t) PyTypeLabel(LLVMLabelTypeInContext(c.get()));
-             })
-        .def_static("global",
-                    []() { return PyTypeLabel(LLVMLabelType()); } );
+      .def("__init__",
+           [](PyTypeLabel *t, PyContext &c) {
+             new (t) PyTypeLabel(LLVMLabelTypeInContext(c.get()));
+           },
+           "context"_a)
+      .def_prop_ro_static("Global",
+                  []() { return PyTypeLabel(LLVMLabelType()); } );
 
 
   TypeX86MMXClass
       .def("__init__",
            [](PyTypeX86MMX *t, PyContext &c) {
              new (t) PyTypeX86MMX(LLVMX86MMXTypeInContext(c.get()));
-           })
-      .def_static("global",
+           },
+           "context"_a)
+      .def_prop_ro_static("Global",
                   []() { return PyTypeX86MMX(LLVMX86MMXType()); } );
 
 
@@ -760,8 +763,9 @@ void bindTypeClasses(nb::module_ &m) {
        .def("__init__",
             [](PyTypeX86AMX *t, PyContext &c) {
               new (t) PyTypeX86AMX(LLVMX86AMXTypeInContext(c.get()));
-            })
-       .def_static("global",
+            },
+            "context"_a)
+       .def_prop_ro_static("Global",
                    []() { return PyTypeX86AMX(LLVMX86AMXType()); } );
 
 
@@ -769,17 +773,20 @@ void bindTypeClasses(nb::module_ &m) {
       .def("__init__",
            [](PyTypeToken *t, PyContext &c) {
              new (t) PyTypeToken(LLVMTokenTypeInContext(c.get()));
-           });
+           },
+           "context"_a);
 
   TypeMetadataClass
       .def("__init__",
            [](PyTypeMetadata *t, PyContext &c) {
              new (t) PyTypeMetadata(LLVMMetadataTypeInContext(c.get()));
-           });
+           },
+           "context"_a);
 
   // TypeTargetExtClass
   //       .def("__init__",
-  //            [](PyTypeVoid *t, PyContext &c) {
+  //            [](PyTypeVoid *t, PyContext &c, std::string &name, std::vector<PyType> typeParams,
+  //               "") {
   //              new (t) PyTypeVoid(LLVMVoidTypeInContext(c.get()));
   //            });
 
