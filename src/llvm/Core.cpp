@@ -603,7 +603,7 @@ void bindTypeClasses(nb::module_ &m) {
        .def("__init__",
             [](PyTypeFunction *t, PyType &returnType, std::vector<PyType> &paramTypes, bool isVarArg) {
               unsigned param_count = paramTypes.size();
-              UNWRAP_VECTOR_WRAPPER_CLASS(paramTypes, rawParamTypes, param_count)
+              UNWRAP_VECTOR_WRAPPER_CLASS(LLVMTypeRef, paramTypes, rawParamTypes, param_count)
               new (t) PyTypeFunction(LLVMFunctionType(returnType.get(), rawParamTypes.data(),
                                                      param_count, isVarArg));
             }, "return_type"_a, "param_types"_a, "is_var_arg"_a,
@@ -631,7 +631,7 @@ void bindTypeClasses(nb::module_ &m) {
       .def("__init__",
            [](PyTypeStruct *t, PyContext &c, std::vector<PyType> &elementTypes, bool packed) {
              unsigned elem_count = elementTypes.size();
-             UNWRAP_VECTOR_WRAPPER_CLASS(elementTypes, rawElemTypes, elem_count);
+             UNWRAP_VECTOR_WRAPPER_CLASS(LLVMTypeRef, elementTypes, rawElemTypes, elem_count);
              new (t) PyTypeStruct(LLVMStructTypeInContext(c.get(), rawElemTypes.data(),
                                                          elem_count, packed));
            }, "context"_a, "element_types"_a, "packed"_a,
@@ -644,7 +644,7 @@ void bindTypeClasses(nb::module_ &m) {
       .def_static("global",
         [](std::vector<PyType> elementTypes, bool packed) {
           unsigned elem_count = elementTypes.size();
-          UNWRAP_VECTOR_WRAPPER_CLASS(elementTypes, rawElemTypes, elem_count);
+          UNWRAP_VECTOR_WRAPPER_CLASS(LLVMTypeRef, elementTypes, rawElemTypes, elem_count);
           return PyTypeStruct(LLVMStructType(rawElemTypes.data(), elem_count, packed));
         },
         "element_types"_a, "packed"_a,
@@ -670,7 +670,7 @@ void bindTypeClasses(nb::module_ &m) {
       .def("set_body",
            [](PyTypeStruct &t, std::vector<PyType> elementTypes, bool packed) {
              unsigned elem_count = elementTypes.size();
-             UNWRAP_VECTOR_WRAPPER_CLASS(elementTypes, rawElemTypes, elem_count);
+             UNWRAP_VECTOR_WRAPPER_CLASS(LLVMTypeRef, elementTypes, rawElemTypes, elem_count);
              return LLVMStructSetBody(t.get(), rawElemTypes.data(), elem_count, packed);
            },
            "Set the contents of a structure type.")
@@ -783,12 +783,17 @@ void bindTypeClasses(nb::module_ &m) {
            },
            "context"_a);
 
-  // TypeTargetExtClass
-  //       .def("__init__",
-  //            [](PyTypeVoid *t, PyContext &c, std::string &name, std::vector<PyType> typeParams,
-  //               "") {
-  //              new (t) PyTypeVoid(LLVMVoidTypeInContext(c.get()));
-  //            });
+  TypeTargetExtClass
+        .def("__init__",
+             [](PyTypeVoid *t, PyContext &c, std::string &name, std::vector<PyType> typeParams,
+                std::vector<unsigned> intParams) {
+               unsigned typeParamSize = typeParams.size();
+               unsigned intParamSize = intParams.size();
+               UNWRAP_VECTOR_WRAPPER_CLASS(LLVMTypeRef, typeParams, rawTypeParams, typeParamSize);
+               new (t) PyTypeVoid(LLVMTargetExtTypeInContext
+                                    (c.get(), name.c_str(), rawTypeParams.data(),
+                                     typeParamSize, intParams.data(), intParamSize));
+             });
 
 }
 
