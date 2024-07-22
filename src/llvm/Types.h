@@ -104,7 +104,6 @@ protected:
   };
 
 
-
 #define DEFINE_DIRECT_SUB_CLASS(ParentClassName, ClassName) \
   class ClassName : public ParentClassName { \
   public: \
@@ -112,7 +111,114 @@ protected:
   };
 
 
+#define PY_DECLARE_VALUE_CAST(name) \
+  .def("to_" #name, \
+       [](PyValue &v) -> std::optional<Py##name> { \
+         auto res = LLVMIsA##name(v.get()); \
+         if (res) \
+           return Py##name(res); \
+         return std::nullopt; \
+       }, \
+       "None means conversion failed.")
+
+// note AMDNode, ValueAsMetadata and AMDString are not there
+// since it provides `LLVMIsAMDNode` function rather than `LLVMIsAAMDNode` function...
+// (they are also not in LLVM_FOR_EACH_VALUE_SUBCLASS)
 #define PY_FOR_EACH_VALUE_SUBCLASS(macro) \
+  macro(Argument)                           \
+  macro(BasicBlock)                         \
+  macro(InlineAsm)                          \
+  macro(User)                               \
+    macro(Constant)                         \
+      macro(BlockAddress)                   \
+      macro(ConstantAggregateZero)          \
+      macro(ConstantArray)                  \
+      macro(ConstantDataSequential)         \
+        macro(ConstantDataArray)            \
+        macro(ConstantDataVector)           \
+      macro(ConstantExpr)                   \
+      macro(ConstantFP)                     \
+      macro(ConstantInt)                    \
+      macro(ConstantPointerNull)            \
+      macro(ConstantStruct)                 \
+      macro(ConstantTokenNone)              \
+      macro(ConstantVector)                 \
+      macro(GlobalValue)                    \
+        macro(GlobalAlias)                  \
+        macro(GlobalObject)                 \
+          macro(Function)                   \
+          macro(GlobalVariable)             \
+          macro(GlobalIFunc)                \
+      macro(UndefValue)                     \
+      macro(PoisonValue)                    \
+    macro(Instruction)                      \
+      macro(UnaryOperator)                  \
+      macro(BinaryOperator)                 \
+      macro(CallInst)                       \
+        macro(IntrinsicInst)                \
+          macro(DbgInfoIntrinsic)           \
+            macro(DbgVariableIntrinsic)     \
+              macro(DbgDeclareInst)         \
+            macro(DbgLabelInst)             \
+          macro(MemIntrinsic)               \
+            macro(MemCpyInst)               \
+            macro(MemMoveInst)              \
+            macro(MemSetInst)               \
+      macro(CmpInst)                        \
+        macro(FCmpInst)                     \
+        macro(ICmpInst)                     \
+      macro(ExtractElementInst)             \
+      macro(GetElementPtrInst)              \
+      macro(InsertElementInst)              \
+      macro(InsertValueInst)                \
+      macro(LandingPadInst)                 \
+      macro(PHINode)                        \
+      macro(SelectInst)                     \
+      macro(ShuffleVectorInst)              \
+      macro(StoreInst)                      \
+      macro(BranchInst)                     \
+      macro(IndirectBrInst)                 \
+      macro(InvokeInst)                     \
+      macro(ReturnInst)                     \
+      macro(SwitchInst)                     \
+      macro(UnreachableInst)                \
+      macro(ResumeInst)                     \
+      macro(CleanupReturnInst)              \
+      macro(CatchReturnInst)                \
+      macro(CatchSwitchInst)                \
+      macro(CallBrInst)                     \
+      macro(FuncletPadInst)                 \
+        macro(CatchPadInst)                 \
+        macro(CleanupPadInst)               \
+      macro(UnaryInstruction)               \
+        macro(AllocaInst)                   \
+        macro(CastInst)                     \
+          macro(AddrSpaceCastInst)          \
+          macro(BitCastInst)                \
+          macro(FPExtInst)                  \
+          macro(FPToSIInst)                 \
+          macro(FPToUIInst)                 \
+          macro(FPTruncInst)                \
+          macro(IntToPtrInst)               \
+          macro(PtrToIntInst)               \
+          macro(SExtInst)                   \
+          macro(SIToFPInst)                 \
+          macro(TruncInst)                  \
+          macro(UIToFPInst)                 \
+          macro(ZExtInst)                   \
+        macro(ExtractValueInst)             \
+        macro(LoadInst)                     \
+        macro(VAArgInst)                    \
+        macro(FreezeInst)                   \
+      macro(AtomicCmpXchgInst)              \
+      macro(AtomicRMWInst)                  \
+      macro(FenceInst)
+
+// my addition: the first 3 
+#define PY_FOR_EACH_VALUE_CLASS_RELATIONSHIP(macro) \
+  macro(PyValue, PyAMDNode) \
+  macro(PyValue, PyValueAsMetadata) \
+  macro(PyValue, PyAMDString) \
   macro(PyValue, PyArgument)                           \
   macro(PyValue, PyBasicBlock)                         \
   macro(PyValue, PyInlineAsm)                          \
@@ -148,7 +254,7 @@ protected:
             macro(PyDbgInfoIntrinsic, PyDbgVariableIntrinsic)     \
               macro(PyDbgVariableIntrinsic, PyDbgDeclareInst)         \
             macro(PyIntrinsicInst, PyDbgLabelInst)             \
-          macro(PyIntrinsicInst, MemIntrinsic)               \
+          macro(PyIntrinsicInst, PyMemIntrinsic)               \
             macro(PyIntrinsicInst, PyMemCpyInst)               \
             macro(PyIntrinsicInst, PyMemMoveInst)              \
             macro(PyIntrinsicInst, PyMemSetInst)               \
@@ -202,7 +308,7 @@ protected:
       macro(PyInstruction, PyAtomicRMWInst)                  \
       macro(PyInstruction, PyFenceInst)
 
-#define PY_FOR_EACH_TYPE_SUBCLASS(macro) \
+#define PY_FOR_EACH_TYPE_CLASS_RELASIONSHIP(macro) \
   macro(PyType, PyTypeInt) \
   macro(PyType, PyTypeReal) \
   macro(PyType, PyTypeFunction) \
@@ -252,8 +358,8 @@ DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyEnumAttribute);
 DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyTypeAttribute);
 DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyStringAttribute);
 
-PY_FOR_EACH_VALUE_SUBCLASS(DEFINE_DIRECT_SUB_CLASS)
-PY_FOR_EACH_TYPE_SUBCLASS(DEFINE_DIRECT_SUB_CLASS)
+PY_FOR_EACH_VALUE_CLASS_RELATIONSHIP(DEFINE_DIRECT_SUB_CLASS)
+PY_FOR_EACH_TYPE_CLASS_RELASIONSHIP(DEFINE_DIRECT_SUB_CLASS)
 
 class PyContext : public NonCopyable {
 public:

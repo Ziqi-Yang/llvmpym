@@ -57,6 +57,11 @@ PyType* PyTypeAuto(LLVMTypeRef rawType) {
   }
 }
 
+
+/**
+ * It seems like the enum type doesn't cover all the sub-classes,
+ * so user may still need to do a manual cast using `to_XXX` method
+ */
 PyValue* PyValueAuto(LLVMValueRef rawValue) {
   LLVMValueKind kind = LLVMGetValueKind(rawValue);
   switch (kind) {
@@ -568,6 +573,12 @@ void bindGlobalFunctions(nb::module_ &m) {
         }, "type"_a, "asm"_a, "constraints"_a, "has_side_effects"_a,
         "is_align_stack"_a, "dialect"_a, "can_throw"_a,
         "Create the specified uniqued inline asm string.");
+
+  m.def("replace_all_uses_with",
+        [](PyValue &oldVal, PyValue &newVal) {
+          return LLVMReplaceAllUsesWith(oldVal.get(), newVal.get());
+        },
+        "Replace all uses of a value with another one.");
 }
 
 
@@ -604,21 +615,21 @@ void bindTypeClasses(nb::module_ &m) {
                      return res;
                    });
   
-  auto TypeIntClass = nb::class_<PyTypeInt, PyType>(m, "TypeInt", "TypeInt");
-  auto TypeRealClass = nb::class_<PyTypeReal, PyType>(m, "TypeReal", "TypeReal");
-  auto TypeFunctionClass = nb::class_<PyTypeFunction, PyType> (m, "TypeFunction", "TypeFunction");
-  auto TypeStructClass = nb::class_<PyTypeStruct, PyType> (m, "TypeStruct", "TypeStruct");
-  auto TypeSequenceClass = nb::class_<PyTypeSequence, PyType>(m, "TypeSequence", "TypeSequence");
-  auto TypeArrayClass = nb::class_<PyTypeArray, PyTypeSequence>(m, "TypeArray", "TypeArray");
-  auto TypePointerClass = nb::class_<PyTypePointer, PyTypeSequence>(m, "TypePointer", "TypePointer");
-  auto TypeVectorClass = nb::class_<PyTypeVector, PyTypeSequence>(m, "TypeVector", "TypeVector");
-  auto TypeVoidClass = nb::class_<PyTypeVoid, PyType>(m, "TypeVoid", "TypeVoid");
-  auto TypeLabelClass = nb::class_<PyTypeLabel, PyType>(m, "TypeLabel", "TypeLabel");
-  auto TypeX86MMXClass = nb::class_<PyTypeX86MMX, PyType>(m, "TypeX86MMX", "TypeX86MMX");
-  auto TypeX86AMXClass = nb::class_<PyTypeX86AMX, PyType>(m, "TypeX86AMX", "TypeX86AMX");
-  auto TypeTokenClass = nb::class_<PyTypeToken, PyType>(m, "TypeToken", "TypeToken");
-  auto TypeMetadataClass = nb::class_<PyTypeMetadata, PyType>(m, "TypeMetadata", "TypeMetadata");
-  auto TypeTargetExtClass = nb::class_<PyTypeTargetExt, PyType>(m, "TypeTargetExt", "TypeTargetExt");
+  auto TypeIntClass = nb::class_<PyTypeInt, PyType>(m, "IntType", "IntType");
+  auto TypeRealClass = nb::class_<PyTypeReal, PyType>(m, "RealType", "RealType");
+  auto TypeFunctionClass = nb::class_<PyTypeFunction, PyType> (m, "FunctionType", "FunctionType");
+  auto TypeStructClass = nb::class_<PyTypeStruct, PyType> (m, "StructType", "StructType");
+  auto TypeSequenceClass = nb::class_<PyTypeSequence, PyType>(m, "SequenceType", "SequenceType");
+  auto TypeArrayClass = nb::class_<PyTypeArray, PyTypeSequence>(m, "ArrayType", "ArrayType");
+  auto TypePointerClass = nb::class_<PyTypePointer, PyTypeSequence>(m, "PointerType", "PointerType");
+  auto TypeVectorClass = nb::class_<PyTypeVector, PyTypeSequence>(m, "VectorType", "VectorType");
+  auto TypeVoidClass = nb::class_<PyTypeVoid, PyType>(m, "VoidType", "VoidType");
+  auto TypeLabelClass = nb::class_<PyTypeLabel, PyType>(m, "LabelType", "LabelType");
+  auto TypeX86MMXClass = nb::class_<PyTypeX86MMX, PyType>(m, "X86MMXType", "X86MMXType");
+  auto TypeX86AMXClass = nb::class_<PyTypeX86AMX, PyType>(m, "X86AMXType", "X86AMXType");
+  auto TypeTokenClass = nb::class_<PyTypeToken, PyType>(m, "TokenType", "TokenType");
+  auto TypeMetadataClass = nb::class_<PyTypeMetadata, PyType>(m, "MetadataType", "MetadataType");
+  auto TypeTargetExtClass = nb::class_<PyTypeTargetExt, PyType>(m, "TargetExtType", "TargetExtType");
   
 
   TypeIntClass
@@ -775,12 +786,12 @@ void bindTypeClasses(nb::module_ &m) {
                      return res;
                    })
       .def_prop_ro("is_packed",
-                   [](PyTypeStruct &t) { return LLVMIsPackedStruct(t.get()); },
+                   [](PyTypeStruct &t) { return LLVMIsPackedStruct(t.get()) != 0; },
                    "Determine whether a structure is packed.")
       .def_prop_ro("is_opaque",
-                   [](PyTypeStruct &t) { return LLVMIsOpaqueStruct(t.get()); })
+                   [](PyTypeStruct &t) { return LLVMIsOpaqueStruct(t.get()) != 0; })
       .def_prop_ro("is_literal",
-                   [](PyTypeStruct &t) { return LLVMIsLiteralStruct(t.get()); },
+                   [](PyTypeStruct &t) { return LLVMIsLiteralStruct(t.get()) != 0; },
                    "Determine whether a structure is literal.")
       .def("set_body",
            [](PyTypeStruct &t, std::vector<PyType> elementTypes, bool packed) {
@@ -918,6 +929,15 @@ void bindTypeClasses(nb::module_ &m) {
 
 void bindValueClasses(nb::module_ &m) {
   auto ValueClass = nb::class_<PyValue>(m, "Value", "Value");
+
+  // my custom addition
+  auto AMDNodeClass = nb::class_<PyAMDNode, PyValue>(m, "AMDNode", "AMDNode");
+  auto ValueAsMetadataClass = nb::class_<PyValueAsMetadata, PyValue>
+                                (m, "ValueAsMetadata", "ValueAsMetadata");
+  auto AMDStringClass = nb::class_<PyAMDString, PyValue>(m, "AMDString", "AMDString");
+
+  
+  // classes as specified in LLVM_FOR_EACH_VALUE_SUBCLASS
   auto ArgumentClass = nb::class_<PyArgument, PyValue>(m, "Argument", "Argument");
   auto BasicBlockClass = nb::class_<PyBasicBlock, PyValue>(m, "BasicBlock", "BasicBlock");
   auto InlineAsmClass = nb::class_<PyInlineAsm, PyValue>(m, "InlineAsm", "InlineAsm");
@@ -953,7 +973,7 @@ void bindValueClasses(nb::module_ &m) {
   auto DbgVariableIntrinsicClass = nb::class_<PyDbgVariableIntrinsic, PyDbgInfoIntrinsic>(m, "DbgVariableIntrinsic", "DbgVariableIntrinsic");
   auto DbgDeclareInstClass = nb::class_<PyDbgDeclareInst, PyDbgVariableIntrinsic>(m, "DbgDeclareInst", "DbgDeclareInst");
   auto DbgLabelInstClass = nb::class_<PyDbgLabelInst, PyIntrinsicInst>(m, "DbgLabelInst", "DbgLabelInst");
-  auto mIntrinsicClass = nb::class_<MemIntrinsic, PyIntrinsicInst>(m, "mIntrinsic", "mIntrinsic");
+  auto MemIntrinsicClass = nb::class_<PyMemIntrinsic, PyIntrinsicInst>(m, "MemIntrinsic", "MemIntrinsic");
   auto MemCpyInstClass = nb::class_<PyMemCpyInst, PyIntrinsicInst>(m, "MemCpyInst", "MemCpyInst");
   auto MemMoveInstClass = nb::class_<PyMemMoveInst, PyIntrinsicInst>(m, "MemMoveInst", "MemMoveInst");
   auto MemSetInstClass = nb::class_<PyMemSetInst, PyIntrinsicInst>(m, "MemSetInst", "MemSetInst");
@@ -1013,8 +1033,50 @@ void bindValueClasses(nb::module_ &m) {
                    // TODO PyType convertion to more specific type according to kind
                    [](PyValue &v) { return PyTypeAuto(LLVMTypeOf(v.get())); })
       .def_prop_ro("kind",
-                   [](PyValue &v) { return LLVMGetValueKind(v.get()); });
-
+                   [](PyValue &v) { return LLVMGetValueKind(v.get()); })
+      .def_prop_rw("name",
+                   [](PyValue &v) {
+                     size_t len;
+                     const char *str = LLVMGetValueName2(v.get(), &len);
+                     return std::string(str, len);
+                   },
+                   [](PyValue &v, std::string &name) {
+                     return LLVMSetValueName2(v.get(), name.c_str(), name.size());
+                   },
+                   nb::for_setter("def name(self, name: str, /) -> None"))
+       .def_prop_ro("is_constant",
+                    [](PyValue &v) { return LLVMIsConstant(v.get()) != 0; })
+       .def_prop_ro("is_undef",
+                    [](PyValue &v) { return LLVMIsUndef(v.get()) != 0; })
+       .def_prop_ro("is_poisonous",
+                    [](PyValue &v) { return LLVMIsPoison(v.get()) != 0;})
+       .def("dump",
+            [](PyValue &v) { return LLVMDumpValue(v.get()); },
+            "Dump a representation of a value to stderr.")
+       .def("__str__",
+            [](PyValue &v) { return std::string(LLVMPrintValueToString(v.get())); })
+  PY_FOR_EACH_VALUE_SUBCLASS(PY_DECLARE_VALUE_CAST)
+       .def("to_AMDNode",
+            [](PyValue &v) -> std::optional<PyAMDNode> {
+              auto res = LLVMIsAMDNode(v.get());
+              if (res)
+                return PyAMDNode(res);
+              return std::nullopt;
+            })
+       .def("to_ValueAsMetadata",
+            [](PyValue &v) -> std::optional<PyValueAsMetadata> {
+              auto res = LLVMIsAMDNode(v.get());
+              if (res)
+                return PyValueAsMetadata(res);
+              return std::nullopt;
+            })
+       .def("to_AMDString",
+            [](PyValue &v) -> std::optional<PyAMDString> {
+              auto res = LLVMIsAMDString(v.get());
+              if (res)
+                return PyAMDString(res);
+              return std::nullopt;
+            });
 
 
   InlineAsmClass
