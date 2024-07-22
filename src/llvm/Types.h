@@ -51,10 +51,47 @@ protected:
     UnderlyingType UnderlyingName; \
   };
 
+#define DEFINE_PY_WRAPPER_CLASS_NONCOPYABLE_POLYMORPHIC(ClassName, UnderlyingType, UnderlyingName) \
+  class ClassName : public NonCopyable { \
+  public: \
+    virtual ~ClassName() = default; \
+    explicit ClassName(UnderlyingType UnderlyingName) \
+    : UnderlyingName(UnderlyingName) {} \
+    \
+    DEFINE_MOVE_SEMANTICS(ClassName) \
+    \
+    void move(ClassName &&other) noexcept { \
+      UnderlyingName = std::exchange(other.UnderlyingName, nullptr); \
+    } \
+    \
+    UnderlyingType get() const { \
+      return UnderlyingName; \
+    } \
+    \
+  private: \
+    UnderlyingType UnderlyingName; \
+  };
+
+
 
 #define DEFINE_PY_WRAPPER_CLASS_COPYABLE(ClassName, UnderlyingType, UnderlyingName) \
   class ClassName { \
   public: \
+    explicit ClassName(UnderlyingType UnderlyingName) \
+    : UnderlyingName(UnderlyingName) {} \
+    \
+    UnderlyingType get() const { \
+      return UnderlyingName; \
+    } \
+    \
+  private: \
+    UnderlyingType UnderlyingName; \
+  };
+
+#define DEFINE_PY_WRAPPER_CLASS_COPYABLE_POLYMORPHIC(ClassName, UnderlyingType, UnderlyingName) \
+  class ClassName { \
+  public: \
+    virtual ~ClassName() = default; \
     explicit ClassName(UnderlyingType UnderlyingName) \
     : UnderlyingName(UnderlyingName) {} \
     \
@@ -201,10 +238,10 @@ enum class PyLLVMFastMathFlags {
 };
 
 
-DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyValue, LLVMValueRef, value)
-DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyType, LLVMTypeRef, type)
+DEFINE_PY_WRAPPER_CLASS_COPYABLE_POLYMORPHIC(PyValue, LLVMValueRef, value)
+DEFINE_PY_WRAPPER_CLASS_COPYABLE_POLYMORPHIC(PyType, LLVMTypeRef, type)
 DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyDiagnosticInfo, LLVMDiagnosticInfoRef, diagnosticInfo)
-DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyAttribute, LLVMAttributeRef, attribute)
+DEFINE_PY_WRAPPER_CLASS_COPYABLE_POLYMORPHIC(PyAttribute, LLVMAttributeRef, attribute)
 DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyMetadata, LLVMMetadataRef, metadata)
 DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyNamedMDNode, LLVMNamedMDNodeRef, namedMDNode)
 
