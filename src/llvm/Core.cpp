@@ -57,6 +57,67 @@ PyType* PyTypeAuto(LLVMTypeRef rawType) {
   }
 }
 
+PyValue* PyValueAuto(LLVMValueRef rawValue) {
+  LLVMValueKind kind = LLVMGetValueKind(rawValue);
+  switch (kind) {
+  case LLVMArgumentValueKind:
+    return new PyArgument(rawValue);
+  case LLVMBasicBlockValueKind:
+    return new PyBasicBlock(rawValue);
+  // case LLVMMemoryUseValueKind:
+  // case LLVMMemoryDefValueKind:
+  // case LLVMMemoryPhiValueKind:
+
+  case LLVMFunctionValueKind:
+    return new PyFunction(rawValue);
+  case LLVMGlobalAliasValueKind:
+    return new PyGlobalAlias(rawValue);
+  case LLVMGlobalIFuncValueKind:
+    return new PyGlobalIFunc(rawValue);
+  case LLVMGlobalVariableValueKind:
+    return new PyGlobalVariable(rawValue);
+  case LLVMBlockAddressValueKind:
+    return new PyBlockAddress(rawValue);
+  case LLVMConstantExprValueKind:
+    return new PyConstantExpr(rawValue);
+  case LLVMConstantArrayValueKind:
+    return new PyConstantArray(rawValue);
+  case LLVMConstantStructValueKind:
+    return new PyConstantStruct(rawValue);
+  case LLVMConstantVectorValueKind:
+    return new PyConstantVector(rawValue);
+
+  case LLVMUndefValueValueKind:
+    return new PyUndefValue(rawValue);
+  case LLVMConstantAggregateZeroValueKind:
+    return new PyConstantAggregateZero(rawValue);
+  case LLVMConstantDataArrayValueKind:
+    return new PyConstantDataArray(rawValue);
+  case LLVMConstantDataVectorValueKind:
+    return new PyConstantDataVector(rawValue);
+  case LLVMConstantIntValueKind:
+    return new PyConstantInt(rawValue);
+  case LLVMConstantFPValueKind:
+    return new PyConstantFP(rawValue);
+  case LLVMConstantPointerNullValueKind:
+    return new PyConstantPointerNull(rawValue);
+  case LLVMConstantTokenNoneValueKind:
+    return new PyConstantTokenNone(rawValue);
+
+  // case LLVMMetadataAsValueValueKind: //
+  case LLVMInlineAsmValueKind:
+    return new PyInlineAsm(rawValue);
+
+  case LLVMInstructionValueKind:
+    return new PyInstruction(rawValue);
+  case LLVMPoisonValueValueKind:
+    return new PyPoisonValue(rawValue);
+  // case LLVMConstantTargetNoneValueKind: // 
+  default:
+    return new PyValue(rawValue);
+  }
+}
+
 
 
 void bindEnums(nb::module_ &m) {
@@ -1268,7 +1329,7 @@ void populateCore(nb::module_ &m) {
      "units merged together.")
       .def(nb::init<const std::string &>(), "id"_a)
       .def_prop_ro("first_global",
-                   [](PyModule &m) { return PyValue(LLVMGetFirstGlobal(m.get())); })
+                   [](PyModule &m) { return PyValueAuto(LLVMGetFirstGlobal(m.get())); })
       .def_prop_ro("first_named_metadata",
                    [](PyModule &m) {
                      return PyNamedMDNode(LLVMGetFirstNamedMetadata(m.get()));
