@@ -803,9 +803,7 @@ void bindTypeClasses(nb::module_ &m) {
 
 
 void bindValueClasses(nb::module_ &m) {
-  nb::class_<PyValue>(m, "Value", "Value");
-  
-  // PyValue sub-classes (see Types.h)
+  auto ValueClass = nb::class_<PyValue>(m, "Value", "Value");
   auto ArgumentClass = nb::class_<PyArgument, PyValue>(m, "Argument", "Argument");
   auto BasicBlockClass = nb::class_<PyBasicBlock, PyValue>(m, "BasicBlock", "BasicBlock");
   auto InlineAsmClass = nb::class_<PyInlineAsm, PyValue>(m, "InlineAsm", "InlineAsm");
@@ -895,45 +893,54 @@ void bindValueClasses(nb::module_ &m) {
   auto AtomicRMWInstClass = nb::class_<PyAtomicRMWInst, PyInstruction>(m, "AtomicRMWInst", "AtomicRMWInst");
   auto FenceInstClass = nb::class_<PyFenceInst, PyInstruction>(m, "FenceInst", "FenceInst");
 
+
+  ValueClass
+      .def_prop_ro("type",
+                   [](PyValue &v) { return PyType(LLVMTypeOf(v.get())); })
+      .def_prop_ro("kind",
+                   [](PyValue &v) { return LLVMGetValueKind(v.get()); });
+
+
+
   InlineAsmClass
-    .def_prop_ro("str",
-                 [](PyInlineAsm &iasm) {
-                   size_t len;
-                   const char *str = LLVMGetInlineAsmAsmString(iasm.get(), &len);
-                   return std::string(str, len);
-                 },
-                 "Get the template string used for an inline assembly snippet.")
-    .def_prop_ro("constraint_str",
-                 [](PyInlineAsm &iasm) {
-                   size_t len;
-                   const char *str = LLVMGetInlineAsmConstraintString(iasm.get(), &len);
-                   return std::string(str, len);
-                 },
-                 "Get the raw constraint string for an inline assembly snippet.")
-    .def_prop_ro("dialect",
-                 [](PyInlineAsm &iasm) {
-                   return LLVMGetInlineAsmDialect(iasm.get());
-                 },
-                 "Get the dialect used by the inline asm snippet.")
-    .def_prop_ro("function_type",
-                 [](PyInlineAsm &iasm) {
-                   return PyTypeFunction(LLVMGetInlineAsmFunctionType(iasm.get()));
-                 },
-                 "Get the function type of the inline assembly snippet. "
-                 "The same type that was passed into :func:`get_inline_asm` originally.")
-    .def_prop_ro("has_side_effects",
-                 [](PyInlineAsm &iasm) {
-                   return LLVMGetInlineAsmHasSideEffects(iasm.get()) != 0;
-                 },
-                 "Get if the inline asm snippet has side effects.")
-    .def_prop_ro("needs_aligned_stack",
-                 [](PyInlineAsm &iasm) {
-                   return LLVMGetInlineAsmNeedsAlignedStack(iasm.get()) != 0;
-                 })
-    .def_prop_ro("can_unwind",
-                 [](PyInlineAsm &iasm) {
-                   return LLVMGetInlineAsmCanUnwind(iasm.get()) != 0;
-                 });
+      .def_prop_ro("str",
+                   [](PyInlineAsm &iasm) {
+                     size_t len;
+                     const char *str = LLVMGetInlineAsmAsmString(iasm.get(), &len);
+                     return std::string(str, len);
+                   },
+                   "Get the template string used for an inline assembly snippet.")
+      .def_prop_ro("constraint_str",
+                   [](PyInlineAsm &iasm) {
+                     size_t len;
+                     const char *str = LLVMGetInlineAsmConstraintString(iasm.get(), &len);
+                     return std::string(str, len);
+                   },
+                   "Get the raw constraint string for an inline assembly snippet.")
+      .def_prop_ro("dialect",
+                   [](PyInlineAsm &iasm) {
+                     return LLVMGetInlineAsmDialect(iasm.get());
+                   },
+                   "Get the dialect used by the inline asm snippet.")
+      .def_prop_ro("function_type",
+                   [](PyInlineAsm &iasm) {
+                     return PyTypeFunction(LLVMGetInlineAsmFunctionType(iasm.get()));
+                   },
+                   "Get the function type of the inline assembly snippet. "
+                   "The same type that was passed into :func:`get_inline_asm` originally.")
+      .def_prop_ro("has_side_effects",
+                   [](PyInlineAsm &iasm) {
+                     return LLVMGetInlineAsmHasSideEffects(iasm.get()) != 0;
+                   },
+                   "Get if the inline asm snippet has side effects.")
+      .def_prop_ro("needs_aligned_stack",
+                   [](PyInlineAsm &iasm) {
+                     return LLVMGetInlineAsmNeedsAlignedStack(iasm.get()) != 0;
+                   })
+      .def_prop_ro("can_unwind",
+                   [](PyInlineAsm &iasm) {
+                     return LLVMGetInlineAsmCanUnwind(iasm.get()) != 0;
+                   });
 
   InstructionClass
       .def_prop_ro("debug_loc_directory",
@@ -1267,6 +1274,17 @@ void populateCore(nb::module_ &m) {
                    nb::for_setter(nb::sig("def triple(self, triple: str, /) -> None")),
                    nb::for_getter("Obtain the target triple for a module."),
                    nb::for_setter("Set the target triple for a module."))
+      .def_prop_rw("inline_asm",
+                   [](PyModule &m) {
+                     size_t len;
+                     const char *iasm = LLVMGetModuleInlineAsm(m.get(), &len);
+                     return std::string(iasm, len);
+                   },
+                   [](PyModule &m, std::string &iasm) {
+                     // NOTE LLVMSetModuleInlineAsm is deprecated
+                     return LLVMSetModuleInlineAsm2(m.get(), iasm.c_str(), iasm.size());
+                   },
+                   nb::for_setter(nb::sig("def inline_asm(self, str, /) -> None")))
       .def_prop_ro("first_function",
                    [](PyModule &m) {
                      return PyFunction(LLVMGetFirstFunction(m.get()));
@@ -1286,7 +1304,7 @@ void populateCore(nb::module_ &m) {
            },
            "Return a string representation of the module")
       .def("add_function",
-           [](PyModule &m, std::string &name, PyType &functionTy) {
+           [](PyModule &m, std::string &name, PyTypeFunction &functionTy) {
              return PyFunction(LLVMAddFunction(m.get(), name.c_str(), functionTy.get()));
            }, "name"_a, "function_type"_a,
            "Add a function to a module under a specified name.")
@@ -1390,23 +1408,6 @@ void populateCore(nb::module_ &m) {
            }, "filename"_a,
            "Print a representation of a module to a file. The ErrorMessage needs to be"
            "disposed with LLVMDisposeMessage. Returns 0 on success, 1 otherwise.")
-      .def("get_inline_asm",
-           [](PyModule &m) {
-             size_t len;
-             const char *iasm = LLVMGetModuleInlineAsm(m.get(), &len);
-             return std::string(iasm, len);
-           },
-           "Get inline assembly for a module.")
-      .def("set_inline_asm2",
-           [](PyModule &m, std::string &iasm) {
-             return LLVMSetModuleInlineAsm2(m.get(), iasm.c_str(), iasm.size());
-           }, "asm"_a,
-           "Set inline assembly for a module.")
-      .def("set_inline_asm",
-           [](PyModule &m, std::string &iasm) {
-             return LLVMSetModuleInlineAsm(m.get(), iasm.c_str());
-           },
-           "Deprecated: Use :func:`set_inline_asm2` instead.")
       .def("append_inline_asm",
             [](PyModule &m, std::string &iasm) {
               return LLVMAppendModuleInlineAsm(m.get(), iasm.c_str(), iasm.size());
