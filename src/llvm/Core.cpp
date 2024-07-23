@@ -1286,12 +1286,12 @@ void bindValueClasses(nb::module_ &m) {
   ConstantIntClass
       .def("__init__",
            [](PyConstantInt *c, PyTypeInt &t, unsigned long long N, bool SignExtend) {
-             return new (c) PyConstantInt(LLVMConstInt
+             new (c) PyConstantInt(LLVMConstInt
                                             (t.get(), N, SignExtend));
            },
            "int_type"_a, "value"_a, "sign_extend"_a,
            "Obtain a constant value for an integer type.\n\n"
-           "Parameters:\n"
+           "Parameters:\n--------"
            "int_type: IntTy Integer type to obtain value of.\n"
            "value: The value the returned instance should refer to.\n"
            "sign_extend: Whether to sign extend the produced value.")
@@ -1303,14 +1303,89 @@ void bindValueClasses(nb::module_ &m) {
                   },
                   "int_type"_a, "num_words"_a, "words"_a,
                   "Obtain a constant value for an integer of arbitrary precision.")
-      .def_static("String", // LLVMConstIntOfString is discarded in favor of LLVMConstIntOfStringAndSize 
+      // LLVMConstIntOfString is discarded in favor of LLVMConstIntOfStringAndSize 
+      .def_static("String", 
                   [](PyTypeInt &t, std::string &text, uint8_t Radix) {
                     return PyConstantInt(LLVMConstIntOfStringAndSize
                                            (t.get(), text.c_str(), text.size(),
                                             Radix));
                   },
                   "int_type"_a, "text"_a, "radix"_a,
-                  "Obtain a constant value for an integer parsed from a string.");
+                  "Obtain a constant value for an integer parsed from a string.")
+      .def_prop_ro("zero_extension",
+                   [](PyConstantInt &c) {
+                     return LLVMConstIntGetZExtValue(c.get());
+                   },
+                   "Obtain the zero extended value for an integer constant value.")
+      .def_prop_ro("signed_extension",
+                   [](PyConstantInt &c) {
+                     return LLVMConstIntGetSExtValue(c.get());
+                   });
+
+  ConstantFPClass
+      .def("__init__",
+           [](PyConstantFP *c, PyTypeReal &t, double value) {
+             new (c) PyConstantFP(LLVMConstReal(t.get(), value));
+           },
+           "real_type"_a, "value"_a,
+           "Obtain a constant value referring to a double floating point value.\n\n")
+      // LLVMConstRealOfString is discarded in favor of LLVMConstRealOfStringAndSize
+      .def_static("String",
+                  [](PyTypeReal &t, std::string text) {
+                    return PyConstantFP(LLVMConstRealOfStringAndSize
+                                          (t.get(), text.c_str(), text.size()));
+                  },
+                  "Obtain a constant for a floating point value parsed from a string.")
+      .def("get_double",
+           [](PyConstantFP &c) {
+             LLVMBool losesInfo;
+             double res = LLVMConstRealGetDouble(c.get(), &losesInfo);
+             return std::make_tuple(res, losesInfo);
+           },
+           "Obtain the double value for an floating point constant value.\n\n"
+           "Parameters\n--------"
+           "loses_info: indicates if some precision was lost in the conversion.");
+
+  ConstantDataArrayClass
+      .def_static("StringInContext",
+                  [](PyContext &cxt, std::string &str, bool DontNullTerminate) {
+                    return PyConstantDataArray
+                             (LLVMConstStringInContext
+                                (cxt.get(), str.c_str(), str.size(), DontNullTerminate));
+                  },
+                  "context"_a, "str"_a, "dont_null_terminate"_a,
+                  "Create a ConstantDataSequential and initialize it with a string.")
+      .def_static("String",
+                  [](std::string &str, bool DontNullTerminate) {
+                    return PyConstantDataArray
+                             (LLVMConstString
+                                (str.c_str(), str.size(), DontNullTerminate));
+                  },
+                  "str"_a, "dont_null_terminate"_a,
+                  "Create a ConstantDataSequential with string content in the global context.")
+       .def_prop_ro("is_string",
+                    [](PyConstantDataArray &c) {
+                      return LLVMIsConstantString(c.get()) != 0;
+                    },
+                    "Returns true if the specified constant is an array of i8.")
+       .def("as_string",
+            [](PyConstantDataArray &c) {
+              size_t len;
+              auto str = LLVMGetAsString(c.get(), &len);
+              return std::string(str, len);
+            },
+            "Get the given constant data sequential as a string.");
+
+  ConstantStructClass
+      .def("__init__",
+           [](PyConstantStruct *c, PyContext &cxt, std::vector<PyConstant> &vc, bool packed) {
+             unsigned cnt = vc.size();
+             UNWRAP_VECTOR_WRAPPER_CLASS(LLVMValueRef, vc, raw, cnt);
+             new (c) PyConstantStruct(LLVMConstStructInContext
+                                        (cxt.get(), raw.data(), cnt, packed));
+           },
+           "context"_a, "constant_values"_a, "packed"_a,
+           "Create an anonymous ConstantStruct with the specified values.");
 }
 
 
