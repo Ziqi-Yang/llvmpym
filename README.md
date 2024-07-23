@@ -1,7 +1,6 @@
 # LLVMPY Meow!
 
-Note this project is still in very early stage, not even half complete. Engage in 
-this project means envolving in development.  
+Note this project is still in very early stage, not even half complete.   
 
 ## Manual Build of LLVM
 
