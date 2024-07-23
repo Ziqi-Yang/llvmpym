@@ -587,6 +587,14 @@ void bindGlobalFunctions(nb::module_ &m) {
 
 void bindTypeClasses(nb::module_ &m) {
   nb::class_<PyType>(m, "Type", "Type")
+      .def_prop_ro("align",
+                   [](PyType &t) {
+                     return PyValueAuto(LLVMAlignOf(t.get()));
+                   })
+      .def_prop_ro("size",
+                   [](PyType &t) {
+                     return PyValueAuto(LLVMSizeOf(t.get()));
+                   })
       .def_prop_ro("kind",
                    [](PyType &t) { return LLVMGetTypeKind(t.get()); },
                    "Obtain the enumerated type of a Type instance.")
@@ -966,7 +974,8 @@ void bindValueClasses(nb::module_ &m) {
   
   // classes as specified in LLVM_FOR_EACH_VALUE_SUBCLASS
   auto ArgumentClass = nb::class_<PyArgument, PyValue>(m, "Argument", "Argument");
-  auto BasicBlockClass = nb::class_<PyBasicBlock, PyValue>(m, "BasicBlock", "BasicBlock");
+  // NOTE python class name is renamed to avoid collision
+  auto BasicBlockClass = nb::class_<PyBasicBlock, PyValue>(m, "BasicBlockValue", "BasicBlock");
   auto InlineAsmClass = nb::class_<PyInlineAsm, PyValue>(m, "InlineAsm", "InlineAsm");
   auto UserClass = nb::class_<PyUser, PyValue>(m, "User", "User");
   auto ConstantClass = nb::class_<PyConstant, PyUser>(m, "Constant", "Constant");
@@ -1072,41 +1081,41 @@ void bindValueClasses(nb::module_ &m) {
                      return LLVMSetValueName2(v.get(), name.c_str(), name.size());
                    },
                    nb::for_setter("def name(self, name: str, /) -> None"))
-       .def_prop_ro("is_constant",
-                    [](PyValue &v) { return LLVMIsConstant(v.get()) != 0; })
-       .def_prop_ro("is_undef",
-                    [](PyValue &v) { return LLVMIsUndef(v.get()) != 0; })
-       .def_prop_ro("is_poisonous",
-                    [](PyValue &v) { return LLVMIsPoison(v.get()) != 0;})
-       .def_prop_ro("first_use",
-                    [](PyValue &v) { return PyUse(LLVMGetFirstUse(v.get())); })
-       .def("dump",
-            [](PyValue &v) { return LLVMDumpValue(v.get()); },
-            "Dump a representation of a value to stderr.")
-       .def("__str__",
-            [](PyValue &v) { return std::string(LLVMPrintValueToString(v.get())); })
+      .def_prop_ro("is_constant",
+                   [](PyValue &v) { return LLVMIsConstant(v.get()) != 0; })
+      .def_prop_ro("is_undef",
+                   [](PyValue &v) { return LLVMIsUndef(v.get()) != 0; })
+      .def_prop_ro("is_poisonous",
+                   [](PyValue &v) { return LLVMIsPoison(v.get()) != 0;})
+      .def_prop_ro("first_use",
+                   [](PyValue &v) { return PyUse(LLVMGetFirstUse(v.get())); })
+      .def("dump",
+           [](PyValue &v) { return LLVMDumpValue(v.get()); },
+           "Dump a representation of a value to stderr.")
+      .def("__str__",
+           [](PyValue &v) { return std::string(LLVMPrintValueToString(v.get())); })
   PY_FOR_EACH_VALUE_SUBCLASS(PY_DECLARE_VALUE_CAST)
-       .def("to_AMDNode",
-            [](PyValue &v) -> std::optional<PyAMDNode> {
-              auto res = LLVMIsAMDNode(v.get());
-              if (res)
-                return PyAMDNode(res);
-              return std::nullopt;
-            })
-       .def("to_ValueAsMetadata",
-            [](PyValue &v) -> std::optional<PyValueAsMetadata> {
-              auto res = LLVMIsAMDNode(v.get());
-              if (res)
-                return PyValueAsMetadata(res);
-              return std::nullopt;
-            })
-       .def("to_AMDString",
-            [](PyValue &v) -> std::optional<PyAMDString> {
-              auto res = LLVMIsAMDString(v.get());
-              if (res)
-                return PyAMDString(res);
-              return std::nullopt;
-            });
+      .def("to_AMDNode",
+           [](PyValue &v) -> std::optional<PyAMDNode> {
+             auto res = LLVMIsAMDNode(v.get());
+             if (res)
+               return PyAMDNode(res);
+             return std::nullopt;
+           })
+      .def("to_ValueAsMetadata",
+           [](PyValue &v) -> std::optional<PyValueAsMetadata> {
+             auto res = LLVMIsAMDNode(v.get());
+             if (res)
+               return PyValueAsMetadata(res);
+             return std::nullopt;
+           })
+      .def("to_AMDString",
+           [](PyValue &v) -> std::optional<PyAMDString> {
+             auto res = LLVMIsAMDString(v.get());
+             if (res)
+               return PyAMDString(res);
+             return std::nullopt;
+           });
 
 
   InlineAsmClass
@@ -1282,7 +1291,6 @@ void bindValueClasses(nb::module_ &m) {
       .def_prop_ro("is_null",
                    [](PyConstant &c) { return LLVMIsNull(c.get()) != 0; });
 
-
   ConstantIntClass
       .def("__init__",
            [](PyConstantInt *c, PyTypeInt &t, unsigned long long N, bool SignExtend) {
@@ -1351,10 +1359,12 @@ void bindValueClasses(nb::module_ &m) {
                   [](PyContext &cxt, std::string &str, bool DontNullTerminate) {
                     return PyConstantDataArray
                              (LLVMConstStringInContext
-                                (cxt.get(), str.c_str(), str.size(), DontNullTerminate));
+                                (cxt.get(), str.c_str(), str.size(),
+                                 DontNullTerminate));
                   },
                   "context"_a, "str"_a, "dont_null_terminate"_a,
-                  "Create a ConstantDataSequential and initialize it with a string.")
+                  "Create a ConstantDataSequential and initialize it"
+                  "with a string.")
       .def_static("String",
                   [](std::string &str, bool DontNullTerminate) {
                     return PyConstantDataArray
@@ -1362,7 +1372,8 @@ void bindValueClasses(nb::module_ &m) {
                                 (str.c_str(), str.size(), DontNullTerminate));
                   },
                   "str"_a, "dont_null_terminate"_a,
-                  "Create a ConstantDataSequential with string content in the global context.")
+                  "Create a ConstantDataSequential with string content"
+                  "in the global context.")
        .def_prop_ro("is_string",
                     [](PyConstantDataArray &c) {
                       return LLVMIsConstantString(c.get()) != 0;
@@ -1378,35 +1389,386 @@ void bindValueClasses(nb::module_ &m) {
 
   ConstantStructClass
       .def("__init__",
-           [](PyConstantStruct *c, PyContext &cxt, std::vector<PyConstant> &vc, bool packed) {
+           [](PyConstantStruct *c, PyContext &cxt,
+              std::vector<PyConstant> &vc, bool packed) {
              unsigned cnt = vc.size();
              UNWRAP_VECTOR_WRAPPER_CLASS(LLVMValueRef, vc, raw, cnt);
              new (c) PyConstantStruct(LLVMConstStructInContext
                                         (cxt.get(), raw.data(), cnt, packed));
            },
            "context"_a, "constant_values"_a, "packed"_a,
-           "Create an anonymous ConstantStruct with the specified values.");
+           "Create an anonymous ConstantStruct with the specified"
+           "values.")
+      .def("__init__",
+           [](PyConstantStruct *c, PyType &structTy,
+              std::vector<PyConstant> &constantVals) {
+             unsigned cnt = constantVals.size();
+             UNWRAP_VECTOR_WRAPPER_CLASS(LLVMValueRef, constantVals,
+                                         raw, cnt);
+             new (c) PyConstantStruct(LLVMConstNamedStruct(structTy.get(),
+                                                           raw.data(), cnt));
+           },
+           "struct_type"_a, "constant_values"_a,
+           "Create a non-anonymous ConstantStruct from values.")
+      .def("get_element_at",
+           [](PyConstantStruct &c, unsigned idx) -> std::optional<PyValue*>{
+             auto res = LLVMGetAggregateElement(c.get(), idx);
+             if (res)
+               return PyValueAuto(res);
+             return std::nullopt;
+           },
+           "index"_a,
+           "Returns null if the index is out of range, or it's not possible to "
+           "determine the element (e.g., because the constant is a constant "
+           "expression.)");
+  
+
+  ConstantArrayClass
+       // LLVMConstArray is deprecated in favor of LLVMConstArray2
+       .def("__init__",
+            [](PyConstantArray *c, PyType &elemType,
+               std::vector<PyConstant> ConstantVals) {
+              uint64_t cnt = ConstantVals.size();
+              UNWRAP_VECTOR_WRAPPER_CLASS(LLVMValueRef, ConstantVals, raw, cnt);
+              new (c) PyConstantArray(LLVMConstArray2(elemType.get(),
+                                                      raw.data(), cnt));
+            },
+            "elem_type"_a, "constant_vals"_a,
+            "Create a ConstantArray from values.")
+       .def("get_element_at",
+            [](PyConstantArray &c, unsigned idx) -> std::optional<PyValue*>{
+              auto res = LLVMGetAggregateElement(c.get(), idx);
+              if (res)
+                return PyValueAuto(res);
+              return std::nullopt;
+            },
+            "index"_a,
+            "Returns null if the index is out of range, or it's not possible to "
+            "determine the element (e.g., because the constant is a constant "
+            "expression.)");
+
+  ConstantVectorClass
+      .def("__init__",
+           [](PyConstantVector *c, std::vector<PyConstant> values) {
+             auto cnt = values.size();
+             UNWRAP_VECTOR_WRAPPER_CLASS(LLVMValueRef, values, raw, cnt);
+             new (c) PyConstantVector(LLVMConstVector(raw.data(), cnt));
+           }, "values"_a)
+      // LLVMGetElementAsConstant is deprecated in favor of  LLVMGetAggregateElement
+      .def("get_element_at",
+           [](PyConstantVector &c, unsigned idx) -> std::optional<PyValue*>{
+             auto res = LLVMGetAggregateElement(c.get(), idx);
+             if (res)
+               return PyValueAuto(res);
+             return std::nullopt;
+           },
+           "index"_a,
+           "Returns null if the index is out of range, or it's not possible to "
+           "determine the element (e.g., because the constant is a constant "
+           "expression.)");
+
+
+  ConstantExprClass
+      .def_static("get_opcode",
+                  [](PyConstant &c) {
+                    return LLVMGetConstOpcode(c.get());
+                  },
+                  "value"_a)
+      .def_static("get_align_of",
+                   [](PyType &t) {
+                     return PyValueAuto(LLVMAlignOf(t.get()));
+                   },
+                  "type"_a)
+      .def_static("get_size_of",
+                   [](PyType &t) {
+                     return PyValueAuto(LLVMSizeOf(t.get()));
+                   },
+                  "type"_a)
+      .def_static("neg",
+                  [](PyConstant &c) {
+                    return PyValueAuto(LLVMConstNeg(c.get()));
+                  },
+                  "value"_a)
+      .def_static("neg_nsw", // no signed wrap
+                  [](PyConstant &c) {
+                    return PyValueAuto(LLVMConstNSWNeg(c.get()));
+                  },
+                  "value"_a,
+                  "LLVMConstNSWNeg")
+      .def_static("neg_nuw", // no unsigned wrap
+                   [](PyConstant &c) {
+                     return PyValueAuto(LLVMConstNUWNeg(c.get()));
+                   },
+                   "value"_a,
+                   "LLVMConstNUWNeg")
+      .def_static("not",
+                  [](PyConstant &c) {
+                    return PyValueAuto(LLVMConstNot(c.get()));
+                  },
+                  "value"_a)
+  BIND_CONSTANT_EXPR_BINARY_OPS
+      .def_static("icmp", // test passing ConstantFP type values
+                  [](LLVMIntPredicate predicate, PyConstant &lhs, PyConstant &rhs) {
+                    return PyValueAuto(LLVMConstICmp(predicate, lhs.get(), rhs.get()));
+                  },
+                  "predicate"_a, "lhs"_a, "rhs"_a)
+      .def_static("fcmp", // test passing ConstantFP type values
+                  [](LLVMRealPredicate predicate, PyConstant &lhs, PyConstant &rhs) {
+                    return PyValueAuto(LLVMConstFCmp(predicate, lhs.get(), rhs.get()));
+                  },
+                  "predicate"_a, "lhs"_a, "rhs"_a)
+
+      .def_static("gep2",
+                  [](PyType &type, PyConstant &value, std::vector<PyValue> indices) {
+                    unsigned num = indices.size();
+                    UNWRAP_VECTOR_WRAPPER_CLASS(LLVMValueRef, indices, raw, num);
+                    return PyValueAuto(LLVMConstGEP2(type.get(), value.get(), raw.data(),
+                                                     num));
+                  },
+                  "type"_a, "value"_a, "indices"_a)
+      .def_static("gep2_in_bounds",
+                  [](PyType &type, PyConstant &value, std::vector<PyValue> indices) {
+                    unsigned num = indices.size();
+                    UNWRAP_VECTOR_WRAPPER_CLASS(LLVMValueRef, indices, raw, num);
+                    return PyValueAuto(LLVMConstInBoundsGEP2(type.get(), value.get(),
+                                                             raw.data(), num));
+                  },
+                  "type"_a, "value"_a, "indices"_a)
+
+      .def_static("trunc",
+                  [](PyConstant &value, PyType &toType) {
+                    return PyValueAuto(LLVMConstTrunc(value.get(), toType.get()));
+                  },
+                  "value"_a, "to_type"_a)
+      .def_static("ptr2int",
+                  [](PyConstant &c, PyType &toType) {
+                    return PyValueAuto(LLVMConstIntToPtr(c.get(), toType.get()));
+                  },
+                  "value"_a, "to_type"_a)
+      .def_static("int2ptr",
+                  [](PyConstant &c, PyType &toType) {
+                    return PyValueAuto(LLVMConstPtrToInt(c.get(), toType.get()));
+                  },
+                  "value"_a, "to_type"_a)
+      .def_static("bit_cast",
+                  [](PyConstant &c, PyType &toType) {
+                    return PyValueAuto(LLVMConstBitCast(c.get(), toType.get()));
+                  },
+                  "value"_a, "to_type"_a)
+      .def_static("addr_space_cast",
+                  [](PyConstant &c, PyType &toType) {
+                    return PyValueAuto(LLVMConstAddrSpaceCast(c.get(), toType.get()));
+                  },
+                  "value"_a, "to_type"_a)
+      .def_static("trunc_or_bit_cast",
+                  [](PyConstant &c, PyType &toType) {
+                    return PyValueAuto(LLVMConstTruncOrBitCast(c.get(), toType.get()));
+                  },
+                  "value"_a, "to_type"_a)
+      .def_static("pointer_cast",
+                  [](PyConstant &c, PyType &toType) {
+                    return PyValueAuto(LLVMConstPointerCast(c.get(), toType.get()));
+                  },
+                  "value"_a, "to_type"_a)
+      .def_static("extract_element", // TODO test ConstantArray
+                  [](PyConstantVector &vector, PyConstant &index) {
+                    return PyValueAuto(LLVMConstExtractElement(vector.get(), index.get()));
+                  },
+                  "vector"_a, "index"_a)
+      .def_static("insert_element",
+                  [](PyConstantVector &vector, PyConstant &value, PyConstant &index) {
+                    return PyValueAuto(LLVMConstInsertElement(vector.get(), value.get(),
+                                                              index.get()));
+                  },
+                  "vector"_a, "index"_a, "index"_a)
+      .def_static("shuffle_vector",
+                  [](PyConstantVector &vectorA, PyConstantVector &vectorB,
+                     PyConstant &mask) {
+                    return PyValueAuto(LLVMConstShuffleVector
+                                         (vectorA.get(), vectorB.get(), mask.get()));
+                  },
+                  "vector_a"_a, "vector_b"_a, "mask"_a)
+      .def_static("block_address",
+                  [](PyConstant &value, PyBasicBlockWrapper &bb) {
+                    return PyValueAuto(LLVMBlockAddress(value.get(), bb.get()));
+                  });
+       // LLVMConstInlineAsm is deprecated in favor of LLVMGetInlineAsm
+
+
+  
 }
 
 
+void bindOtherClasses(nb::module_ &m) {
+  auto ContextClass =
+    nb::class_<PyContext>
+      (m, "Context",
+       "Contexts are execution states for the core LLVM IR system.\n\n"
+       "Most types are tied to a context instance. Multiple contexts can"
+       "exist simultaneously. A single context is not thread safe. However,"
+       "different contexts can execute on different threads simultaneously.");
 
+  auto AttributeClass = nb::class_<PyAttribute>(m, "Attribute", "Attribute");
+  auto EnumAttributeClass = nb::class_<PyEnumAttribute, PyAttribute>
+                              (m, "EnumAttribute", "EnumAttribute");
+  auto TypeAttributeClass = nb::class_<PyTypeAttribute, PyAttribute>
+                              (m, "TypeAttribute", "TypeAttribute");
+  auto StringAttributeClass = nb::class_<PyStringAttribute, PyAttribute>
+                                (m, "StringAttribute", "StringAttribute");
+  
+  
+  auto BasicBlockWrapperClass = nb::class_<PyBasicBlockWrapper>
+                                  (m, "BasicBlock", "BasicBlock");
+  auto DiagnosticInfoClass = nb::class_<PyDiagnosticInfo>
+                               (m, "DiagnosticInfo", "DiagnosticInfo");
 
+  auto NamedMDNodeClass = nb::class_<PyNamedMDNode>(m, "NamedMDNode", "NamedMDNode");
+  auto ModuleClass =
+    nb::class_<PyModule>
+      (m, "Module",
+       "Modules represent the top-level structure in an LLVM program. An LLVM"
+       "module is effectively a translation unit or a collection of translation "
+       "units merged together.");
 
+  // nb::class_<PyModuleFlagEntry_>(m, "ModuleFlagEntry", "ModuleFlagEntry");
+  auto MetaDataClass = nb::class_<PyMetadata>(m, "Metadata", "Metadata");
+  
+  auto UseClass = nb::class_<PyUse>(m, "Use", "Use");
 
-void populateCore(nb::module_ &m) {
-  bindEnums(m);
-  bindGlobalFunctions(m);
-  bindTypeClasses(m);
-  bindValueClasses(m);
+  UseClass
+      .def_prop_ro("next",
+                   [](PyUse &u) -> std::optional<PyUse> {
+                     auto res = LLVMGetNextUse(u.get());
+                     if (res)
+                       return PyUse(res);
+                     return std::nullopt;
+                   },
+                   "Obtain the next use of a value.\n\n"
+                   "This effectively advances the iterator. It returns NULL if you are on"
+                   "the final use and no more are available.")
+      .def_prop_ro("user",
+                   [](PyUse &u) { return PyUser(LLVMGetUser(u.get())); },
+                   "Obtain the user value for a user.\n",
+                   "The returned value corresponds to a llvm::User type.")
+      .def_prop_ro("used_value",
+                   [](PyUse &u) {
+                     return PyValueAuto(LLVMGetUsedValue(u.get()));
+                   });
+  
+  
+  AttributeClass
+      .def("is_enum",
+           [](PyAttribute &attr) {
+             return LLVMIsEnumAttribute(attr.get()) != 0;
+           })
+      .def("is_string",
+           [](PyAttribute &attr) {
+             return LLVMIsStringAttribute(attr.get()) != 0;
+           })
+      .def("is_type",
+           [](PyAttribute &attr) {
+             return LLVMIsTypeAttribute(attr.get()) != 0;
+           });
+  
+  EnumAttributeClass
+      .def("__init__",
+           [](PyEnumAttribute *t, PyContext &c, unsigned kindID, uint64_t val) {
+             new (t) PyEnumAttribute(LLVMCreateEnumAttribute(c.get(), kindID, val));
+           }, "context"_a, "kind_id"_a, "val"_a)
+      .def_prop_ro("kind",
+                   [](PyEnumAttribute &attr) {
+                     return LLVMGetEnumAttributeKind(attr.get());
+                   }, "attr"_a)
+      .def_prop_ro("value",
+                   [](PyEnumAttribute &attr) {
+                     return LLVMGetEnumAttributeValue(attr.get());
+                   });
 
-  nb::class_<PyContext>
-    (m, "Context",
-     "Contexts are execution states for the core LLVM IR system.\n\n"
-     "Most types are tied to a context instance. Multiple contexts can"
-     "exist simultaneously. A single context is not thread safe. However,"
-     "different contexts can execute on different threads simultaneously.")
+  TypeAttributeClass
+      .def("__init__",
+           [](PyTypeAttribute *t, PyContext &context, unsigned kind_id, PyType &type) {
+             new (t) PyTypeAttribute(LLVMCreateTypeAttribute(context.get(), kind_id, type.get()));
+           },
+           "context"_a, "kind_id"_a, "type"_a)
+      .def_prop_ro("value",
+                   [](PyTypeAttribute &ta){
+                     return PyTypeAuto(LLVMGetTypeAttributeValue(ta.get()));
+                   },
+                   "Get the type attribute's value.");
+
+  StringAttributeClass
+      .def("__init__",
+           [](PyStringAttribute *t, PyContext &c, const std::string &kind, const std::string &value) {
+             auto raw = LLVMCreateStringAttribute(c.get(),
+                                                  kind.c_str(), kind.size(),
+                                                  value.c_str(), value.size());
+             new (t) PyStringAttribute(raw);
+           }, "context"_a, "kind"_a, "value"_a)
+      .def_prop_ro("kind",
+                   [](PyStringAttribute &ta) {
+                     unsigned length;
+                     const char *kind = LLVMGetStringAttributeKind(ta.get(), &length);
+                     return std::string(kind, length);
+                   })
+      .def_prop_ro("value",
+                   [](PyStringAttribute &ta) {
+                     unsigned length;
+                     const char *value = LLVMGetStringAttributeValue(ta.get(), &length);
+                     return std::string(value, length);
+                   }, "Get the type attribute's value.");
+  
+
+  DiagnosticInfoClass
+      // .def(nb::init<>()) // NOTE currently no constructor function for python, we'll see
+      .def_prop_ro("description",
+                   [](PyDiagnosticInfo &d) {
+                     char *diagInfoDesc = LLVMGetDiagInfoDescription(d.get());
+                     std::string diagInfoDescCopy(diagInfoDesc);
+                     LLVMDisposeMessage(diagInfoDesc);
+                     return diagInfoDescCopy;
+                   },
+                   "Return a string representation of the DiagnosticInfo.")
+      .def_prop_ro("severity",
+                   [](PyDiagnosticInfo &d) {
+                     return LLVMGetDiagInfoSeverity(d.get());
+                   },
+                   "Return an enum LLVMDiagnosticSeverity.");
+
+  
+  NamedMDNodeClass
+      .def_prop_ro("next",
+                   [](PyNamedMDNode &nmdn) -> std::optional<PyNamedMDNode>{
+                     auto res = LLVMGetNextNamedMetadata(nmdn.get());
+                     if (res != nullptr) 
+                       return PyNamedMDNode(res);
+                     return std::nullopt;
+                   },
+                   "Advance a NamedMDNode iterator to the next NamedMDNode.\n\n"
+                   "Returns NULL if the iterator was already at the end and there"
+                   " are no more named metadata nodes.")
+      .def_prop_ro("prev",
+                   [](PyNamedMDNode &nmdn) -> std::optional<PyNamedMDNode> {
+                     auto res = LLVMGetPreviousNamedMetadata(nmdn.get());
+                     if (res != nullptr)
+                       return PyNamedMDNode(res);
+                     return std::nullopt;
+                   },
+                   "Decrement a NamedMDNode iterator to the previous NamedMDNode.\n\n"
+                   "Returns NULL if the iterator was already at the beginning and there are"
+                   "no previous named metadata nodes.")
+      .def_prop_ro("name",
+                   [](PyNamedMDNode &nmdn) {
+                     size_t len;
+                     const char *name =  LLVMGetNamedMetadataName(nmdn.get(), &len);
+                     return std::string(name, len);
+                   },
+                   "Retrieve the name of a NamedMDNode.");
+
+  
+  ContextClass
       .def(nb::init<>(), "Create a new context.")
-      .def_static("get_global_context", &PyContext::getGlobalContext, "Obtain the global context instance.")
+      .def_static("get_global_context", &PyContext::getGlobalContext,
+                  "Obtain the global context instance.")
       .def_prop_ro("diagnostic_context", // TODO more check: in my test it simply None
                    [](PyContext &c) { return LLVMContextGetDiagnosticContext(c.get()); },
                    "Get the diagnostic context of this context.")
@@ -1470,113 +1832,10 @@ void populateCore(nb::module_ &m) {
              return PyTypeAuto(LLVMGetTypeByName2(c.get(), name.c_str()));
            });
 
-  
-  
-  nb::class_<PyAttribute>(m, "Attribute", "Attribute")
-        .def("is_enum", [](PyAttribute &attr) {
-          return LLVMIsEnumAttribute(attr.get()) != 0;
-        })
-        .def("is_string", [](PyAttribute &attr) {
-          return LLVMIsStringAttribute(attr.get()) != 0;
-        })
-        .def("is_type", [](PyAttribute &attr) {
-          return LLVMIsTypeAttribute(attr.get()) != 0;
-        });
-  nb::class_<PyEnumAttribute, PyAttribute>(m, "EnumAttribute", "EnumAttribute")
-      .def("__init__",
-           [](PyEnumAttribute *t, PyContext &c, unsigned kindID, uint64_t val) {
-             new (t) PyEnumAttribute(LLVMCreateEnumAttribute(c.get(), kindID, val));
-           }, "context"_a, "kind_id"_a, "val"_a)
-      .def_prop_ro("kind",
-                   [](PyEnumAttribute &attr) {
-                     return LLVMGetEnumAttributeKind(attr.get());
-                   }, "attr"_a)
-      .def_prop_ro("value",
-                   [](PyEnumAttribute &attr) {
-                     return LLVMGetEnumAttributeValue(attr.get());
-                   });
 
-  nb::class_<PyTypeAttribute, PyAttribute>(m, "TypeAttribute", "TypeAttribute")
-      .def("__init__",
-           [](PyTypeAttribute *t, PyContext &context, unsigned kind_id, PyType &type) {
-             new (t) PyTypeAttribute(LLVMCreateTypeAttribute(context.get(), kind_id, type.get()));
-           }, "context"_a, "kind_id"_a, "type"_a)
-      .def_prop_ro("value",
-                   [](PyTypeAttribute &ta){
-                     return PyTypeAuto(LLVMGetTypeAttributeValue(ta.get()));
-                   }, "Get the type attribute's value.");
-
-  nb::class_<PyStringAttribute, PyAttribute>(m, "StringAttribute", "StringAttribute")
-      .def("__init__",
-           [](PyTypeAttribute *t, PyContext &c, const std::string &kind, const std::string &value) {
-             auto raw = LLVMCreateStringAttribute(c.get(),
-                                                  kind.c_str(), kind.size(),
-                                                  value.c_str(), value.size());
-             new (t) PyStringAttribute(raw);
-           }, "context"_a, "kind"_a, "value"_a)
-      .def_prop_ro("kind",
-                   [](PyStringAttribute &ta) {
-                     unsigned length;
-                     const char *kind = LLVMGetStringAttributeKind(ta.get(), &length);
-                     return std::string(kind, length);
-                   })
-      .def_prop_ro("value",
-                   [](PyStringAttribute &ta) {
-                     unsigned length;
-                     const char *value = LLVMGetStringAttributeValue(ta.get(), &length);
-                     return std::string(value, length);
-                   }, "Get the type attribute's value.");
   
-  
-  nb::class_<PyDiagnosticInfo>(m, "DiagnosticInfo", "DiagnosticInfo")
-      // .def(nb::init<>()) // NOTE currently no constructor function for python, we'll see
-      .def_prop_ro("description",
-                   [](PyDiagnosticInfo &d) {
-                     char *diagInfoDesc = LLVMGetDiagInfoDescription(d.get());
-                     std::string diagInfoDescCopy(diagInfoDesc);
-                     LLVMDisposeMessage(diagInfoDesc);
-                     return diagInfoDescCopy;
-                   },
-                   "Return a string representation of the DiagnosticInfo.")
-      .def_prop_ro("severity",
-                   [](PyDiagnosticInfo &d) {
-                     return LLVMGetDiagInfoSeverity(d.get());
-                   },
-                   "Return an enum LLVMDiagnosticSeverity.");
 
-  nb::class_<PyNamedMDNode>(m, "NamedMDNode", "NamedMDNode")
-      .def_prop_ro("next",
-                   [](PyNamedMDNode &nmdn) -> std::optional<PyNamedMDNode>{
-                     auto res = LLVMGetNextNamedMetadata(nmdn.get());
-                     if (res != nullptr) 
-                       return PyNamedMDNode(res);
-                     return std::nullopt;
-                   },
-                   "Advance a NamedMDNode iterator to the next NamedMDNode.\n\n"
-                   "Returns NULL if the iterator was already at the end and there"
-                   " are no more named metadata nodes.")
-      .def_prop_ro("prev",
-                   [](PyNamedMDNode &nmdn) -> std::optional<PyNamedMDNode> {
-                     auto res = LLVMGetPreviousNamedMetadata(nmdn.get());
-                     if (res != nullptr)
-                       return PyNamedMDNode(res);
-                     return std::nullopt;
-                   },
-                   "Decrement a NamedMDNode iterator to the previous NamedMDNode.\n\n"
-                   "Returns NULL if the iterator was already at the beginning and there are"
-                   "no previous named metadata nodes.")
-      .def_prop_ro("name",
-                   [](PyNamedMDNode &nmdn) {
-                     size_t len;
-                     const char *name =  LLVMGetNamedMetadataName(nmdn.get(), &len);
-                     return std::string(name, len);
-                   },
-                   "Retrieve the name of a NamedMDNode.");
-
-  nb::class_<PyModule>(m, "Module",
-     "Modules represent the top-level structure in an LLVM program. An LLVM"
-     "module is effectively a translation unit or a collection of translation "
-     "units merged together.")
+  ModuleClass
       .def(nb::init<const std::string &>(), "id"_a)
       .def_prop_ro("first_global",
                    [](PyModule &m) { return PyValueAuto(LLVMGetFirstGlobal(m.get())); })
@@ -1774,34 +2033,32 @@ void populateCore(nb::module_ &m) {
            "Print a representation of a module to a file. The ErrorMessage needs to be"
            "disposed with LLVMDisposeMessage. Returns 0 on success, 1 otherwise.")
       .def("append_inline_asm",
-            [](PyModule &m, std::string &iasm) {
-              return LLVMAppendModuleInlineAsm(m.get(), iasm.c_str(), iasm.size());
-            })
+           [](PyModule &m, std::string &iasm) {
+
+             return LLVMAppendModuleInlineAsm(m.get(), iasm.c_str(), iasm.size());
+           })
       .def("get_type_by_name",
            [](PyModule &m, std::string &name) {
              return PyTypeAuto(LLVMGetTypeByName(m.get(), name.c_str()));
            }, "name"_a,
            "Deprecated: Use LLVMGetTypeByName2 instead.");
-
-
-  // nb::class_<PyModuleFlagEntry_>(m, "ModuleFlagEntry", "ModuleFlagEntry");
-  nb::class_<PyMetadata>(m, "Metadata", "Metadata");
   
-  nb::class_<PyUse>(m, "Use", "Use")
-      .def_prop_ro("next",
-                   [](PyUse &u) -> std::optional<PyUse> {
-                     auto res = LLVMGetNextUse(u.get());
-                     if (res)
-                       return PyUse(res);
-                     return std::nullopt;
-                   },
-                   "Obtain the next use of a value.\n\n"
-                   "This effectively advances the iterator. It returns NULL if you are on"
-                   "the final use and no more are available.")
-      .def_prop_ro("user",
-                   [](PyUse &u) { return PyUser(LLVMGetUser(u.get())); },
-                   "Obtain the user value for a user.\n",
-                   "The returned value corresponds to a llvm::User type.")
-      .def_prop_ro("used_value",
-                   [](PyUse &u) { return PyValueAuto(LLVMGetUsedValue(u.get())); });
+}
+
+
+
+void populateCore(nb::module_ &m) {
+  bindEnums(m);
+  bindGlobalFunctions(m);
+  bindTypeClasses(m);
+  bindValueClasses(m);
+  bindOtherClasses(m);
+
+
+
+
+
+
+
+  
 }

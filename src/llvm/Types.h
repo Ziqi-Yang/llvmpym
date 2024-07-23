@@ -214,7 +214,7 @@ protected:
       macro(AtomicRMWInst)                  \
       macro(FenceInst)
 
-// my addition: the first 3 
+// my addition: the first 3
 #define PY_FOR_EACH_VALUE_CLASS_RELATIONSHIP(macro) \
   macro(PyValue, PyAMDNode) \
   macro(PyValue, PyValueAsMetadata) \
@@ -351,6 +351,7 @@ DEFINE_PY_WRAPPER_CLASS_COPYABLE_POLYMORPHIC(PyAttribute, LLVMAttributeRef, attr
 DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyMetadata, LLVMMetadataRef, metadata)
 DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyNamedMDNode, LLVMNamedMDNodeRef, namedMDNode)
 DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyUse, LLVMUseRef, Use)
+DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyBasicBlockWrapper, LLVMBasicBlockRef, basicBlock)
 
 
 // typedef LLVMModuleFlagEntry *LLVMModuleFlagEntry_;
