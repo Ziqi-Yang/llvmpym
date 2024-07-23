@@ -617,24 +617,30 @@ void bindTypeClasses(nb::module_ &m) {
       .def_prop_ro("Null",
                   [](PyType &t) {
                     return PyValueAuto(LLVMConstNull(t.get()));
-                  }, "type"_a,
-                  "Obtain a constant value referring to the null instance of the type.")
+                  },
+                   "Obtain a constant value referring to the null instance of the type.")
+      .def_static("PointerNull",
+                  [](PyType &t) {
+                    return PyValueAuto(LLVMConstPointerNull(t.get()));
+                  },
+                  "Obtain a constant that is a constant pointer pointing to NULL for the"
+                  "type.")
       .def_prop_ro("AllOnes",
                   [](PyTypeInt &t) {
                     return PyValueAuto(LLVMConstAllOnes(t.get()));
-                  }, "type"_a,
+                  },
                   "Obtain a constant value referring to the instance of the type"
                   "consisting of all ones.")
       .def_prop_ro("Undef",
                   [](PyType &t) {
                     return PyUndefValue(LLVMGetUndef(t.get()));
-                  }, "type"_a,
+                  },
                   "Obtain a constant value referring to an undefined value of a type.")
       .def_prop_ro("Poison",
                   [](PyType &t) {
                     return PyPoisonValue(LLVMGetPoison(t.get()));
-                  }, "type"_a,
-                  "Obtain a constant value referring to a poison value of a type.");
+                  },
+                   "Obtain a constant value referring to a poison value of a type.");
   
   auto TypeIntClass = nb::class_<PyTypeInt, PyType>(m, "IntType", "IntType");
   auto TypeRealClass = nb::class_<PyTypeReal, PyType>(m, "RealType", "RealType");
@@ -1251,6 +1257,12 @@ void bindValueClasses(nb::module_ &m) {
                     return PyValueAuto(LLVMConstNull(t.get()));
                   }, "type"_a,
                   "Obtain a constant value referring to the null instance of the type.")
+      .def_static("PointerNull",
+                  [](PyType &t) {
+                    return PyValueAuto(LLVMConstPointerNull(t.get()));
+                  }, "type"_a,
+                  "Obtain a constant that is a constant pointer pointing to NULL for the"
+                  "type.")
       .def_static("AllOnes",
                   [](PyTypeInt &t) {
                     return PyValueAuto(LLVMConstAllOnes(t.get()));
@@ -1269,6 +1281,36 @@ void bindValueClasses(nb::module_ &m) {
                   "Obtain a constant value referring to a poison value of a type.")
       .def_prop_ro("is_null",
                    [](PyConstant &c) { return LLVMIsNull(c.get()) != 0; });
+
+
+  ConstantIntClass
+      .def("__init__",
+           [](PyConstantInt *c, PyTypeInt &t, unsigned long long N, bool SignExtend) {
+             return new (c) PyConstantInt(LLVMConstInt
+                                            (t.get(), N, SignExtend));
+           },
+           "int_type"_a, "value"_a, "sign_extend"_a,
+           "Obtain a constant value for an integer type.\n\n"
+           "Parameters:\n"
+           "int_type: IntTy Integer type to obtain value of.\n"
+           "value: The value the returned instance should refer to.\n"
+           "sign_extend: Whether to sign extend the produced value.")
+      .def_static("ArbitraryPrecision",
+                  [](PyTypeInt &t, unsigned NumWords, const uint64_t Words[]) {
+                    auto res = LLVMConstIntOfArbitraryPrecision
+                                 (t.get(), NumWords, Words);
+                    return PyConstantInt(res);
+                  },
+                  "int_type"_a, "num_words"_a, "words"_a,
+                  "Obtain a constant value for an integer of arbitrary precision.")
+      .def_static("String", // LLVMConstIntOfString is discarded in favor of LLVMConstIntOfStringAndSize 
+                  [](PyTypeInt &t, std::string &text, uint8_t Radix) {
+                    return PyConstantInt(LLVMConstIntOfStringAndSize
+                                           (t.get(), text.c_str(), text.size(),
+                                            Radix));
+                  },
+                  "int_type"_a, "text"_a, "radix"_a,
+                  "Obtain a constant value for an integer parsed from a string.");
 }
 
 
