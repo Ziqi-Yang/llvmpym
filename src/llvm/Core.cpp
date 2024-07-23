@@ -1725,7 +1725,40 @@ void bindValueClasses(nb::module_ &m) {
                    nb::for_setter
                      (nb::sig("def alignment(self, bytes: int, /) -> None")));
 
-  
+  GlobalObjectClass
+      .def("set_metadataf",
+           [](PyGlobalObject &g, unsigned kind, PyMetadata md) {
+             return LLVMGlobalSetMetadata(g.get(), kind, md.get());
+           },
+           "Sets a metadata attachment, erasing the existing metadata attachment if"
+           "it already exists for the given kind.")
+      .def("erase_metadata",
+           [](PyGlobalObject &g, unsigned kind) {
+             return LLVMGlobalEraseMetadata(g.get(), kind);
+           },
+           "Erases a metadata attachment of the given kind if it exists.")
+      .def("clear_metadata",
+           [](PyGlobalObject &g) {
+             return LLVMGlobalClearMetadata(g.get());
+           },
+           "Removes all metadata attachments from this value.")
+      // .def("copy_all_metadata",
+      //      [](PyGlobalObject &g) {
+      //        size_t NumEntries;
+      //        LLVMValueMetadataEntry *entries = LLVMGlobalCopyAllMetadata(g.get(),
+      //                                                                    &NumEntries);
+      //        std::vector<PyMetadataEntry> res;
+      //        res.reserve(NumEntries);
+      //        for (unsigned i = 0; i < NumEntries; i++) {
+      //          res.push_back(PyMetadataEntry(entries[i]));
+      //        }
+      //        // WRAP_VECTOR_FROM_DEST_REF(PyMetadataEntry, NumEntries, res, entries);
+      //        LLVMDisposeValueMetadataEntries(entries);
+      //        return res;
+      //      },
+      //      "Retrieves an array of metadata entries representing the metadata attached to"
+      //      "this value.")
+;
 }
 
 
@@ -1765,8 +1798,11 @@ void bindOtherClasses(nb::module_ &m) {
        "module is effectively a translation unit or a collection of translation "
        "units merged together.");
 
-  // nb::class_<PyModuleFlagEntry_>(m, "ModuleFlagEntry", "ModuleFlagEntry");
+  auto ModuleFlagEntriesClass = nb::class_<PyModuleFlagEntries>
+                                  (m, "ModuleFlagEntry", "ModuleFlagEntry");
   auto MetaDataClass = nb::class_<PyMetadata>(m, "Metadata", "Metadata");
+  auto MetadataEntriesClass = nb::class_<PyMetadataEntries>
+                              (m, "MetadataEntry", "MetadataEntry");
   
   auto UseClass = nb::class_<PyUse>(m, "Use", "Use");
 
@@ -2116,21 +2152,14 @@ void bindOtherClasses(nb::module_ &m) {
            [](PyModule &m) {
              return PyModule(LLVMCloneModule(m.get()));
            }, "Return an exact copy of the specified module.")
-      // NOTE: I think LLVM C api has a bug: https://github.com/llvm/llvm-project/pull/99800
-      // FIXME: currently all LLVMModuleFlagEntry related function are not binded
-      // .def("copy_module_flags_metadata",
-      //      [](PyModule &m) {
-      //        size_t Len;
-      //        LLVMModuleFlagEntry *flags = LLVMCopyModuleFlagsMetadata(M, &Len);
-
-      //        std::vector<PyModuleFlagEntry> flags_vector;
-      //        for (size_t i = 0; i < Len; ++i) {
-      //          flags_vector.push_back(PyModuleFlagEntry(flag[i]));
-      //        }
-
-      //        LLVMDisposeModuleFlagsMetadata(flags);
-      //        return flags_vector;
-      //      })
+      .def("copy_module_flags_metadata",
+           [](PyModule &m) {
+             size_t Len;
+             LLVMModuleFlagEntry *flags = LLVMCopyModuleFlagsMetadata(m.get(), &Len);
+             auto res = PyModuleFlagEntries(flags, Len);
+             return res;
+           },
+           "Returns the module flags as an array of flag-key-value triples.")
       .def("get_flag",
            [](PyModule &m, const std::string &key) {
              return PyMetadata(LLVMGetModuleFlag(m.get(), key.c_str(), key.size()));
@@ -2177,7 +2206,30 @@ void bindOtherClasses(nb::module_ &m) {
              return PyTypeAuto(LLVMGetTypeByName(m.get(), name.c_str()));
            }, "name"_a,
            "Deprecated: Use LLVMGetTypeByName2 instead.");
-  
+
+  ModuleFlagEntriesClass
+      .def("get_behavior",
+           [](PyModuleFlagEntries &self, unsigned index) {
+             // TODO test whether LLVMModuleFlagEntriesGetFlagBehavior will
+             // check index is in bound
+             return LLVMModuleFlagEntriesGetFlagBehavior(self.get(), index);
+           },
+           "index"_a,
+           "Returns the flag behavior for a module flag entry at a specific index.")
+      .def("get_key",
+           [](PyModuleFlagEntries &self, unsigned index) {
+             size_t len;
+             const char *str = LLVMModuleFlagEntriesGetKey(self.get(), index, &len);
+             return std::string(str, len);
+           },
+           "index"_a,
+           "Returns the key for a module flag entry at a specific index.")
+      .def("get_metadata",
+           [](PyModuleFlagEntries &self, unsigned index) {
+             return PyMetadata(LLVMModuleFlagEntriesGetMetadata(self.get(), index));
+           },
+           "index"_a,
+           "Returns the metadata for a module flag entry at a specific index.");
 }
 
 

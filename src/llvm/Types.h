@@ -353,16 +353,80 @@ DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyNamedMDNode, LLVMNamedMDNodeRef, namedMDNode)
 DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyUse, LLVMUseRef, Use)
 DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyBasicBlockWrapper, LLVMBasicBlockRef, basicBlock)
 
-
-// typedef LLVMModuleFlagEntry *LLVMModuleFlagEntry_;
-// DEFINE_PY_WRAPPER_CLASS(PyModuleFlagEntry, LLVMModuleFlagEntry_, moduleFlagEntry)
-
 DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyEnumAttribute);
 DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyTypeAttribute);
 DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyStringAttribute);
 
 PY_FOR_EACH_VALUE_CLASS_RELATIONSHIP(DEFINE_DIRECT_SUB_CLASS)
 PY_FOR_EACH_TYPE_CLASS_RELASIONSHIP(DEFINE_DIRECT_SUB_CLASS)
+
+
+typedef LLVMModuleFlagEntry *LLVMModuleFlagEntries;
+
+class PyModuleFlagEntries : public NonCopyable {
+public:
+  explicit PyModuleFlagEntries(LLVMModuleFlagEntries entries, size_t len)
+  : entries(entries), len(len) {}
+  
+  ~PyModuleFlagEntries() {
+    cleanup();
+  }
+
+  LLVMModuleFlagEntries get() const {
+    return entries;
+  }
+
+  size_t getLen() const {
+    return len;
+  }
+
+  DEFINE_MOVE_SEMANTICS(PyModuleFlagEntries)
+
+  void move(PyModuleFlagEntries &&other) noexcept {
+    cleanup();
+    entries = std::exchange(other.entries, nullptr);
+  }
+  
+
+private:
+  LLVMModuleFlagEntries entries;
+  size_t len;
+
+  void cleanup() {
+    if (entries) {
+      LLVMDisposeModuleFlagsMetadata(entries);
+      entries = nullptr;
+    }
+  }
+};
+
+
+typedef LLVMValueMetadataEntry *LLVMValueMetadataEntries;
+DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyMetadataEntries, LLVMValueMetadataEntries,
+                                 metadataEntries)
+
+// class PyMetadataEntries : public NonCopyable {
+// public:
+//   explicit PyMetadataEntries(LLVMValueMetadataEntries entries)
+//   : entries(entries);
+  
+//   ~PyContext() {
+//     cleanup();
+//   }
+
+  
+
+// private:
+//   LLVMValueMetadataEntries entries;
+
+//   void cleanup() {
+//     if (entries) {
+//       LLVMContextDispose(context);
+//       entries = nullptr;
+//     }
+//   }
+// }
+
 
 class PyContext : public NonCopyable {
 public:
