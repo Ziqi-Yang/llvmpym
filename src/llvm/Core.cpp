@@ -1742,23 +1742,16 @@ void bindValueClasses(nb::module_ &m) {
              return LLVMGlobalClearMetadata(g.get());
            },
            "Removes all metadata attachments from this value.")
-      // .def("copy_all_metadata",
-      //      [](PyGlobalObject &g) {
-      //        size_t NumEntries;
-      //        LLVMValueMetadataEntry *entries = LLVMGlobalCopyAllMetadata(g.get(),
-      //                                                                    &NumEntries);
-      //        std::vector<PyMetadataEntry> res;
-      //        res.reserve(NumEntries);
-      //        for (unsigned i = 0; i < NumEntries; i++) {
-      //          res.push_back(PyMetadataEntry(entries[i]));
-      //        }
-      //        // WRAP_VECTOR_FROM_DEST_REF(PyMetadataEntry, NumEntries, res, entries);
-      //        LLVMDisposeValueMetadataEntries(entries);
-      //        return res;
-      //      },
-      //      "Retrieves an array of metadata entries representing the metadata attached to"
-      //      "this value.")
-;
+      .def("copy_all_metadata",
+           [](PyGlobalObject &g) {
+             size_t num;
+             LLVMValueMetadataEntries entries = LLVMGlobalCopyAllMetadata
+                                                  (g.get(), &num);
+             return PyMetadataEntries(entries, num);
+           },
+           "Retrieves an array of metadata entries representing the metadata attached to"
+           "this value.");
+
 }
 
 
@@ -1805,6 +1798,22 @@ void bindOtherClasses(nb::module_ &m) {
                               (m, "MetadataEntry", "MetadataEntry");
   
   auto UseClass = nb::class_<PyUse>(m, "Use", "Use");
+
+
+  MetadataEntriesClass
+      .def("get_kind",
+           [](PyMetadataEntries &self, unsigned index) {
+             return LLVMValueMetadataEntriesGetKind(self.get(), index);
+           },
+           "index"_a,
+           "Returns the kind of a value metadata entry at a specific index.")
+      .def("get_metadata",
+           [](PyMetadataEntries &self, unsigned index) {
+             return PyMetadata(LLVMValueMetadataEntriesGetMetadata(self.get(), index));
+           },
+           "index"_a,
+           "Returns the underlying metadata node of a value metadata entry at a"
+           "specific index.");
 
   UseClass
       .def_prop_ro("next",

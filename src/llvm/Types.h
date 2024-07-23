@@ -402,30 +402,44 @@ private:
 
 
 typedef LLVMValueMetadataEntry *LLVMValueMetadataEntries;
-DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyMetadataEntries, LLVMValueMetadataEntries,
-                                 metadataEntries)
 
-// class PyMetadataEntries : public NonCopyable {
-// public:
-//   explicit PyMetadataEntries(LLVMValueMetadataEntries entries)
-//   : entries(entries);
+class PyMetadataEntries : public NonCopyable {
+public:
+  explicit PyMetadataEntries(LLVMValueMetadataEntries entries, size_t len)
+  : entries(entries), len(len) {}
   
-//   ~PyContext() {
-//     cleanup();
-//   }
+  ~PyMetadataEntries() {
+    cleanup();
+  }
 
+  LLVMValueMetadataEntries get() const {
+    return entries;
+  }
+
+  size_t getLen() const {
+    return len;
+  }
+
+  DEFINE_MOVE_SEMANTICS(PyMetadataEntries)
+
+  void move(PyMetadataEntries &&other) noexcept {
+    cleanup();
+    entries = std::exchange(other.entries, nullptr);
+  }
   
 
-// private:
-//   LLVMValueMetadataEntries entries;
+private:
+  LLVMValueMetadataEntries entries;
+  size_t len;
 
-//   void cleanup() {
-//     if (entries) {
-//       LLVMContextDispose(context);
-//       entries = nullptr;
-//     }
-//   }
-// }
+  void cleanup() {
+    if (entries) {
+      LLVMDisposeValueMetadataEntries(entries);
+      entries = nullptr;
+    }
+  }
+};
+
 
 
 class PyContext : public NonCopyable {
