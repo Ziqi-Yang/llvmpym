@@ -1,5 +1,8 @@
 # LLVMPY Meow!
 
+Note this project is still in very early stage, not even half complete. Engage in 
+this project means envolving in development.  
+
 ## Manual Build of LLVM
 
 1. Download llvm-project 18.1.8 release source code. [LLVM release page](https://releases.llvm.org/).
