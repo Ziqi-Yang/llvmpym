@@ -1595,6 +1595,15 @@ void bindValueClasses(nb::module_ &m) {
   // LLVMConstInlineAsm is deprecated in favor of LLVMGetInlineAsm
 
   GlobalValueClass
+      .def_prop_rw("alignment",
+                   [](PyGlobalValue &v) {
+                     return LLVMGetAlignment(v.get());
+                   },
+                   [](PyGlobalValue &v, unsigned Bytes) {
+                     return LLVMSetAlignment(v.get(), Bytes);
+                   },
+                   nb::for_setter
+                     (nb::sig("def alignment(self, bytes: int, /) -> None")))
       .def_prop_ro("parent",
                    [](PyGlobalValue &v) {
                      return PyModule(LLVMGetGlobalParent(v.get()));
@@ -1659,6 +1668,63 @@ void bindValueClasses(nb::module_ &m) {
                    "Returns the \"value type\" of a global value.  This differs "
                    "from the formal type of a global value which is always a pointer"
                    " type.");
+
+
+  AllocaInstClass
+      .def_prop_rw("alignment",
+                   [](PyAllocaInst &v) {
+                     return LLVMGetAlignment(v.get());
+                   },
+                   [](PyAllocaInst &v, unsigned Bytes) {
+                     return LLVMSetAlignment(v.get(), Bytes);
+                   },
+                   nb::for_setter
+                     (nb::sig("def alignment(self, bytes: int, /) -> None")));
+
+  LoadInstClass
+      .def_prop_rw("alignment",
+                   [](PyLoadInst &v) {
+                     return LLVMGetAlignment(v.get());
+                   },
+                   [](PyLoadInst &v, unsigned Bytes) {
+                     return LLVMSetAlignment(v.get(), Bytes);
+                   },
+                   nb::for_setter
+                     (nb::sig("def alignment(self, bytes: int, /) -> None")));
+
+  StoreInstClass
+      .def_prop_rw("alignment",
+                   [](PyStoreInst &v) {
+                     return LLVMGetAlignment(v.get());
+                   },
+                   [](PyStoreInst &v, unsigned Bytes) {
+                     return LLVMSetAlignment(v.get(), Bytes);
+                   },
+                   nb::for_setter
+                     (nb::sig("def alignment(self, bytes: int, /) -> None")));
+  
+  AtomicRMWInstClass
+      .def_prop_rw("alignment",
+                   [](PyAtomicRMWInst &v) {
+                     return LLVMGetAlignment(v.get());
+                   },
+                   [](PyAtomicRMWInst &v, unsigned Bytes) {
+                     return LLVMSetAlignment(v.get(), Bytes);
+                   },
+                   nb::for_setter
+                     (nb::sig("def alignment(self, bytes: int, /) -> None")));
+  
+  AtomicCmpXchgInstClass
+      .def_prop_rw("alignment",
+                   [](PyAtomicCmpXchgInst &v) {
+                     return LLVMGetAlignment(v.get());
+                   },
+                   [](PyAtomicCmpXchgInst &v, unsigned Bytes) {
+                     return LLVMSetAlignment(v.get(), Bytes);
+                   },
+                   nb::for_setter
+                     (nb::sig("def alignment(self, bytes: int, /) -> None")));
+
   
 }
 
