@@ -1181,6 +1181,66 @@ void bindValueClasses(nb::module_ &m) {
                    "Return the column number of the debug location for this value");
 
   GlobalVariableClass
+      .def_prop_rw("initializer",
+                   [](PyGlobalVariable &self) {
+                     return PyValueAuto(LLVMGetInitializer(self.get()));
+                   },
+                   [](PyGlobalVariable &self, PyConstant &c) {
+                     return LLVMSetInitializer(self.get(), c.get());
+                   },
+                   nb::for_setter(nb::sig("def initializer(self, value: Constant) -> None")))
+      .def_prop_rw("is_thread_local",
+                   [](PyGlobalVariable &self) {
+                     return LLVMIsThreadLocal(self.get()) != 0;
+                   },
+                   [](PyGlobalVariable &self, bool isThreadLocal) {
+                     return LLVMSetThreadLocal(self.get(), isThreadLocal);
+                   })
+      .def_prop_rw("is_global_constant",
+                   [](PyGlobalVariable &self) {
+                     return LLVMIsGlobalConstant(self.get()) != 0;
+                   },
+                   [](PyGlobalVariable &self, bool isConstant) {
+                     return LLVMSetGlobalConstant(self.get(), isConstant);
+                   },
+                   nb::for_setter
+                     (nb::sig
+                        ("def is_global_constant(self, is_constant: bool, /) -> None")))
+      .def_prop_rw("thread_local_mode",
+                   [](PyGlobalVariable &self) {
+                     return LLVMGetThreadLocalMode(self.get());
+                   },
+                   [](PyGlobalVariable &self, LLVMThreadLocalMode mode) {
+                     return LLVMSetThreadLocalMode(self.get(), mode);
+                   },
+                   nb::for_setter
+                     (nb::sig("def thread_local_mode(self, mode: ThreadLocalMode, /) "
+                              "-> None")))
+      .def_prop_rw("is_externally_initialized",
+                   [](PyGlobalVariable &self) {
+                     return LLVMIsExternallyInitialized(self.get()) != 0;
+                   },
+                   [](PyGlobalVariable &self, bool isExtInit) {
+                     return LLVMSetExternallyInitialized(self.get(), isExtInit);
+                   },
+                   nb::for_setter
+                     (nb::sig
+                        ("def is_externally_initialized(self, is_ext_init: bool, /)"
+                         " -> None")))
+      .def_prop_ro("next",
+                   [](PyGlobalVariable &v) -> std::optional<PyGlobalVariable> {
+                     auto res = LLVMGetNextGlobal(v.get());
+                     if (res)
+                       return PyGlobalVariable(res);
+                     return std::nullopt;
+                   })
+      .def_prop_ro("prev",
+                   [](PyGlobalVariable &v) -> std::optional<PyGlobalVariable> {
+                     auto res = LLVMGetPreviousGlobal(v.get());
+                     if (res)
+                       return PyGlobalVariable(res);
+                     return std::nullopt;
+                   })
       .def_prop_ro("debug_loc_directory",
                    [](PyGlobalVariable &v) {
                      unsigned len;
@@ -1197,7 +1257,40 @@ void bindValueClasses(nb::module_ &m) {
                    "Return the filename of the debug location for this value")
       .def_prop_ro("debug_loc_line",
                    [](PyGlobalVariable &v) { return LLVMGetDebugLocLine(v.get()); },
-                   "Return the line number of the debug location for this value");
+                   "Return the line number of the debug location for this value")
+      // TODO test + more suitable way? (python side also do `del v`?)
+      // but python pass variable by value...
+      .def("destory", 
+           [](PyGlobalVariable &self) {
+             return LLVMDeleteGlobal(self.get());
+           },
+           "Delete this variable. You are not supposed to use this variable later.");
+
+
+  
+  GlobalAliasClass
+      .def("next",
+           [](PyGlobalAlias &self) -> std::optional<PyGlobalAlias> {
+             auto res = LLVMGetNextGlobalAlias(self.get());
+             if (res)
+               return PyGlobalAlias(res);
+             return std::nullopt;
+           },
+           "Advance a GlobalAlias iterator to the next GlobalAlias.\n\n"
+           "Returns NULL if the iterator was already at the beginning and there are"
+           "no previous global aliases.")
+       .def("prev",
+            [](PyGlobalAlias &self) -> std::optional<PyGlobalAlias> {
+              auto res = LLVMGetPreviousGlobalAlias(self.get());
+              if (res)
+                return PyGlobalAlias(res);
+              return std::nullopt;
+            },
+            "Decrement a GlobalAlias iterator to the previous GlobalAlias.\n\n"
+            "Returns NULL if the iterator was already at the beginning and there are"
+            "no previous global aliases.");
+  
+  
 
   FunctionClass
       .def_prop_ro("next",
@@ -2019,6 +2112,18 @@ void bindOtherClasses(nb::module_ &m) {
       .def(nb::init<const std::string &>(), "id"_a)
       .def_prop_ro("first_global",
                    [](PyModule &m) { return PyValueAuto(LLVMGetFirstGlobal(m.get())); })
+      .def_prop_ro("last_global",
+                   [](PyModule &self) {
+                     return PyValueAuto(LLVMGetLastGlobal(self.get()));
+                   })
+      .def_prop_ro("first_global_alias",
+                   [](PyModule &self) {
+                     return PyValueAuto(LLVMGetFirstGlobalAlias(self.get()));
+                   })
+      .def_prop_ro("last_global_alias",
+                   [](PyModule &self) {
+                     return PyValueAuto(LLVMGetLastGlobalAlias(self.get()));
+                   })
       .def_prop_ro("first_named_metadata",
                    [](PyModule &m) {
                      return PyNamedMDNode(LLVMGetFirstNamedMetadata(m.get()));
@@ -2107,6 +2212,37 @@ void bindOtherClasses(nb::module_ &m) {
              return strCopy;
            },
            "Return a string representation of the module")
+      .def("add_alias",
+           [](PyModule &self, PyType &valueType, unsigned addrSpace, PyValue aliasee,
+              const char *name) {
+             return PyValueAuto(LLVMAddAlias2
+                                  (self.get(), valueType.get(), addrSpace,
+                                   aliasee.get(), name));
+           },
+           "value_type"_a, "addr_space"_a, "aliasee"_a, "name"_a,
+           "Add a GlobalAlias with the given value type, address space and aliasee.")
+      .def("get_named_global_alias",
+           [](PyModule &self, std::string &name) {
+             return PyValueAuto(LLVMGetNamedGlobalAlias
+                                  (self.get(), name.c_str(), name.size()));
+           },
+           "name"_a,
+           "Obtain a GlobalAlias value from by its name.")
+      .def("add_global",
+           [](PyModule &self, PyType &type, const char *name) {
+             return PyValueAuto(LLVMAddGlobal(self.get(), type.get(), name));
+           },
+           "type"_a, "name"_a)
+      .def("add_global_in_address_space",
+           [](PyModule &self, PyType &type, const char *name, unsigned addressSpace) {
+             return PyValueAuto(LLVMAddGlobalInAddressSpace
+                                  (self.get(), type.get(), name, addressSpace));
+           },
+           "type"_a, "name"_a, "address_space"_a)
+      .def("get_named_global",
+           [](PyModule &self, const char *name) {
+             return PyValueAuto(LLVMGetNamedGlobal(self.get(), name));
+           })
       .def("add_function",
            [](PyModule &m, std::string &name, PyTypeFunction &functionTy) {
              return PyFunction(LLVMAddFunction(m.get(), name.c_str(), functionTy.get()));
