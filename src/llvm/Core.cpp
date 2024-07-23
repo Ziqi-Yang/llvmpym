@@ -1592,11 +1592,80 @@ void bindValueClasses(nb::module_ &m) {
                   [](PyConstant &value, PyBasicBlockWrapper &bb) {
                     return PyValueAuto(LLVMBlockAddress(value.get(), bb.get()));
                   });
-       // LLVMConstInlineAsm is deprecated in favor of LLVMGetInlineAsm
+  // LLVMConstInlineAsm is deprecated in favor of LLVMGetInlineAsm
 
-
+  GlobalValueClass
+      .def_prop_ro("parent",
+                   [](PyGlobalValue &v) {
+                     return PyModule(LLVMGetGlobalParent(v.get()));
+                   })
+      .def_prop_ro("is_declaration",
+                   [](PyGlobalValue &v) {
+                     return LLVMIsDeclaration(v.get()) != 0;
+                   })
+      .def_prop_rw("linkage",
+                   [](PyGlobalValue &v) {
+                     return LLVMGetLinkage(v.get());
+                   },
+                   [](PyGlobalValue &v, LLVMLinkage linkage) {
+                     return LLVMSetLinkage(v.get(), linkage);
+                   },
+                   nb::for_setter
+                     (nb::sig("def linkage(self, linkage: Linkage, /) -> None")))
+      .def_prop_rw("section",
+                   [](PyGlobalValue &v) {
+                     return LLVMGetSection(v.get());
+                   },
+                   [](PyGlobalValue &v, const char *Section) {
+                     return LLVMSetSection(v.get(), Section);
+                   },
+                   nb::for_setter
+                     (nb::sig("def section(self, section: str, /) -> None")))
+      .def_prop_rw("visibility",
+                   [](PyGlobalValue &v) {
+                     return LLVMGetVisibility(v.get());
+                   },
+                   [](PyGlobalValue &v, LLVMVisibility visibility) {
+                     return LLVMSetVisibility(v.get(), visibility);
+                   },
+                   nb::for_setter
+                     (nb::sig
+                        ("def visibility(self, visibility: Visibility, /) -> None")))
+      .def_prop_rw("dll_storage_class",
+                   [](PyGlobalValue &v) {
+                     return LLVMGetDLLStorageClass(v.get());
+                   },
+                   [](PyGlobalValue &v, LLVMDLLStorageClass cls) {
+                     return LLVMSetDLLStorageClass(v.get(), cls);
+                   },
+                   nb::for_setter
+                     (nb::sig
+                        ("def dll_storage_class(self, class: DLLStorageClass, /) -> None")))
+      // LLVMHasUnnamedAddr is deprecated in favor of LLVMGetUnnamedAddress
+      // LLVMSetUnnamedAddr is deprecated in favor of LLVMSetUnnamedAddress
+      .def_prop_rw("unnamed_address",
+                   [](PyGlobalValue &v) {
+                     return LLVMGetUnnamedAddress(v.get());
+                   },
+                   [](PyGlobalValue &v, LLVMUnnamedAddr unnamedAddr) {
+                     return LLVMSetUnnamedAddress(v.get(), unnamedAddr);
+                   },
+                   nb::for_setter
+                     (nb::sig("def unnamed_address(self, addr: UnnamedAddr) -> None")))
+      .def_prop_ro("value_type",
+                   [](PyGlobalValue &v) {
+                     return PyTypeAuto(LLVMGlobalGetValueType(v.get()));
+                   },
+                   "Returns the \"value type\" of a global value.  This differs "
+                   "from the formal type of a global value which is always a pointer"
+                   " type.");
   
 }
+
+
+
+
+
 
 
 void bindOtherClasses(nb::module_ &m) {
@@ -2053,12 +2122,4 @@ void populateCore(nb::module_ &m) {
   bindTypeClasses(m);
   bindValueClasses(m);
   bindOtherClasses(m);
-
-
-
-
-
-
-
-  
 }

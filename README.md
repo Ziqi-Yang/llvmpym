@@ -1,6 +1,6 @@
 # LLVMPY Meow!
 
-Note this project is still in very early stage, not even half complete.   
+Note this project is still in the very early stage, not even half completed.   
 
 ## Manual Build of LLVM
 
