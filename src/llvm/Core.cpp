@@ -1269,7 +1269,7 @@ void bindValueClasses(nb::module_ &m) {
 
   
   GlobalAliasClass
-      .def("next",
+      .def_prop_ro("next",
            [](PyGlobalAlias &self) -> std::optional<PyGlobalAlias> {
              auto res = LLVMGetNextGlobalAlias(self.get());
              if (res)
@@ -1279,7 +1279,7 @@ void bindValueClasses(nb::module_ &m) {
            "Advance a GlobalAlias iterator to the next GlobalAlias.\n\n"
            "Returns NULL if the iterator was already at the beginning and there are"
            "no previous global aliases.")
-       .def("prev",
+       .def_prop_ro("prev",
             [](PyGlobalAlias &self) -> std::optional<PyGlobalAlias> {
               auto res = LLVMGetPreviousGlobalAlias(self.get());
               if (res)
@@ -1288,11 +1288,32 @@ void bindValueClasses(nb::module_ &m) {
             },
             "Decrement a GlobalAlias iterator to the previous GlobalAlias.\n\n"
             "Returns NULL if the iterator was already at the beginning and there are"
-            "no previous global aliases.");
-  
+            "no previous global aliases.")
+       .def_prop_rw("aliasee",
+                    [](PyGlobalAlias &self) {
+                      return PyValueAuto(LLVMAliasGetAliasee(self.get()));
+                    },
+                    [](PyGlobalAlias &self, PyValue &aliasee) {
+                      return LLVMAliasSetAliasee(self.get(), aliasee.get());
+                    });
   
 
   FunctionClass
+      .def_prop_ro("has_personality_fn",
+                   [](PyFunction &self) {
+                     return LLVMGetPersonalityFn(self.get()) != 0;
+                   })
+      .def_prop_rw("personality_fn",
+                   [](PyFunction &self) {
+                     return PyFunction(LLVMGetPersonalityFn(self.get()));
+                   },
+                   [](PyFunction &self, PyFunction fn) {
+                     return LLVMSetPersonalityFn(self.get(), fn.get());
+                   })
+      .def_prop_ro("intrinsic_id",
+                   [](PyFunction &self) {
+                     return LLVMGetIntrinsicID(self.get());
+                   })
       .def_prop_ro("next",
                    [](PyFunction &f) -> std::optional<PyFunction> {
                      auto res = LLVMGetNextFunction(f.get());
@@ -1329,7 +1350,13 @@ void bindValueClasses(nb::module_ &m) {
                    "Return the filename of the debug location for this value")
       .def_prop_ro("debug_loc_line",
                    [](PyFunction &f) { return LLVMGetDebugLocLine(f.get()); },
-                   "Return the line number of the debug location for this value");
+                   "Return the line number of the debug location for this value")
+      .def("destory", // TODO test
+           [](PyFunction &self) {
+             return LLVMDeleteFunction(self.get());
+           },
+           "Remove a function from its containing module and deletes it.\n\n"
+           "Note you shouldn't use the the variable afterwards!");
 
   UserClass
       .def("get_operand",
@@ -1892,6 +1919,65 @@ void bindOtherClasses(nb::module_ &m) {
   
   auto UseClass = nb::class_<PyUse>(m, "Use", "Use");
 
+  auto IntrinsicClass = nb::class_<PyIntrinsic>(m, "Intrinsic", "Intrinsic");
+
+  IntrinsicClass
+       .def_static("lookup",
+                    [](std::string &name) {
+                      return PyIntrinsic(LLVMLookupIntrinsicID(name.c_str(), name.size()));
+                    },
+                   "name"_a,
+                    "Obtain the intrinsic ID number which matches the given function name.")
+      .def("get_type",
+                  [](PyIntrinsic &self, PyContext &context, std::vector<PyType> paramTypes) {
+                    size_t paramCnt = paramTypes.size();
+                    UNWRAP_VECTOR_WRAPPER_CLASS(LLVMTypeRef, paramTypes, params, paramCnt);
+                    return PyTypeFunction(LLVMIntrinsicGetType
+                                            (context.get(), self.get(), params.data(),
+                                             paramCnt));
+
+                  },
+                  "context"_a, "param_types"_a,
+                  "Retrieves the type of an intrinsic.  For overloaded intrinsics,"
+                  " parameter types must be provided to uniquely identify an overload.")
+      .def_prop_ro("name",
+                   [](PyIntrinsic &self) {
+                    size_t len;
+                    auto name = LLVMIntrinsicGetName(self.get(), &len);
+                    return std::string(name, len);
+                   },
+                   "Retrieves the name of an intrinsic.")
+      .def_prop_ro("is_overloaded",
+                   [](PyIntrinsic &self) {
+                     return LLVMIntrinsicIsOverloaded(self.get()) != 0;
+                   })
+      // note LLVMIntrinsicCopyOverloadedName is deprecated
+      .def("copy_overloaded_name",
+                  [](PyIntrinsic &self, std::vector<PyType> paramTypes) {
+                    size_t paramCnt = paramTypes.size();
+                    UNWRAP_VECTOR_WRAPPER_CLASS(LLVMTypeRef, paramTypes, params, paramCnt);
+                    size_t nameLen;
+                    auto name = LLVMIntrinsicCopyOverloadedName
+                                  (self.get(), params.data(), paramCnt, &nameLen);
+                    return std::string(name, nameLen);
+                  },
+                  "param_types"_a,
+                  "Deprecated: Use :func:`copy_overloaded_name2` instead.")
+      .def("copy_overloaded_name2",
+                  [](PyIntrinsic &self, PyModule &module, std::vector<PyType> paramTypes) {
+                    size_t nameLen;
+                    size_t paramCnt = paramTypes.size();
+                    UNWRAP_VECTOR_WRAPPER_CLASS(LLVMTypeRef, paramTypes, params, paramCnt);
+                    auto name = LLVMIntrinsicCopyOverloadedName2
+                                  (module.get(), self.get(), params.data(), paramCnt, &nameLen);
+                    return std::string(name, nameLen);
+                  },
+                  "module"_a, "param_types"_a,
+                  "Copies the name of an overloaded intrinsic identified by a given"
+                  " list of parameter types.\n\n"
+                  "This version also supports unnamed types.");
+  
+
 
   MetadataEntriesClass
       .def("get_kind",
@@ -2212,6 +2298,16 @@ void bindOtherClasses(nb::module_ &m) {
              return strCopy;
            },
            "Return a string representation of the module")
+      .def("get_intrinsic_declaration",
+           [](PyModule &module, unsigned ID, std::vector<PyType> paramTypes) {
+             size_t paramCnt = paramTypes.size();
+             UNWRAP_VECTOR_WRAPPER_CLASS(LLVMTypeRef, paramTypes, params, paramCnt);
+             return PyFunction(LLVMGetIntrinsicDeclaration(module.get(), ID, params.data(),
+                                                           paramCnt));
+           },
+           "id"_a, "param_types"_a,
+           "Create or insert the declaration of an intrinsic.  For overloaded intrinsics,"
+           "parameter types must be provided to uniquely identify an overload.")
       .def("add_alias",
            [](PyModule &self, PyType &valueType, unsigned addrSpace, PyValue aliasee,
               const char *name) {
