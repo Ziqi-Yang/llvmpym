@@ -1112,7 +1112,15 @@ void bindValueClasses(nb::module_ &m) {
            "Dump a representation of a value to stderr.")
       .def("__str__",
            [](PyValue &v) { return std::string(LLVMPrintValueToString(v.get())); })
-  PY_FOR_EACH_VALUE_SUBCLASS(PY_DECLARE_VALUE_CAST);
+  PY_FOR_EACH_VALUE_SUBCLASS(PY_DECLARE_VALUE_CAST)
+      .def_prop_ro("is_basic_block",
+                   [](PyValue &self) {
+                     return LLVMValueIsBasicBlock(self.get()) != 0;
+                   })
+      .def_prop_ro("as_basic_block",
+                   [](PyValue &self) {
+                     return PyBasicBlockWrapper(LLVMValueAsBasicBlock(self.get()));
+                   });
 
 
   MDStringClass
@@ -1368,6 +1376,19 @@ void bindValueClasses(nb::module_ &m) {
                    },
                    [](PyFunction &self, const char *name) {
                      return LLVMSetGC(self.get(), name);
+                   })
+      .def_prop_ro("basic_block_num",
+                   [](PyFunction &self) {
+                     return LLVMCountBasicBlocks(self.get());
+                   })
+      .def_prop_ro("basic_blocks",
+                   [](PyFunction &self) {
+                     unsigned num = LLVMCountBasicBlocks(self.get());
+                     LLVMBasicBlockRef *BasicBlocks;
+                     LLVMGetBasicBlocks(self.get(), BasicBlocks);
+                     WRAP_VECTOR_FROM_DEST(PyBasicBlockWrapper, num,
+                                           res, BasicBlocks);
+                     return res;
                    })
       .def_prop_ro("has_personality_fn",
                    [](PyFunction &self) {
@@ -2082,6 +2103,31 @@ void bindOtherClasses(nb::module_ &m) {
   auto OperandBundleClass = nb::class_<PyOperandBundle>(m, "OperandBundle", "OperandBundle");
 
 
+  
+  BasicBlockWrapperClass
+      .def_prop_ro("name",
+                   [](PyBasicBlockWrapper &self) {
+                     return LLVMGetBasicBlockName(self.get());
+                   })
+      .def_prop_ro("parent",
+                   [](PyBasicBlockWrapper &self) {
+                     return PyFunction(LLVMGetBasicBlockParent(self.get()));
+                   },
+                   "Obtain the function to which a basic block belongs.")
+      .def_prop_ro("terminator",
+                   [](PyBasicBlockWrapper &self) -> optional<PyInstruction> {
+                     auto res = LLVMGetBasicBlockTerminator(self.get());
+                     WRAP_OPTIONAL_RETURN(res, PyInstruction);
+                   },
+                   "Obtain the terminator instruction for a basic block.\n\n"
+                   "If the basic block does not have a terminator (it is not well-formed"
+                   "if it doesn't), then NULL is returned.")
+      .def_prop_ro("value",
+                   [](PyBasicBlockWrapper &self) {
+                     return PyBasicBlock(LLVMBasicBlockAsValue(self.get()));
+                   });
+
+
   OperandBundleClass
       .def("__init__",
            [](PyOperandBundle *ob, std::string &tag, std::vector<PyValue> args) {
@@ -2090,6 +2136,20 @@ void bindOtherClasses(nb::module_ &m) {
              new (ob) PyOperandBundle(LLVMCreateOperandBundle
                                         (tag.c_str(), tag.size(), raw_args.data(),
                                          arg_num));
+           })
+      .def_prop_ro("tag",
+                   [](PyOperandBundle &self) {
+                     size_t len;
+                     auto tag = LLVMGetOperandBundleTag(self.get(), &len);
+                     return std::string(tag, len);
+                   })
+      .def_prop_ro("args_num",
+                   [](PyOperandBundle &self) {
+                     return LLVMGetNumOperandBundleArgs(self.get());
+                   })
+      .def("get_arg_at",
+           [](PyOperandBundle &self, unsigned index) {
+             return PyValueAuto(LLVMGetOperandBundleArgAtIndex(self.get(), index));
            });
 
     

@@ -119,6 +119,7 @@ protected:
            return Py##name(res); \
          return std::nullopt; \
        }, \
+       "Origin function: LLVMIsA" #name "\n\n" \
        "None means conversion failed.")
 
 // note AMDNode, ValueAsMetadata and AMDString are not there
