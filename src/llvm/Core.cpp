@@ -12,6 +12,8 @@
 namespace nb = nanobind;
 using namespace nb::literals;
 
+template <typename T>
+using optional = std::optional<T>;
 
 PyType* PyTypeAuto(LLVMTypeRef rawType) {
   LLVMTypeKind kind = LLVMGetTypeKind(rawType);
@@ -1123,6 +1125,38 @@ void bindValueClasses(nb::module_ &m) {
              WRAP_OPTIONAL_RETURN(res, PyAMDString);
            });
 
+  GlobalIFuncClass
+      .def_prop_ro("next",
+                   [](PyGlobalIFunc &self) -> optional<PyGlobalIFunc> {
+                     auto res = LLVMGetNextGlobalIFunc(self.get());
+                     WRAP_OPTIONAL_RETURN(res, PyGlobalIFunc);
+                   })
+      .def_prop_ro("prev",
+                   [](PyGlobalIFunc &self) -> optional<PyGlobalIFunc> {
+                     auto res = LLVMGetPreviousGlobalIFunc(self.get());
+                     WRAP_OPTIONAL_RETURN(res, PyGlobalIFunc);
+                   })
+      .def_prop_rw("resolver",
+                   [](PyGlobalIFunc &self) -> optional<PyConstant> {
+                     auto res = LLVMGetGlobalIFuncResolver(self.get());
+                     WRAP_OPTIONAL_RETURN(res, PyConstant);
+                   },
+                   [](PyGlobalIFunc &self, PyConstant resolver) {
+                     return LLVMSetGlobalIFuncResolver(self.get(), resolver.get());
+                   })
+      .def("destory", // TODO test
+           [](PyGlobalIFunc &self) {
+             return LLVMEraseGlobalIFunc(self.get());
+           },
+           "Remove a global indirect function from its parent module and delete it.\n\n"
+           "You shouldn't use it anymore after removal.")
+      .def("remove",
+           [](PyGlobalIFunc &self) {
+             return LLVMRemoveGlobalIFunc(self.get());
+           },
+           "Remove a global indirect function from its parent module.\n\n"
+           "This unlinks the global indirect function from its containing module but"
+           "keeps it alive.");
 
   InlineAsmClass
       .def_prop_ro("str",
@@ -2296,6 +2330,16 @@ void bindOtherClasses(nb::module_ &m) {
       .def_prop_ro("last_global",
                    [](PyModule &self) {
                      return PyValueAuto(LLVMGetLastGlobal(self.get()));
+                   })
+      .def_prop_ro("first_global_ifunc",
+                   [](PyModule &self) -> optional<PyGlobalIFunc> {
+                     auto res = LLVMGetFirstGlobalIFunc(self.get());
+                     WRAP_OPTIONAL_RETURN(res, PyGlobalIFunc);
+                   })
+      .def_prop_ro("last_global_ifunc",
+                   [](PyModule &self) -> optional<PyGlobalIFunc> {
+                     auto res = LLVMGetLastGlobalIFunc(self.get());
+                     WRAP_OPTIONAL_RETURN(res, PyGlobalIFunc);
                    })
       .def_prop_ro("first_global_alias",
                    [](PyModule &self) {
