@@ -1110,23 +1110,17 @@ void bindValueClasses(nb::module_ &m) {
       .def("to_AMDNode",
            [](PyValue &v) -> std::optional<PyAMDNode> {
              auto res = LLVMIsAMDNode(v.get());
-             if (res)
-               return PyAMDNode(res);
-             return std::nullopt;
+             WRAP_OPTIONAL_RETURN(res, PyAMDNode);
            })
       .def("to_ValueAsMetadata",
            [](PyValue &v) -> std::optional<PyValueAsMetadata> {
              auto res = LLVMIsAMDNode(v.get());
-             if (res)
-               return PyValueAsMetadata(res);
-             return std::nullopt;
+             WRAP_OPTIONAL_RETURN(res, PyValueAsMetadata);
            })
       .def("to_AMDString",
            [](PyValue &v) -> std::optional<PyAMDString> {
              auto res = LLVMIsAMDString(v.get());
-             if (res)
-               return PyAMDString(res);
-             return std::nullopt;
+             WRAP_OPTIONAL_RETURN(res, PyAMDString);
            });
 
 
@@ -1242,16 +1236,12 @@ void bindValueClasses(nb::module_ &m) {
       .def_prop_ro("next",
                    [](PyGlobalVariable &v) -> std::optional<PyGlobalVariable> {
                      auto res = LLVMGetNextGlobal(v.get());
-                     if (res)
-                       return PyGlobalVariable(res);
-                     return std::nullopt;
+                     WRAP_OPTIONAL_RETURN(res, PyGlobalVariable);
                    })
       .def_prop_ro("prev",
                    [](PyGlobalVariable &v) -> std::optional<PyGlobalVariable> {
                      auto res = LLVMGetPreviousGlobal(v.get());
-                     if (res)
-                       return PyGlobalVariable(res);
-                     return std::nullopt;
+                     WRAP_OPTIONAL_RETURN(res, PyGlobalVariable);
                    })
       .def_prop_ro("debug_loc_directory",
                    [](PyGlobalVariable &v) {
@@ -1284,9 +1274,7 @@ void bindValueClasses(nb::module_ &m) {
       .def_prop_ro("next",
            [](PyGlobalAlias &self) -> std::optional<PyGlobalAlias> {
              auto res = LLVMGetNextGlobalAlias(self.get());
-             if (res)
-               return PyGlobalAlias(res);
-             return std::nullopt;
+             WRAP_OPTIONAL_RETURN(res, PyGlobalAlias);
            },
            "Advance a GlobalAlias iterator to the next GlobalAlias.\n\n"
            "Returns NULL if the iterator was already at the beginning and there are"
@@ -1294,9 +1282,7 @@ void bindValueClasses(nb::module_ &m) {
        .def_prop_ro("prev",
             [](PyGlobalAlias &self) -> std::optional<PyGlobalAlias> {
               auto res = LLVMGetPreviousGlobalAlias(self.get());
-              if (res)
-                return PyGlobalAlias(res);
-              return std::nullopt;
+              WRAP_OPTIONAL_RETURN(res, PyGlobalAlias);
             },
             "Decrement a GlobalAlias iterator to the previous GlobalAlias.\n\n"
             "Returns NULL if the iterator was already at the beginning and there are"
@@ -1343,9 +1329,7 @@ void bindValueClasses(nb::module_ &m) {
       .def_prop_ro("next",
                    [](PyFunction &f) -> std::optional<PyFunction> {
                      auto res = LLVMGetNextFunction(f.get());
-                     if (res != nullptr)
-                       return PyFunction(res);
-                     return std::nullopt;
+                     WRAP_OPTIONAL_RETURN(res, PyFunction);
                    },
                    "Advance a Function iterator to the next Function.\n\n"
                    "Returns NULL if the iterator was already at the end and there are no more"
@@ -1353,9 +1337,7 @@ void bindValueClasses(nb::module_ &m) {
       .def_prop_ro("previous",
                    [](PyFunction &f) -> std::optional<PyFunction> {
                      auto res = LLVMGetPreviousFunction(f.get());
-                     if (res != nullptr)
-                       return PyFunction(res);
-                     return std::nullopt;
+                     WRAP_OPTIONAL_RETURN(res, PyFunction);
                    },
                    "Decrement a Function iterator to the previous Function.\n\n"
                    "Returns NULL if the iterator was already at the beginning and there are"
@@ -1393,16 +1375,12 @@ void bindValueClasses(nb::module_ &m) {
       .def_prop_ro("first_param",
                    [](PyFunction &self) -> std::optional<PyArgument> {
                      auto res = LLVMGetFirstParam(self.get());
-                     if (res)
-                       return PyArgument(res);
-                     return std::nullopt;
+                     WRAP_OPTIONAL_RETURN(res, PyArgument);
                    })
       .def_prop_ro("last_param",
                    [](PyFunction &self) -> std::optional<PyArgument> {
                      auto res = LLVMGetLastParam(self.get());
-                     if (res)
-                       return PyArgument(res);
-                     return std::nullopt;
+                     WRAP_OPTIONAL_RETURN(res, PyArgument);
                    })
       .def("get_param",
            [](PyFunction &self, unsigned index) {
@@ -1474,16 +1452,12 @@ void bindValueClasses(nb::module_ &m) {
       .def_prop_ro("next",
                    [](PyArgument &self) -> std::optional<PyArgument> {
                      auto res = LLVMGetNextParam(self.get());
-                     if (res)
-                       return PyArgument(res);
-                     return std::nullopt;
+                     WRAP_OPTIONAL_RETURN(res, PyArgument);
                    })
       .def_prop_ro("prev",
                    [](PyArgument &self) -> std::optional<PyArgument> {
                      auto res = LLVMGetPreviousParam(self.get());
-                     if (res)
-                       return PyArgument(res);
-                     return std::nullopt;
+                     WRAP_OPTIONAL_RETURN(res, PyArgument);
                    })
       .def("set_alignment",
            [](PyArgument &self, unsigned Align) {
@@ -1666,9 +1640,7 @@ void bindValueClasses(nb::module_ &m) {
       .def("get_element_at",
            [](PyConstantStruct &c, unsigned idx) -> std::optional<PyValue*>{
              auto res = LLVMGetAggregateElement(c.get(), idx);
-             if (res)
-               return PyValueAuto(res);
-             return std::nullopt;
+             WRAP_OPTIONAL_RETURN(res, PyValueAuto);
            },
            "index"_a,
            "Returns null if the index is out of range, or it's not possible to "
@@ -1691,9 +1663,7 @@ void bindValueClasses(nb::module_ &m) {
        .def("get_element_at",
             [](PyConstantArray &c, unsigned idx) -> std::optional<PyValue*>{
               auto res = LLVMGetAggregateElement(c.get(), idx);
-              if (res)
-                return PyValueAuto(res);
-              return std::nullopt;
+              WRAP_OPTIONAL_RETURN(res, PyValueAuto);
             },
             "index"_a,
             "Returns null if the index is out of range, or it's not possible to "
@@ -1711,9 +1681,7 @@ void bindValueClasses(nb::module_ &m) {
       .def("get_element_at",
            [](PyConstantVector &c, unsigned idx) -> std::optional<PyValue*>{
              auto res = LLVMGetAggregateElement(c.get(), idx);
-             if (res)
-               return PyValueAuto(res);
-             return std::nullopt;
+             WRAP_OPTIONAL_RETURN(res, PyValueAuto);
            },
            "index"_a,
            "Returns null if the index is out of range, or it's not possible to "
@@ -2131,9 +2099,7 @@ void bindOtherClasses(nb::module_ &m) {
       .def_prop_ro("next",
                    [](PyUse &u) -> std::optional<PyUse> {
                      auto res = LLVMGetNextUse(u.get());
-                     if (res)
-                       return PyUse(res);
-                     return std::nullopt;
+                     WRAP_OPTIONAL_RETURN(res, PyUse);
                    },
                    "Obtain the next use of a value.\n\n"
                    "This effectively advances the iterator. It returns NULL if you are on"
@@ -2231,9 +2197,7 @@ void bindOtherClasses(nb::module_ &m) {
       .def_prop_ro("next",
                    [](PyNamedMDNode &nmdn) -> std::optional<PyNamedMDNode>{
                      auto res = LLVMGetNextNamedMetadata(nmdn.get());
-                     if (res != nullptr) 
-                       return PyNamedMDNode(res);
-                     return std::nullopt;
+                     WRAP_OPTIONAL_RETURN(res, PyNamedMDNode);
                    },
                    "Advance a NamedMDNode iterator to the next NamedMDNode.\n\n"
                    "Returns NULL if the iterator was already at the end and there"
@@ -2241,9 +2205,7 @@ void bindOtherClasses(nb::module_ &m) {
       .def_prop_ro("prev",
                    [](PyNamedMDNode &nmdn) -> std::optional<PyNamedMDNode> {
                      auto res = LLVMGetPreviousNamedMetadata(nmdn.get());
-                     if (res != nullptr)
-                       return PyNamedMDNode(res);
-                     return std::nullopt;
+                     WRAP_OPTIONAL_RETURN(res, PyNamedMDNode);
                    },
                    "Decrement a NamedMDNode iterator to the previous NamedMDNode.\n\n"
                    "Returns NULL if the iterator was already at the beginning and there are"
@@ -2472,6 +2434,19 @@ void bindOtherClasses(nb::module_ &m) {
            [](PyModule &self, const char *name) {
              return PyValueAuto(LLVMGetNamedGlobal(self.get(), name));
            })
+      .def("add_global_indirect_func",
+           [](PyModule &self, std::string &name, PyType &type, unsigned addrSpace,
+              PyConstant resolver) {
+             return PyGlobalIFunc(LLVMAddGlobalIFunc
+                                    (self.get(), name.c_str(), name.size(), type.get(),
+                                     addrSpace, resolver.get()));
+           },
+           "name"_a, "type"_a, "addr_space"_a, "resolver"_a)
+      .def("get_named_global_ifunc",
+           [](PyModule &self, std::string &name) -> std::optional<PyGlobalIFunc> {
+             auto res = LLVMGetNamedGlobalIFunc(self.get(), name.c_str(), name.size());
+             WRAP_OPTIONAL_RETURN(res, PyGlobalIFunc);
+           })
       .def("add_function",
            [](PyModule &m, std::string &name, PyTypeFunction &functionTy) {
              return PyFunction(LLVMAddFunction(m.get(), name.c_str(), functionTy.get()));
@@ -2485,9 +2460,7 @@ void bindOtherClasses(nb::module_ &m) {
       .def("get_named_metadata",
            [](PyModule &m, std::string &name) -> std::optional<PyNamedMDNode> {
              auto res = LLVMGetNamedMetadata(m.get(), name.c_str(), name.size());
-             if (res != nullptr)
-               return PyNamedMDNode(res);
-             return std::nullopt;
+             WRAP_OPTIONAL_RETURN(res, PyNamedMDNode);
            }, "name"_a,
            "Retrieve a NamedMDNode with the given name, returning NULL if no such"
            "node exists.")

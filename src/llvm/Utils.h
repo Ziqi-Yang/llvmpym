@@ -27,4 +27,9 @@
   }
 
 
+#define WRAP_OPTIONAL_RETURN(VAR, FUNC) \
+  if (VAR) \
+    return FUNC(VAR); \
+  return std::nullopt;
+
 #endif
