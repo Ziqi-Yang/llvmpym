@@ -1182,7 +1182,7 @@ void bindValueClasses(nb::module_ &m) {
            },
            "Remove a global indirect function from its parent module and delete it.\n\n"
            "You shouldn't use it anymore after removal.")
-      .def("remove",
+      .def("remove_from_parent",
            [](PyGlobalIFunc &self) {
              return LLVMRemoveGlobalIFunc(self.get());
            },
@@ -1497,7 +1497,13 @@ void bindValueClasses(nb::module_ &m) {
            [](PyFunction &self, PyBasicBlockWrapper bb) {
              return LLVMAppendExistingBasicBlock(self.get(), bb.get());
            },
-           "basic_block")
+           "basic_block"_a)
+      .def("append_basic_block",
+           [](PyFunction &self, const char *name) {
+             return PyBasicBlockWrapper(LLVMAppendBasicBlock(self.get(), name));
+           },
+           "name"_a,
+           "Append a basic block to the end of a function using the global context.")
       .def("get_attribute_count_at_index",
            [](PyFunction &self, LLVMAttributeIndex idx) {
              return LLVMGetAttributeCountAtIndex(self.get(), idx);
@@ -2166,7 +2172,46 @@ void bindOtherClasses(nb::module_ &m) {
                    [](PyBasicBlockWrapper &self) -> optional<PyBasicBlockWrapper> {
                      auto res = LLVMGetPreviousBasicBlock(self.get());
                      WRAP_OPTIONAL_RETURN(res, PyBasicBlockWrapper);
-                   });
+                   })
+      .def_prop_ro("first_instruction",
+                   [](PyBasicBlockWrapper &self) {
+                     return PyInstruction(LLVMGetFirstInstruction(self.get()));
+                   })
+      .def_prop_ro("last_instruction",
+                   [](PyBasicBlockWrapper &self) {
+                     return PyInstruction(LLVMGetLastInstruction(self.get()));
+                   })
+      .def("create_and_insert_before",
+           [](PyBasicBlockWrapper &self, const char *name) {
+             return PyBasicBlockWrapper(LLVMInsertBasicBlock(self.get(), name));
+           },
+           "Insert a basic block in a function using the global context.")
+      .def("destroy", // TODO test
+           [](PyBasicBlockWrapper &self) {
+             return LLVMDeleteBasicBlock(self.get());
+           },
+           "Remove a basic block from a function and delete it.\n\n"
+           "This deletes the basic block from its containing function and deletes"
+           "the basic block itself.")
+      .def("remove_from_parent",
+           [](PyBasicBlockWrapper &self) {
+             return LLVMRemoveBasicBlockFromParent(self.get());
+           },
+           "Remove a basic block from a function.\n\n"
+           "This deletes the basic block from its containing function but keep"
+           "the basic block alive.")
+      .def("move_before",
+           [](PyBasicBlockWrapper &self, PyBasicBlockWrapper posBB) {
+             return LLVMMoveBasicBlockBefore(self.get(), posBB.get());
+           },
+           "pos"_a,
+           "Move a basic block to before another one.")
+      .def("move_after",
+           [](PyBasicBlockWrapper &self, PyBasicBlockWrapper posBB) {
+             return LLVMMoveBasicBlockAfter(self.get(), posBB.get());
+           },
+           "pos",
+           "Move a basic block to after another one.");
 
 
   OperandBundleClass
@@ -2438,7 +2483,24 @@ void bindOtherClasses(nb::module_ &m) {
              return PyBasicBlockWrapper(LLVMCreateBasicBlockInContext
                                           (self.get(), name));
            },
-           "name"_a)
+           "name"_a,
+           "Create a new basic block without inserting it into a function.")
+      .def("append_basic_block",
+           [](PyContext &self, PyFunction fn, const char *name) {
+             return PyBasicBlockWrapper(LLVMAppendBasicBlockInContext
+                                          (self.get(), fn.get(), name));
+           },
+           "fn"_a, "name"_a,
+           "Append a basic block to the end of a function.")
+      .def("insert_basic_block",
+           [](PyContext &self, PyBasicBlockWrapper bb, const char *name) {
+             return PyBasicBlockWrapper(LLVMInsertBasicBlockInContext
+                                          (self.get(), bb.get(), name));
+           },
+           "bb"_a, "name"_a,
+           "Insert a basic block in a function before another basic block.\n\n"
+           "The function to add to is determined by the function of the"
+           "passed basic block.")
       .def("get_md_kind_id",
            [](PyContext &c, const std::string &name) {
              return LLVMGetMDKindIDInContext(c.get(), name.c_str(), name.size());
