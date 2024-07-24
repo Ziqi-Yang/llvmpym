@@ -123,6 +123,18 @@ PyValue* PyValueAuto(LLVMValueRef rawValue) {
   }
 }
 
+PyAttribute* PyAttributeAuto(LLVMAttributeRef rawValue) {
+  if (LLVMIsEnumAttribute(rawValue)) {
+    return new PyEnumAttribute(rawValue);
+  } else if (LLVMIsStringAttribute(rawValue)) {
+    return new PyStringAttribute(rawValue);
+  } else if (LLVMIsTypeAttribute(rawValue)) {
+    return new PyTypeAttribute(rawValue);
+  } else {
+    return new PyAttribute(rawValue);
+  }
+}
+
 
 
 void bindEnums(nb::module_ &m) {
@@ -1299,6 +1311,20 @@ void bindValueClasses(nb::module_ &m) {
   
 
   FunctionClass
+      .def_prop_rw("call_conv",
+                   [](PyFunction &self){
+                     return LLVMGetFunctionCallConv(self.get());
+                   },
+                   [](PyFunction &self, unsigned CC) {
+                     return LLVMSetFunctionCallConv(self.get(), CC);
+                   })
+      .def_prop_rw("gc",
+                   [](PyFunction &self) {
+                     return LLVMGetGC(self.get());
+                   },
+                   [](PyFunction &self, const char *name) {
+                     return LLVMSetGC(self.get(), name);
+                   })
       .def_prop_ro("has_personality_fn",
                    [](PyFunction &self) {
                      return LLVMGetPersonalityFn(self.get()) != 0;
@@ -1351,12 +1377,119 @@ void bindValueClasses(nb::module_ &m) {
       .def_prop_ro("debug_loc_line",
                    [](PyFunction &f) { return LLVMGetDebugLocLine(f.get()); },
                    "Return the line number of the debug location for this value")
+      .def_prop_ro("param_num",
+                   [](PyFunction &self) {
+                     return LLVMCountParams(self.get());
+                   })
+      .def_prop_ro("params",
+                   [](PyFunction &self) {
+                     unsigned param_num = LLVMCountParams(self.get());
+                     LLVMValueRef *params;
+                     LLVMGetParams(self.get(), params);
+                     WRAP_VECTOR_FROM_DEST(PyArgument, param_num, res, params);
+                     return res;
+                   })
+      // TODO add LLVMGetParamParent binding
+      .def_prop_ro("first_param",
+                   [](PyFunction &self) -> std::optional<PyArgument> {
+                     auto res = LLVMGetFirstParam(self.get());
+                     if (res)
+                       return PyArgument(res);
+                     return std::nullopt;
+                   })
+      .def_prop_ro("last_param",
+                   [](PyFunction &self) -> std::optional<PyArgument> {
+                     auto res = LLVMGetLastParam(self.get());
+                     if (res)
+                       return PyArgument(res);
+                     return std::nullopt;
+                   })
+      .def("get_param",
+           [](PyFunction &self, unsigned index) {
+             return PyArgument(LLVMGetParam(self.get(), index));
+           },
+           "index"_a,
+           "Obtain the parameter at the specified index.\n\n"
+           "Parameters are indexed from 0.")
       .def("destory", // TODO test
            [](PyFunction &self) {
              return LLVMDeleteFunction(self.get());
            },
            "Remove a function from its containing module and deletes it.\n\n"
-           "Note you shouldn't use the the variable afterwards!");
+           "Note you shouldn't use the the variable afterwards!")
+      .def("add_attribute_at_index",
+           [](PyFunction &self, LLVMAttributeIndex idx, PyAttribute attr) {
+             return LLVMAddAttributeAtIndex(self.get(), idx, attr.get());
+           },
+           "index"_a, "attr"_a)
+      .def("get_attribute_count_at_index",
+           [](PyFunction &self, LLVMAttributeIndex idx) {
+             return LLVMGetAttributeCountAtIndex(self.get(), idx);
+           },
+           "index"_a)
+      .def("get_attributes_at_index",
+           [](PyFunction &self, LLVMAttributeIndex idx) {
+             unsigned cnt = LLVMGetAttributeCountAtIndex(self.get(), idx);
+             LLVMAttributeRef *attrs;
+             LLVMGetAttributesAtIndex(self.get(), idx, attrs);
+             WRAP_VECTOR_FROM_DEST_AUTO(PyAttribute, cnt, res, attrs);
+             return res;
+           },
+           "index"_a)
+      .def("get_enum_attribute_at_index",
+           [](PyFunction &self, LLVMAttributeIndex idx, unsigned kindID) {
+             return PyEnumAttribute(LLVMGetEnumAttributeAtIndex(self.get(), idx, kindID));
+           },
+           "index"_a, "kind"_a)
+      .def("get_string_attribute_at_index",
+           [](PyFunction &self, LLVMAttributeIndex idx, std::string &kind) {
+             return PyStringAttribute(LLVMGetStringAttributeAtIndex
+                         (self.get(), idx, kind.c_str(), kind.size()));
+           },
+           "index"_a, "kind"_a)
+      .def("remove_enum_attribute_at_index",
+           [](PyFunction &self, LLVMAttributeIndex idx, unsigned kindID) {
+             return LLVMRemoveEnumAttributeAtIndex(self.get(), idx, kindID);
+           },
+           "index"_a, "kind"_a)
+      .def("remove_string_attribute_at_index",
+           [](PyFunction &self, LLVMAttributeIndex idx, std::string &kind) {
+             return LLVMRemoveStringAttributeAtIndex
+                      (self.get(), idx, kind.c_str(), kind.size());
+           },
+           "index"_a, "kind"_a)
+      .def("add_target_dependent_attr",
+           [](PyFunction &self, const char *A, const char *V) {
+             return LLVMAddTargetDependentFunctionAttr(self.get(), A, V);
+           },
+           "A"_a, "V"_a,
+           "Add a target-dependent attribute to a function");
+
+  ArgumentClass
+      .def_prop_ro("parent",
+                   [](PyArgument &self) {
+                     return PyFunction(LLVMGetParamParent(self.get()));
+                   },
+                   "Obtain the function to which this argument belongs.")
+      .def_prop_ro("next",
+                   [](PyArgument &self) -> std::optional<PyArgument> {
+                     auto res = LLVMGetNextParam(self.get());
+                     if (res)
+                       return PyArgument(res);
+                     return std::nullopt;
+                   })
+      .def_prop_ro("prev",
+                   [](PyArgument &self) -> std::optional<PyArgument> {
+                     auto res = LLVMGetPreviousParam(self.get());
+                     if (res)
+                       return PyArgument(res);
+                     return std::nullopt;
+                   })
+      .def("set_alignment",
+           [](PyArgument &self, unsigned Align) {
+             return LLVMSetParamAlignment(self.get(), Align);
+           });
+
 
   UserClass
       .def("get_operand",
@@ -2376,7 +2509,7 @@ void bindOtherClasses(nb::module_ &m) {
              int num = LLVMGetNamedMetadataNumOperands(m.get(), name.c_str());
              LLVMValueRef *dest;
              LLVMGetNamedMetadataOperands(m.get(), name.c_str(), dest);
-             WRAP_VECTOR_FROM_DEST(PyValue, num, res, dest);
+             WRAP_VECTOR_FROM_DEST_AUTO(PyValue, num, res, dest);
              return res;
            }, "name"_a,
            "Obtain the named metadata operands for a module.\n\n"
