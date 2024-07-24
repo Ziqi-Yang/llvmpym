@@ -980,10 +980,10 @@ void bindValueClasses(nb::module_ &m) {
   auto ValueClass = nb::class_<PyValue>(m, "Value", "Value");
 
   // my custom addition
-  auto AMDNodeClass = nb::class_<PyAMDNode, PyValue>(m, "AMDNode", "AMDNode");
+  auto MDNodeClass = nb::class_<PyMDNode, PyValue>(m, "MDNode", "MDNode");
   auto ValueAsMetadataClass = nb::class_<PyValueAsMetadata, PyValue>
                                 (m, "ValueAsMetadata", "ValueAsMetadata");
-  auto AMDStringClass = nb::class_<PyAMDString, PyValue>(m, "AMDString", "AMDString");
+  auto MDStringClass = nb::class_<PyMDString, PyValue>(m, "MDString", "MDString");
 
   
   // classes as specified in LLVM_FOR_EACH_VALUE_SUBCLASS
@@ -1103,27 +1103,51 @@ void bindValueClasses(nb::module_ &m) {
                    [](PyValue &v) { return LLVMIsPoison(v.get()) != 0;})
       .def_prop_ro("first_use",
                    [](PyValue &v) { return PyUse(LLVMGetFirstUse(v.get())); })
+      .def("as_metadata",
+           [](PyValue &self) {
+             return PyMetadata(LLVMValueAsMetadata(self.get()));
+           })
       .def("dump",
            [](PyValue &v) { return LLVMDumpValue(v.get()); },
            "Dump a representation of a value to stderr.")
       .def("__str__",
            [](PyValue &v) { return std::string(LLVMPrintValueToString(v.get())); })
-  PY_FOR_EACH_VALUE_SUBCLASS(PY_DECLARE_VALUE_CAST)
-      .def("to_AMDNode",
-           [](PyValue &v) -> std::optional<PyAMDNode> {
-             auto res = LLVMIsAMDNode(v.get());
-             WRAP_OPTIONAL_RETURN(res, PyAMDNode);
+  PY_FOR_EACH_VALUE_SUBCLASS(PY_DECLARE_VALUE_CAST);
+
+
+  MDStringClass
+      .def_prop_ro("raw_string",
+                   [](PyMDString &v) {
+                     unsigned len;
+                     auto str = LLVMGetMDString(v.get(), &len);
+                     return std::string(str, len);
+                   },
+                   "Obtain the underlying string from a MDString value.");
+
+  MDNodeClass
+      // deprecated functions not binded:
+      // LLVMMDStringInContext, LLVMMDString, LLVMMDNodeInContext, LLVMMDNode
+      .def_prop_ro("num_operands",
+           [](PyMDNode &self) {
+             return LLVMGetMDNodeNumOperands(self.get());
            })
-      .def("to_ValueAsMetadata",
-           [](PyValue &v) -> std::optional<PyValueAsMetadata> {
-             auto res = LLVMIsAMDNode(v.get());
-             WRAP_OPTIONAL_RETURN(res, PyValueAsMetadata);
-           })
-      .def("to_AMDString",
-           [](PyValue &v) -> std::optional<PyAMDString> {
-             auto res = LLVMIsAMDString(v.get());
-             WRAP_OPTIONAL_RETURN(res, PyAMDString);
-           });
+      .def_prop_ro("operands",
+                   [](PyMDNode &self) {
+                     unsigned num = LLVMGetMDNodeNumOperands(self.get());
+                     LLVMValueRef *dest;
+                     LLVMGetMDNodeOperands(self.get(), dest);
+                     WRAP_VECTOR_FROM_DEST_AUTO(PyValue, num, res, dest);
+                     return res;
+                   },
+                   "Obtain the given MDNode's operands.")
+      .def_prop_ro("replace_operand_with",
+                   [](PyMDNode &self, unsigned index, PyMetadata &replacement) {
+                     return LLVMReplaceMDNodeOperandWith
+                              (self.get(), index, replacement.get());
+                   },
+                   "Replace an operand at a specific index in a llvm::MDNode value.");
+
+  
 
   GlobalIFuncClass
       .def_prop_ro("next",
@@ -2055,6 +2079,20 @@ void bindOtherClasses(nb::module_ &m) {
   auto UseClass = nb::class_<PyUse>(m, "Use", "Use");
 
   auto IntrinsicClass = nb::class_<PyIntrinsic>(m, "Intrinsic", "Intrinsic");
+  auto OperandBundleClass = nb::class_<PyOperandBundle>(m, "OperandBundle", "OperandBundle");
+
+
+  OperandBundleClass
+      .def("__init__",
+           [](PyOperandBundle *ob, std::string &tag, std::vector<PyValue> args) {
+             unsigned arg_num = args.size();
+             UNWRAP_VECTOR_WRAPPER_CLASS(LLVMValueRef, args, raw_args, arg_num);
+             new (ob) PyOperandBundle(LLVMCreateOperandBundle
+                                        (tag.c_str(), tag.size(), raw_args.data(),
+                                         arg_num));
+           });
+
+    
 
   IntrinsicClass
        .def_static("lookup",
@@ -2316,8 +2354,25 @@ void bindOtherClasses(nb::module_ &m) {
              return PyStringAttribute(raw);
            })
       .def("get_type_by_name_2", // TODO also create one in PyType static method
-           [](PyContext &c, const std::string &name) {
+           [](PyContext &c, std::string &name) {
              return PyTypeAuto(LLVMGetTypeByName2(c.get(), name.c_str()));
+           })
+      .def("create_md_string_2",
+           [](PyContext &self, std::string &name) {
+             return PyMetadata(LLVMMDStringInContext2(self.get(), name.c_str(), name.size()));
+           },
+           "name"_a,
+           "Create an MDString value from a given string value.")
+      .def("create_md_node_2",
+           [](PyContext &self, std::vector<PyMetadata> mds) {
+             size_t num = mds.size();
+             UNWRAP_VECTOR_WRAPPER_CLASS(LLVMMetadataRef, mds, raw, num);
+             return PyMetadata(LLVMMDNodeInContext2(self.get(), raw.data(), num));
+           },
+           "metadata"_a)
+      .def("get_metadata_as_value",
+           [](PyContext &self, PyMetadata &md) {
+             return PyValueAuto(LLVMMetadataAsValue(self.get(), md.get()));
            });
 
 

@@ -125,6 +125,9 @@ protected:
 // since it provides `LLVMIsAMDNode` function rather than `LLVMIsAAMDNode` function...
 // (they are also not in LLVM_FOR_EACH_VALUE_SUBCLASS)
 #define PY_FOR_EACH_VALUE_SUBCLASS(macro) \
+  macro(MDNode) \
+  macro(ValueAsMetadata) \
+  macro(MDString) \
   macro(Argument)                           \
   macro(BasicBlock)                         \
   macro(InlineAsm)                          \
@@ -216,9 +219,9 @@ protected:
 
 // my addition: the first 3
 #define PY_FOR_EACH_VALUE_CLASS_RELATIONSHIP(macro) \
-  macro(PyValue, PyAMDNode) \
+  macro(PyValue, PyMDNode) \
   macro(PyValue, PyValueAsMetadata) \
-  macro(PyValue, PyAMDString) \
+  macro(PyValue, PyMDString) \
   macro(PyValue, PyArgument)                           \
   macro(PyValue, PyBasicBlock)                         \
   macro(PyValue, PyInlineAsm)                          \
@@ -363,6 +366,40 @@ PY_FOR_EACH_TYPE_CLASS_RELASIONSHIP(DEFINE_DIRECT_SUB_CLASS)
 DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyIntrinsic, unsigned, id)
 
 
+class PyOperandBundle : public NonCopyable {
+public:
+  explicit PyOperandBundle(LLVMOperandBundleRef bundle) : bundle(bundle) {}
+  
+  ~PyOperandBundle() {
+    cleanup();
+  }
+
+  LLVMOperandBundleRef get() const {
+    return bundle;
+  }
+
+  DEFINE_MOVE_SEMANTICS(PyOperandBundle)
+
+  void move(PyOperandBundle &&other) noexcept {
+    cleanup();
+    bundle = std::exchange(other.bundle, nullptr);
+  }
+  
+
+private:
+  LLVMOperandBundleRef bundle;
+
+  void cleanup() {
+    if (bundle) {
+      LLVMDisposeOperandBundle(bundle);
+      bundle = nullptr;
+    }
+  }
+};
+
+
+
+
 typedef LLVMModuleFlagEntry *LLVMModuleFlagEntries;
 
 class PyModuleFlagEntries : public NonCopyable {
@@ -387,6 +424,7 @@ public:
   void move(PyModuleFlagEntries &&other) noexcept {
     cleanup();
     entries = std::exchange(other.entries, nullptr);
+    len = std::exchange(other.len, 0);
   }
   
 
@@ -427,6 +465,7 @@ public:
   void move(PyMetadataEntries &&other) noexcept {
     cleanup();
     entries = std::exchange(other.entries, nullptr);
+    len = std::exchange(other.len, 0);
   }
   
 
