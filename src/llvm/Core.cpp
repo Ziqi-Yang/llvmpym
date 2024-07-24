@@ -1390,6 +1390,20 @@ void bindValueClasses(nb::module_ &m) {
                                            res, BasicBlocks);
                      return res;
                    })
+      .def_prop_ro("first_basic_block",
+                   [](PyFunction &self) -> optional<PyBasicBlockWrapper> {
+                     auto res =  LLVMGetFirstBasicBlock(self.get());
+                     WRAP_OPTIONAL_RETURN(res, PyBasicBlockWrapper);
+                   })
+      .def_prop_ro("last_basic_block",
+                   [](PyFunction &self) -> optional<PyBasicBlockWrapper> {
+                     auto res = LLVMGetLastBasicBlock(self.get());
+                     WRAP_OPTIONAL_RETURN(res, PyBasicBlockWrapper);
+                   })
+      .def_prop_ro("entry_basic_block",
+                   [](PyFunction &self) {
+                     return PyBasicBlockWrapper(LLVMGetEntryBasicBlock(self.get()));
+                   })
       .def_prop_ro("has_personality_fn",
                    [](PyFunction &self) {
                      return LLVMGetPersonalityFn(self.get()) != 0;
@@ -1479,6 +1493,11 @@ void bindValueClasses(nb::module_ &m) {
              return LLVMAddAttributeAtIndex(self.get(), idx, attr.get());
            },
            "index"_a, "attr"_a)
+      .def("append_basic_block",
+           [](PyFunction &self, PyBasicBlockWrapper bb) {
+             return LLVMAppendExistingBasicBlock(self.get(), bb.get());
+           },
+           "basic_block")
       .def("get_attribute_count_at_index",
            [](PyFunction &self, LLVMAttributeIndex idx) {
              return LLVMGetAttributeCountAtIndex(self.get(), idx);
@@ -2100,8 +2119,20 @@ void bindOtherClasses(nb::module_ &m) {
   auto UseClass = nb::class_<PyUse>(m, "Use", "Use");
 
   auto IntrinsicClass = nb::class_<PyIntrinsic>(m, "Intrinsic", "Intrinsic");
-  auto OperandBundleClass = nb::class_<PyOperandBundle>(m, "OperandBundle", "OperandBundle");
+  auto OperandBundleClass = nb::class_<PyOperandBundle>(m, "OperandBundle",
+                                                        "OperandBundle");
+  auto BuilderClass = nb::class_<PyBuilder>(m, "Builder", "Builder");
 
+
+  BuilderClass
+      .def("insert",
+           [](PyBuilder &self, PyBasicBlockWrapper &bb) {
+             return LLVMInsertExistingBasicBlockAfterInsertBlock(self.get(), bb.get());
+           },
+           "basic_block"_a,
+           "Insert the given basic block after the insertion point of the given "
+           "builder.\n\n"
+           "The insertion point must be valid.");
 
   
   BasicBlockWrapperClass
@@ -2125,6 +2156,16 @@ void bindOtherClasses(nb::module_ &m) {
       .def_prop_ro("value",
                    [](PyBasicBlockWrapper &self) {
                      return PyBasicBlock(LLVMBasicBlockAsValue(self.get()));
+                   })
+      .def_prop_ro("next",
+                   [](PyBasicBlockWrapper &self) -> optional<PyBasicBlockWrapper> {
+                     auto res = LLVMGetNextBasicBlock(self.get());
+                     WRAP_OPTIONAL_RETURN(res, PyBasicBlockWrapper);
+                   })
+      .def_prop_ro("prev",
+                   [](PyBasicBlockWrapper &self) -> optional<PyBasicBlockWrapper> {
+                     auto res = LLVMGetPreviousBasicBlock(self.get());
+                     WRAP_OPTIONAL_RETURN(res, PyBasicBlockWrapper);
                    });
 
 
@@ -2392,6 +2433,12 @@ void bindOtherClasses(nb::module_ &m) {
            },
            "callback"_a, "opaque_handle"_a,
            "Set the yield callback function for this context.")
+      .def("create_basic_block",
+           [](PyContext &self, const char *name) {
+             return PyBasicBlockWrapper(LLVMCreateBasicBlockInContext
+                                          (self.get(), name));
+           },
+           "name"_a)
       .def("get_md_kind_id",
            [](PyContext &c, const std::string &name) {
              return LLVMGetMDKindIDInContext(c.get(), name.c_str(), name.size());
