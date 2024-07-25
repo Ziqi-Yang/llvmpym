@@ -113,18 +113,15 @@ protected:
 
 #define PY_DECLARE_VALUE_CAST(name) \
   .def("to_" #name, \
-       [](PyValue &v) -> std::optional<Py##name> { \
+       [](PyValue &v) -> std::optional<PyValue *> { \
          auto res = LLVMIsA##name(v.get()); \
          if (res) \
-           return Py##name(res); \
+           return PyValueAuto(res); \
          return std::nullopt; \
        }, \
        "Origin function: LLVMIsA" #name "\n\n" \
        "None means conversion failed.")
 
-// note AMDNode, ValueAsMetadata and AMDString are not there
-// since it provides `LLVMIsAMDNode` function rather than `LLVMIsAAMDNode` function...
-// (they are also not in LLVM_FOR_EACH_VALUE_SUBCLASS)
 #define PY_FOR_EACH_VALUE_SUBCLASS(macro) \
   macro(MDNode) \
   macro(ValueAsMetadata) \
@@ -218,99 +215,52 @@ protected:
       macro(AtomicRMWInst)                  \
       macro(FenceInst)
 
-// my addition: the first 3
+// customized classes structure
+// e.g.
+// CallBase => CallInst & InvokeInst (refers to LLVM implementation code)
 #define PY_FOR_EACH_VALUE_CLASS_RELATIONSHIP(macro) \
   macro(PyValue, PyMDNode) \
-  macro(PyValue, PyValueAsMetadata) \
   macro(PyValue, PyMDString) \
-  macro(PyValue, PyArgument)                           \
-  macro(PyValue, PyBasicBlock)                         \
-  macro(PyValue, PyInlineAsm)                          \
-  macro(PyValue, PyUser)                               \
-    macro(PyUser, PyConstant)                         \
-      macro(PyConstant, PyBlockAddress)                   \
-      macro(PyConstant, PyConstantAggregateZero)          \
-      macro(PyConstant, PyConstantArray)                  \
-      macro(PyConstant, PyConstantDataSequential)         \
-        macro(PyConstantDataSequential, PyConstantDataArray)            \
-        macro(PyConstantDataSequential, PyConstantDataVector)           \
-      macro(PyConstant, PyConstantExpr)                   \
-      macro(PyConstant, PyConstantFP)                     \
-      macro(PyConstant, PyConstantInt)                    \
-      macro(PyConstant, PyConstantPointerNull)            \
-      macro(PyConstant, PyConstantStruct)                 \
-      macro(PyConstant, PyConstantTokenNone)              \
-      macro(PyConstant, PyConstantVector)                 \
-      macro(PyConstant, PyGlobalValue)                    \
-        macro(PyGlobalValue, PyGlobalAlias)                  \
-        macro(PyGlobalValue, PyGlobalObject)                 \
-          macro(PyGlobalObject, PyFunction)                   \
-          macro(PyGlobalObject, PyGlobalVariable)             \
-          macro(PyGlobalObject, PyGlobalIFunc)                \
-      macro(PyConstant, PyUndefValue)                     \
-      macro(PyConstant, PyPoisonValue)                    \
-    macro(PyUser, PyInstruction)                      \
-      macro(PyInstruction, PyUnaryOperator)                  \
-      macro(PyInstruction, PyBinaryOperator)                 \
-      macro(PyInstruction, PyCallInst)                       \
-        macro(PyCallInst, PyIntrinsicInst)                \
-          macro(PyIntrinsicInst, PyDbgInfoIntrinsic)           \
-            macro(PyDbgInfoIntrinsic, PyDbgVariableIntrinsic)     \
-              macro(PyDbgVariableIntrinsic, PyDbgDeclareInst)         \
-            macro(PyIntrinsicInst, PyDbgLabelInst)             \
-          macro(PyIntrinsicInst, PyMemIntrinsic)               \
-            macro(PyIntrinsicInst, PyMemCpyInst)               \
-            macro(PyIntrinsicInst, PyMemMoveInst)              \
-            macro(PyIntrinsicInst, PyMemSetInst)               \
-      macro(PyInstruction, PyCmpInst)                        \
-        macro(PyCmpInst, PyFCmpInst)                     \
-        macro(PyCmpInst, PyICmpInst)                     \
-      macro(PyInstruction, PyExtractElementInst)             \
-      macro(PyInstruction, PyGetElementPtrInst)              \
-      macro(PyInstruction, PyInsertElementInst)              \
-      macro(PyInstruction, PyInsertValueInst)                \
-      macro(PyInstruction, PyLandingPadInst)                 \
-      macro(PyInstruction, PyPHINode)                        \
-      macro(PyInstruction, PySelectInst)                     \
-      macro(PyInstruction, PyShuffleVectorInst)              \
-      macro(PyInstruction, PyStoreInst)                      \
-      macro(PyInstruction, PyBranchInst)                     \
-      macro(PyInstruction, PyIndirectBrInst)                 \
-      macro(PyInstruction, PyInvokeInst)                     \
-      macro(PyInstruction, PyReturnInst)                     \
-      macro(PyInstruction, PySwitchInst)                     \
-      macro(PyInstruction, PyUnreachableInst)                \
-      macro(PyInstruction, PyResumeInst)                     \
-      macro(PyInstruction, PyCleanupReturnInst)              \
-      macro(PyInstruction, PyCatchReturnInst)                \
-      macro(PyInstruction, PyCatchSwitchInst)                \
-      macro(PyInstruction, PyCallBrInst)                     \
-      macro(PyInstruction, PyFuncletPadInst)                 \
-        macro(PyFuncletPadInst, PyCatchPadInst)                 \
-        macro(PyFuncletPadInst, PyCleanupPadInst)               \
-      macro(PyInstruction, PyUnaryInstruction)               \
-        macro(PyUnaryInstruction, PyAllocaInst)                   \
-        macro(PyUnaryInstruction, PyCastInst)                     \
-          macro(PyCastInst, PyAddrSpaceCastInst)          \
-          macro(PyCastInst, PyBitCastInst)                \
-          macro(PyCastInst, PyFPExtInst)                  \
-          macro(PyCastInst, PyFPToSIInst)                 \
-          macro(PyCastInst, PyFPToUIInst)                 \
-          macro(PyCastInst, PyFPTruncInst)                \
-          macro(PyCastInst, PyIntToPtrInst)               \
-          macro(PyCastInst, PyPtrToIntInst)               \
-          macro(PyCastInst, PySExtInst)                   \
-          macro(PyCastInst, PySIToFPInst)                 \
-          macro(PyCastInst, PyTruncInst)                  \
-          macro(PyCastInst, PyUIToFPInst)                 \
-          macro(PyCastInst, PyZExtInst)                   \
-        macro(PyUnaryInstruction, PyExtractValueInst)             \
-        macro(PyUnaryInstruction, PyLoadInst)                     \
-        macro(PyUnaryInstruction, PyVAArgInst)                    \
-        macro(PyUnaryInstruction, PyFreezeInst)                   \
-      macro(PyInstruction, PyAtomicCmpXchgInst)              \
-      macro(PyInstruction, PyAtomicRMWInst)                  \
-      macro(PyInstruction, PyFenceInst)
+  macro(PyValue, PyArgument) \
+  macro(PyValue, PyBasicBlock) \
+  macro(PyValue, PyInlineAsm) \
+  macro(PyValue, PyUser) \
+    macro(PyUser, PyConstant) \
+      macro(PyConstant, PyConstantArray) \
+      macro(PyConstant, PyConstantDataSequential) \
+      macro(PyConstantDataSequential, PyConstantDataArray) \
+      macro(PyConstantDataSequential, PyConstantDataVector) \
+      macro(PyConstant, PyConstantExpr) \
+      macro(PyConstant, PyConstantFP) \
+      macro(PyConstant, PyConstantInt) \
+      macro(PyConstant, PyConstantStruct) \
+      macro(PyConstant, PyConstantVector) \
+      macro(PyConstant, PyGlobalValue) \
+        macro(PyGlobalValue, PyGlobalAlias) \
+        macro(PyGlobalValue, PyGlobalObject) \
+          macro(PyGlobalObject, PyFunction) \
+          macro(PyGlobalObject, PyGlobalVariable) \
+          macro(PyGlobalObject, PyGlobalIFunc) \
+      macro(PyConstant, PyUndefValue) \
+      macro(PyConstant, PyPoisonValue) \
+    macro(PyUser, PyInstruction) \
+      macro(PyInstruction, PyCallBase) \
+      macro(PyInstruction, PyFCmpInst) \
+      macro(PyInstruction, PyICmpInst) \
+      macro(PyInstruction, PyGetElementPtrInst) \
+      macro(PyInstruction, PyPHINode) \
+      macro(PyInstruction, PyShuffleVectorInst) \
+      macro(PyInstruction, PyStoreInst) \
+      macro(PyInstruction, PyBranchInst) \
+      macro(PyInstruction, PyReturnInst) \
+      macro(PyInstruction, PySwitchInst) \
+      macro(PyInstruction, PyCatchSwitchInst) \
+      macro(PyInstruction, PyFuncletPadInst) \
+        macro(PyFuncletPadInst, PyCatchPadInst) \
+      macro(PyInstruction, PyAllocaInst) \
+      macro(PyInstruction, PyLoadInst) \
+      macro(PyInstruction, PyAtomicCmpXchgInst) \
+      macro(PyInstruction, PyAtomicRMWInst)
 
 #define PY_FOR_EACH_TYPE_CLASS_RELASIONSHIP(macro) \
   macro(PyType, PyTypeInt) \
