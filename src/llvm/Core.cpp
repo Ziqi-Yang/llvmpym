@@ -1231,6 +1231,27 @@ void bindValueClasses(nb::module_ &m) {
                    });
 
   InstructionClass
+      .def_prop_ro("next",
+                   [](PyInstruction &self) -> optional<PyInstruction> {
+                     auto res = LLVMGetNextInstruction(self.get());
+                     WRAP_OPTIONAL_RETURN(res, PyInstruction);
+                   },
+                   "Obtain the instruction that occurs after the one specified.\n"
+                   "The next instruction will be from the same basic block.\n\n"
+                   "If this is the last instruction in a basic block, None will "
+                   "be returned.")
+      .def_prop_ro("prev",
+                   [](PyInstruction &self) -> optional<PyInstruction> {
+                     auto res = LLVMGetPreviousInstruction(self.get());
+                     WRAP_OPTIONAL_RETURN(res, PyInstruction);
+                   },
+                   "Obtain the instruction that occurred before this one.\n\n"
+                   "If the instruction is the first instruction in a basic block, NULL"
+                   "will be returned.")
+      .def_prop_ro("has_metadata",
+                   [](PyInstruction &self) {
+                     return LLVMHasMetadata(self.get()) != 0;
+                   })
       .def_prop_ro("debug_loc_directory",
                    [](PyInstruction &i) {
                      unsigned len;
@@ -1250,7 +1271,50 @@ void bindValueClasses(nb::module_ &m) {
                    "Return the line number of the debug location for this value")
       .def_prop_ro("debug_loc_column",
                    [](PyInstruction &i) { return LLVMGetDebugLocColumn(i.get()); },
-                   "Return the column number of the debug location for this value");
+                   "Return the column number of the debug location for this value")
+      .def_prop_ro("parent",
+                   [](PyInstruction &self) {
+                     return PyBasicBlockWrapper(LLVMGetInstructionParent(self.get()));
+                   },
+                   "Obtain the basic block to which an instruction belongs.")
+      .def("remove_from_parent",
+           [](PyInstruction &self) {
+             return LLVMInstructionRemoveFromParent(self.get());
+           },
+           "The instruction specified is removed from its containing building"
+           "block but is kept alive.")
+      .def("destory",
+           [](PyInstruction &self) {
+             return LLVMInstructionEraseFromParent(self.get());
+           },
+           "Remove and delete an instruction.\n\n"
+           "The instruction specified is removed from its containing building"
+           "block and then deleted.")
+      .def("delete",
+           [](PyInstruction &self) {
+             return LLVMDeleteInstruction(self.get());
+           },
+           "Delete an instruction.\n\n"
+           "The instruction specified is deleted. It must have previously been"
+           "removed from its containing building block.")
+      .def("get_metadata",
+           [](PyInstruction &self, unsigned kindID) -> optional<PyValue*> {
+             auto res = LLVMGetMetadata(self.get(), kindID);
+             WRAP_OPTIONAL_RETURN(res, PyValueAuto);
+           },
+           "kind_id"_a)
+      .def("set_metadata",
+           [](PyInstruction &self, unsigned kindID, PyValue node) { // TODO PyMDNode?
+             return LLVMSetMetadata(self.get(), kindID, node.get());
+           },
+           "kind_id"_a, "value"_a)
+      .def("get_all_metadata_no_debug_loc",
+           [](PyInstruction &self) {
+             size_t num;
+             LLVMValueMetadataEntries entries =
+               LLVMInstructionGetAllMetadataOtherThanDebugLoc(self.get(), &num);
+             return PyMetadataEntries(entries, num);
+           });
 
   GlobalVariableClass
       .def_prop_rw("initializer",
