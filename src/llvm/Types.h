@@ -218,6 +218,9 @@ protected:
 // customized classes structure
 // e.g.
 // CallBase => CallInst & InvokeInst (refers to LLVM implementation code)
+// NOTE
+// rename python side name of PyBasicBlock to BasicBlockValue to avoid collision
+// with PyBasicBlockWrapper
 #define PY_FOR_EACH_VALUE_CLASS_RELATIONSHIP(macro) \
   macro(PyValue, PyMDNode) \
   macro(PyValue, PyMDString) \
@@ -245,6 +248,7 @@ protected:
       macro(PyConstant, PyPoisonValue) \
     macro(PyUser, PyInstruction) \
       macro(PyInstruction, PyCallBase) \
+        macro(PyCallBase, PyInvokeInst) \
       macro(PyInstruction, PyFCmpInst) \
       macro(PyInstruction, PyICmpInst) \
       macro(PyInstruction, PyGetElementPtrInst) \
@@ -255,6 +259,7 @@ protected:
       macro(PyInstruction, PyReturnInst) \
       macro(PyInstruction, PySwitchInst) \
       macro(PyInstruction, PyCatchSwitchInst) \
+      macro(PyInstruction, PyCleanupReturnInst) \
       macro(PyInstruction, PyFuncletPadInst) \
         macro(PyFuncletPadInst, PyCatchPadInst) \
       macro(PyInstruction, PyAllocaInst) \
@@ -307,6 +312,7 @@ DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyNamedMDNode, LLVMNamedMDNodeRef, namedMDNode)
 DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyUse, LLVMUseRef, Use)
 DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyBasicBlockWrapper, LLVMBasicBlockRef, basicBlock)
 DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyBuilder, LLVMBuilderRef, builder)
+
 
 DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyEnumAttribute);
 DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyTypeAttribute);

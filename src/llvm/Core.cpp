@@ -28,8 +28,14 @@ PyInstruction* PyInstructionAuto(LLVMValueRef inst) {
   case LLVMFCmp:
     return new PyFCmpInst(inst);
   case LLVMInvoke:
+    return new PyInvokeInst(inst);
   case LLVMCall:
     return new PyCallBase(inst);
+
+  case LLVMCleanupRet:
+    return new PyCleanupReturnInst(inst);
+  case LLVMCatchSwitch:
+    return new PyCatchSwitchInst(inst);
 
   default:
     return new PyInstruction(inst);
@@ -1001,7 +1007,7 @@ void bindValueClasses(nb::module_ &m) {
   auto MDNodeClass = nb::class_<PyMDNode, PyValue>(m, "MDNode", "MDNode");
   auto MDStringClass = nb::class_<PyMDString, PyValue>(m, "MDString", "MDString");
   auto ArgumentClass = nb::class_<PyArgument, PyValue>(m, "Argument", "Argument");
-  auto BasicBlockClass = nb::class_<PyBasicBlock, PyValue>(m, "BasicBlock", "BasicBlock");
+  auto BasicBlockClass = nb::class_<PyBasicBlock, PyValue>(m, "BasicBlockValue", "BasicBlockValue");
   auto InlineAsmClass = nb::class_<PyInlineAsm, PyValue>(m, "InlineAsm", "InlineAsm");
   auto UserClass = nb::class_<PyUser, PyValue>(m, "User", "User");
   auto ConstantClass = nb::class_<PyConstant, PyUser>(m, "Constant", "Constant");
@@ -1024,6 +1030,7 @@ void bindValueClasses(nb::module_ &m) {
   auto PoisonValueClass = nb::class_<PyPoisonValue, PyConstant>(m, "PoisonValue", "PoisonValue");
   auto InstructionClass = nb::class_<PyInstruction, PyUser>(m, "Instruction", "Instruction");
   auto CallBaseClass = nb::class_<PyCallBase, PyInstruction>(m, "CallBase", "CallBase");
+  auto InvokeInstClass = nb::class_<PyInvokeInst, PyCallBase>(m, "InvokeInst", "InvokeInst");
   auto FCmpInstClass = nb::class_<PyFCmpInst, PyInstruction>(m, "FCmpInst", "FCmpInst");
   auto ICmpInstClass = nb::class_<PyICmpInst, PyInstruction>(m, "ICmpInst", "ICmpInst");
   auto GetElementPtrInstClass = nb::class_<PyGetElementPtrInst, PyInstruction>(m, "GetElementPtrInst", "GetElementPtrInst");
@@ -1033,7 +1040,10 @@ void bindValueClasses(nb::module_ &m) {
   auto BranchInstClass = nb::class_<PyBranchInst, PyInstruction>(m, "BranchInst", "BranchInst");
   auto ReturnInstClass = nb::class_<PyReturnInst, PyInstruction>(m, "ReturnInst", "ReturnInst");
   auto SwitchInstClass = nb::class_<PySwitchInst, PyInstruction>(m, "SwitchInst", "SwitchInst");
-  auto CatchSwitchInstClass = nb::class_<PyCatchSwitchInst, PyInstruction>(m, "CatchSwitchInst", "CatchSwitchInst");
+  auto CatchSwitchInstClass = nb::class_<PyCatchSwitchInst, PyInstruction>
+                                (m, "CatchSwitchInst", "CatchSwitchInst");
+  auto CleanupReturnInstClass = nb::class_<PyCleanupReturnInst, PyInstruction>
+                                  (m, "CleanupReturnInst", "CleanupReturnInst");
   auto FuncletPadInstClass = nb::class_<PyFuncletPadInst, PyInstruction>(m, "FuncletPadInst", "FuncletPadInst");
   auto CatchPadInstClass = nb::class_<PyCatchPadInst, PyFuncletPadInst>(m, "CatchPadInst", "CatchPadInst");
   auto AllocaInstClass = nb::class_<PyAllocaInst, PyInstruction>(m, "AllocaInst", "AllocaInst");
@@ -1043,6 +1053,7 @@ void bindValueClasses(nb::module_ &m) {
 
 
   ValueClass
+      // TODO note there are many functions here that belongs `UserClass`
       .def_prop_ro("type",
                    // TODO PyType convertion to more specific type according to kind
                    [](PyValue &v) { return PyTypeAuto(LLVMTypeOf(v.get())); })
@@ -1297,6 +1308,135 @@ void bindValueClasses(nb::module_ &m) {
              return PyMetadataEntries(entries, num);
            });
 
+
+  CallBaseClass
+      .def_prop_ro("arg_num",
+                   [](PyCallBase &self) {
+                     return LLVMGetNumArgOperands(self.get());
+                   })
+      .def_prop_rw("calling_convention",
+                   [](PyCallBase &self) {
+                     return LLVMGetInstructionCallConv(self.get());
+                   },
+                   [](PyCallBase &self, unsigned CC) {
+                     return LLVMSetInstructionCallConv(self.get(), CC);
+                   })
+      .def_prop_ro("called_fn_type",
+                   [](PyCallBase &self) {
+                     return PyTypeFunction(LLVMGetCalledFunctionType(self.get()));
+                   },
+                   "Obtain the function type called by this instruction.")
+      .def_prop_ro("called_value",
+                   [](PyCallBase &self) {
+                     return PyFunction(LLVMGetCalledValue(self.get()));
+                   })
+      .def_prop_ro("operand_bundles_num",
+                   [](PyCallBase &self) {
+                     return LLVMGetNumOperandBundles(self.get());
+                   })
+      .def_prop_rw("is_tail_call",
+                   [](PyCallBase &self) {
+                     return LLVMIsTailCall(self.get()) != 0;
+                   },
+                   [](PyCallBase &self, bool isTailCall) {
+                     return LLVMSetTailCall(self.get(), isTailCall);
+                   })
+      .def_prop_rw("tail_call_kind",
+                   [](PyCallBase &self) {
+                     return LLVMGetTailCallKind(self.get());
+                   },
+                   [](PyCallBase &self, LLVMTailCallKind kind) {
+                     return LLVMSetTailCallKind(self.get(), kind);
+                   })
+      .def("get_operand_bundle_at",
+           [](PyCallBase &self, unsigned index) {
+             return PyOperandBundle(LLVMGetOperandBundleAtIndex(self.get(), index));
+           },
+           "index"_a,
+           "Obtain the operand bundle attached to this instruction at the given index.")
+      .def("set_param_alignment",
+           [](PyCallBase &self, LLVMAttributeIndex idx, unsigned align) {
+             return LLVMSetInstrParamAlignment(self.get(), idx, align);
+           },
+           "index"_a, "align"_a)
+      .def("add_call_site_attribute",
+           [](PyCallBase &self, LLVMAttributeIndex idx, PyAttribute &attr) {
+             return LLVMAddCallSiteAttribute(self.get(), idx, attr.get());
+           },
+           "index"_a, "attr"_a)
+      .def("get_call_site_attribute_count",
+           [](PyCallBase &self, LLVMAttributeIndex idx) {
+             return LLVMGetCallSiteAttributeCount(self.get(), idx);
+           })
+      .def("get_call_site_attributes",
+           [](PyCallBase &self, LLVMAttributeIndex idx) {
+             unsigned num = LLVMGetCallSiteAttributeCount(self.get(), idx);
+             LLVMAttributeRef *attrs;
+             LLVMGetCallSiteAttributes(self.get(), idx, attrs);
+             WRAP_VECTOR_FROM_DEST_AUTO(PyAttribute, num, res, attrs);
+             return res;
+           })
+      .def("get_call_site_enum_attributes",
+           [](PyCallBase &self, LLVMAttributeIndex idx, unsigned kindID) {
+             return PyEnumAttribute(LLVMGetCallSiteEnumAttribute(self.get(), idx,
+                                                                 kindID));
+           })
+      .def("get_call_site_string_attributes",
+           [](PyCallBase &self, LLVMAttributeIndex idx, std::string &kind) {
+             return PyStringAttribute(LLVMGetCallSiteStringAttribute
+                                        (self.get(), idx, kind.c_str(), kind.size()));
+           })
+      .def("remove_call_site_enum_attributes",
+           [](PyCallBase &self, LLVMAttributeIndex idx, unsigned kindID) {
+             return LLVMRemoveCallSiteEnumAttribute(self.get(), idx, kindID);
+           })
+      .def("remove_call_site_string_attributes",
+           [](PyCallBase &self, LLVMAttributeIndex idx, std::string &kind) {
+             return LLVMRemoveCallSiteStringAttribute
+                      (self.get(), idx, kind.c_str(), kind.size());
+           });
+
+  InvokeInstClass
+      .def_prop_rw("normal_dest",
+                   [](PyInvokeInst &self) {
+                     return PyBasicBlockWrapper(LLVMGetNormalDest(self.get()));
+                   },
+                   [](PyInvokeInst &self, PyBasicBlockWrapper bb) {
+                     return LLVMSetNormalDest(self.get(), bb.get());
+                   })
+      .def_prop_rw("unwind_dest",
+                   [](PyInvokeInst &self) {
+                     return PyBasicBlockWrapper(LLVMGetUnwindDest(self.get()));
+                   },
+                   [](PyInvokeInst &self, PyBasicBlockWrapper bb) {
+                     return LLVMSetUnwindDest(self.get(), bb.get());
+                   });
+
+  CleanupReturnInstClass
+      .def_prop_rw("unwind_dest",
+                   [](PyCleanupReturnInst &self) {
+                     return PyBasicBlockWrapper(LLVMGetUnwindDest(self.get()));
+                   },
+                   [](PyCleanupReturnInst &self, PyBasicBlockWrapper bb) {
+                     return LLVMSetUnwindDest(self.get(), bb.get());
+                   });
+
+  CatchSwitchInstClass
+        .def_prop_rw("unwind_dest",
+                     [](PyCatchSwitchInst &self) {
+                       return PyBasicBlockWrapper(LLVMGetUnwindDest(self.get()));
+                     },
+                     [](PyCatchSwitchInst &self, PyBasicBlockWrapper bb) {
+                       return LLVMSetUnwindDest(self.get(), bb.get());
+                     });
+
+
+  FuncletPadInstClass
+      .def_prop_ro("arg_num",
+                   [](PyCallBase &self) {
+                     // TODO change it into enum type
+                     return LLVMGetNumArgOperands(self.get());
+                   });
 
   ICmpInstClass
       .def_prop_ro("predicate",
