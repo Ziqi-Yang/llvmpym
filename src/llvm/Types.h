@@ -110,7 +110,6 @@ protected:
     using ParentClassName::ParentClassName; \
   };
 
-
 #define PY_DECLARE_VALUE_CAST(name) \
   .def("to_" #name, \
        [](PyValue &v) -> std::optional<PyValue *> { \
@@ -248,6 +247,7 @@ protected:
       macro(PyConstant, PyPoisonValue) \
     macro(PyUser, PyInstruction) \
       macro(PyInstruction, PyCallBase) \
+        macro(PyCallBase, PyCallInst) \
         macro(PyCallBase, PyInvokeInst) \
       macro(PyInstruction, PyFCmpInst) \
       macro(PyInstruction, PyICmpInst) \
@@ -265,7 +265,10 @@ protected:
       macro(PyInstruction, PyAllocaInst) \
       macro(PyInstruction, PyLoadInst) \
       macro(PyInstruction, PyAtomicCmpXchgInst) \
-      macro(PyInstruction, PyAtomicRMWInst)
+      macro(PyInstruction, PyAtomicRMWInst) \
+      macro(PyInstruction, PyIEValueInstBase) \
+        macro(PyIEValueInstBase, PyInsertValueInst) \
+        macro(PyIEValueInstBase, PyExtractValueInst)
 
 #define PY_FOR_EACH_TYPE_CLASS_RELASIONSHIP(macro) \
   macro(PyType, PyTypeInt) \
