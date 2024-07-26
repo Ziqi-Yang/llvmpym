@@ -12,6 +12,13 @@
     RAW.push_back(w.get()); \
   }
 
+#define UNWRAP_VECTOR_WRAPPER_CLASS_POINTER(RAW_TYPE, WRAPPER, RAW, SIZE) \
+  std::vector<RAW_TYPE> RAW; \
+  RAW.reserve(SIZE); \
+  for (const auto& w : WRAPPER) { \
+    RAW.push_back(w->get()); \
+  }
+
 #define WRAP_VECTOR_FROM_DEST(TYPE, NUMBER, RES, DEST) \
   std::vector<TYPE> RES; \
   RES.reserve(NUMBER); \

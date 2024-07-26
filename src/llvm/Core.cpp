@@ -3,6 +3,8 @@
 #include <nanobind/stl/tuple.h>
 #include <nanobind/stl/vector.h>
 #include <nanobind/stl/optional.h>
+#include <nanobind/stl/shared_ptr.h>
+#include <memory>
 #include <optional>
 #include <llvm-c/Core.h>
 #include "Core.h"
@@ -27,6 +29,7 @@ PyInstruction* PyInstructionAuto(LLVMValueRef inst) {
     return new PyICmpInst(inst);
   case LLVMFCmp:
     return new PyFCmpInst(inst);
+    
   case LLVMInvoke:
     return new PyInvokeInst(inst);
   case LLVMCall:
@@ -41,6 +44,12 @@ PyInstruction* PyInstructionAuto(LLVMValueRef inst) {
     return new PyInsertValueInst(inst);
   case LLVMExtractValue:
     return new PyExtractValueInst(inst);
+
+  case LLVMIndirectBr:
+    return new PyIndirectBrInst(inst);
+    
+  case LLVMLandingPad:
+    return new PyLandingPadInst(inst);
 
   default:
     return new PyInstruction(inst);
@@ -569,7 +578,6 @@ void bindEnums(nb::module_ &m) {
 
 
 void bindGlobalFunctions(nb::module_ &m) {
-  
   // TODO it seems it has no effect in python binding
   m.def("shutdown", &LLVMShutdown, "Deallocate and destroy all ManagedStatic variables.");
   
@@ -1063,6 +1071,10 @@ void bindValueClasses(nb::module_ &m) {
                                 (m, "InsertValueInst", "InsertValueInst");
   auto ExtractValueInstClass = nb::class_<PyExtractValueInst, PyIEValueInstBase>
                                  (m, "ExtractValueInst", "ExtractValueInst");
+  auto LandingPadInstClass = nb::class_<PyLandingPadInst, PyInstruction>
+                               (m, "LandingPadInst", "LandingPadInst");
+  auto IndirectBrInstClass = nb::class_<PyIndirectBrInst>
+                               (m, "IndirectBrInst", "IndirectBrInst");
 
 
   ValueClass
@@ -1110,7 +1122,15 @@ void bindValueClasses(nb::module_ &m) {
                      return PyBasicBlockWrapper(LLVMValueAsBasicBlock(self.get()));
                    });
 
-
+  CatchPadInstClass
+      .def_prop_rw("parent",
+                   [](PyCatchPadInst &self) {
+                     return PyCatchSwitchInst(LLVMGetParentCatchSwitch(self.get()));
+                   },
+                   [](PyCatchPadInst &self, PyCatchSwitchInst catchSwitch) {
+                     return LLVMSetParentCatchSwitch(self.get(), catchSwitch.get());
+                   });
+  
   MDStringClass
       .def_prop_ro("raw_string",
                    [](PyMDString &v) {
@@ -1366,6 +1386,10 @@ void bindValueClasses(nb::module_ &m) {
       .def_prop_ro("default_dest",
                    [](PySwitchInst &self) {
                      return PyBasicBlockWrapper(LLVMGetSwitchDefaultDest(self.get()));
+                   })
+      .def_prop_ro("add_case",
+                   [](PySwitchInst &self, PyConstantInt &onVal, PyBasicBlockWrapper dest) {
+                     return LLVMAddCase(self.get(), onVal.get(), dest.get());
                    });
 
   IEValueInstBaseClass
@@ -1499,7 +1523,23 @@ void bindValueClasses(nb::module_ &m) {
                      },
                      [](PyCatchSwitchInst &self, PyBasicBlockWrapper bb) {
                        return LLVMSetUnwindDest(self.get(), bb.get());
-                     });
+                     })
+        .def_prop_ro("handlers_num",
+                     [](PyCatchSwitchInst &self) {
+                       return LLVMGetNumHandlers(self.get());
+                     })
+        .def_prop_ro("handlers",
+                     [](PyCatchSwitchInst &self) {
+                       unsigned num = LLVMGetNumHandlers(self.get());
+                       LLVMBasicBlockRef *handlers;
+                       LLVMGetHandlers(self.get(), handlers);
+                       WRAP_VECTOR_FROM_DEST(PyBasicBlockWrapper, num, res, handlers);
+                       return res;
+                     })
+        .def("add_handler",
+             [](PyCatchSwitchInst &self, PyBasicBlockWrapper dest) {
+               return LLVMAddHandler(self.get(), dest.get());
+             });
 
 
   FuncletPadInstClass
@@ -1507,7 +1547,16 @@ void bindValueClasses(nb::module_ &m) {
                    [](PyCallBase &self) {
                      // TODO change it into enum type
                      return LLVMGetNumArgOperands(self.get());
-                   });
+                   })
+      .def("get_arg_operand",
+           [](PyFuncletPadInst &self, unsigned index) {
+             return PyValueAuto(LLVMGetArgOperand(self.get(), index));
+           },
+           "index"_a)
+      .def("set_arg_operand",
+           [](PyFuncletPadInst &self, unsigned index, PyValue &value) {
+             return LLVMSetArgOperand(self.get(), index, value.get());
+           });
 
   ICmpInstClass
       .def_prop_ro("predicate",
@@ -2114,7 +2163,7 @@ void bindValueClasses(nb::module_ &m) {
                     return PyValueAuto(LLVMConstNot(c.get()));
                   },
                   "value"_a)
-  BIND_CONSTANT_EXPR_BINARY_OPS
+  CONSTANT_EXPR_BIND_BINARY_OPS
       .def_static("icmp", // test passing ConstantFP type values
                   [](LLVMIntPredicate predicate, PyConstant &lhs, PyConstant &rhs) {
                     return PyValueAuto(LLVMConstICmp(predicate, lhs.get(), rhs.get()));
@@ -2415,6 +2464,36 @@ void bindValueClasses(nb::module_ &m) {
            },
            "Retrieves an array of metadata entries representing the metadata attached to"
            "this value.");
+  
+  IndirectBrInstClass
+      .def("add_destination",
+           [](PyIndirectBrInst &self, PyBasicBlockWrapper &dest) {
+             return LLVMAddDestination(self.get(), dest.get());
+           },
+           "dest"_a,
+           "Add a destination to the indirectbr instruction.");
+
+  LandingPadInstClass
+      .def_prop_ro("num_clauses",
+                   [](PyIndirectBrInst &self) {
+                     return LLVMGetNumClauses(self.get());
+                   })
+      .def_prop_rw("is_cleanup",
+                   [](PyLandingPadInst &self) {
+                     return LLVMIsCleanup(self.get()) != 0;
+                   },
+                   [](PyLandingPadInst &self, bool val) {
+                     return LLVMSetCleanup(self.get(), val);
+                   })
+      .def("get_clause",
+           [](PyIndirectBrInst &self, unsigned index) {
+             return PyValueAuto(LLVMGetClause(self.get(), index));
+           },
+           "index"_a)
+      .def("add_clause",
+           [](PyIndirectBrInst &self, PyConstant clause) {
+             return LLVMAddClause(self.get(), clause.get());
+           });
 
 }
 
@@ -2558,6 +2637,12 @@ void bindOtherClasses(nb::module_ &m) {
            "instruction"_a,
            "Adds the metadata registered with the given builder to the given"
            "instruction.")
+       /*
+        * The following methods are used to build instructions
+        * the returned instructions are as specific are possible
+        * But if the instruction type doesn't meant to be used in other API functions,
+        * then we make it as PyInstruction Type to reduce the Instruction sub-classes number
+        */
       .def("ret_void",
            [](PyBuilder &self) {
              return PyReturnInst(LLVMBuildRetVoid(self.get()));
@@ -2573,19 +2658,121 @@ void bindOtherClasses(nb::module_ &m) {
              UNWRAP_VECTOR_WRAPPER_CLASS(LLVMValueRef, values, raw, num);
              return PyReturnInst(LLVMBuildAggregateRet(self.get(), raw.data(), num));
            },
-           "values")
+           "values"_a)
       .def("br",
            [](PyBuilder &self, PyBasicBlockWrapper &dest) {
              return PyBranchInst(LLVMBuildBr(self.get(), dest.get()));
-           })
+           },
+           "dest"_a)
       .def("cond_br",
            [](PyBuilder &self, PyValue &If, PyBasicBlockWrapper &Then,
               PyBasicBlockWrapper &Else) {
              return PyBranchInst(LLVMBuildCondBr(self.get(), If.get(),
                                                  Then.get(), Else.get()));
-           });
+           },
+           "If"_a, "Then"_a, "Else"_a)
+      .def("switch",
+           [](PyBuilder &self, PyValue &value, PyBasicBlockWrapper &Else,
+              unsigned numCases) {
+             return PySwitchInst(LLVMBuildSwitch(self.get(), value.get(), Else.get(), numCases));
+           },
+           "value"_a, "Else"_a, "num_cases"_a)
+      .def("indirect_br",
+           [](PyBuilder &self, PyValue &addr, unsigned numDests) {
+             return PyIndirectBrInst(LLVMBuildIndirectBr(self.get(), addr.get(), numDests));
+           },
+           "addr"_a, "num_dests"_a)
+      .def("invoke",
+           [](PyBuilder &self, PyType &type, PyFunction &fn, std::vector<PyValue> args,
+              PyBasicBlockWrapper Then, PyBasicBlockWrapper Catch, const char *name) {
+             unsigned args_num  = args.size();
+             UNWRAP_VECTOR_WRAPPER_CLASS(LLVMValueRef, args, rawArgs, args_num);
+             auto res = LLVMBuildInvoke2(self.get(), type.get(), fn.get(),
+                                         rawArgs.data(), args_num, Then.get(),
+                                         Catch.get(), name);
+             return PyInvokeInst(res);
+           },
+           "type"_a, "fn"_a, "args"_a, "Then"_a, "Catch"_a, "name"_a,
+           "Original Function: LLVMBuildInvoke2.")
+      .def("invoke_with_operand_bundles",
+           [](PyBuilder &self, PyType &type, PyFunction &fn, std::vector<PyValue> args,
+              PyBasicBlockWrapper Then, PyBasicBlockWrapper Catch,
+              std::vector<std::shared_ptr<PyOperandBundle>> bundles, const char *name) {
+             unsigned args_num  = args.size();
+             UNWRAP_VECTOR_WRAPPER_CLASS(LLVMValueRef, args, rawArgs, args_num);
 
-  
+             unsigned bundles_num = bundles.size();
+             UNWRAP_VECTOR_WRAPPER_CLASS_POINTER(LLVMOperandBundleRef, bundles, rawBundles,
+                                         bundles_num);
+             
+             auto res = LLVMBuildInvokeWithOperandBundles
+                          (self.get(), type.get(), fn.get(),
+                           rawArgs.data(), args_num, Then.get(),
+                           Catch.get(), rawBundles.data(), bundles_num,
+                           name);
+             return PyInvokeInst(res);
+           },
+           "type"_a, "fn"_a, "args"_a, "Then"_a, "Catch"_a, "bundles"_a,
+           "name"_a)
+      .def("unreachable",
+           [](PyBuilder &self) {
+             return PyInstruction(LLVMBuildUnreachable(self.get()));
+           })
+      .def("resume",
+           [](PyBuilder &self, PyValue &exn) {
+             return PyInstruction(LLVMBuildResume(self.get(), exn.get()));
+           },
+           "exn"_a)
+      .def("landing_pad",
+           [](PyBuilder &self, PyType &type, PyValue &PersFn, unsigned numClauses,
+              const char *name) {
+             return PyLandingPadInst(LLVMBuildLandingPad
+                                    (self.get(), type.get(), PersFn.get(), numClauses,
+                                     name));
+           },
+           "type"_a, "pers_fn"_a, "num_clauses"_a, "name"_a)
+      .def("cleanup_ret",
+           [](PyBuilder &self, PyValue &catchPad, PyBasicBlockWrapper bb) {
+             return PyCleanupReturnInst(LLVMBuildCleanupRet(self.get(), catchPad.get(),
+                                                      bb.get()));
+           },
+           "catch_pad"_a, "bb"_a)
+      .def("catch_pad",
+           [](PyBuilder &self, PyValue &parentPad, std::vector<PyValue> args,
+              const char *name) {
+             unsigned args_num  = args.size();
+             UNWRAP_VECTOR_WRAPPER_CLASS(LLVMValueRef, args, rawArgs, args_num);
+
+             auto res = LLVMBuildCatchPad(self.get(), parentPad.get(), rawArgs.data(),
+                                          args_num, name);
+             return PyCatchPadInst(res);
+           },
+           "parent_pad"_a, "args"_a, "name"_a)
+      .def("cleanup_pad",
+           [](PyBuilder &self, PyValue &parentPad, std::vector<PyValue> args,
+              const char *name) {
+             unsigned args_num  = args.size();
+             UNWRAP_VECTOR_WRAPPER_CLASS(LLVMValueRef, args, rawArgs, args_num);
+
+             auto res = LLVMBuildCleanupPad(self.get(), parentPad.get(), rawArgs.data(),
+                                          args_num, name);
+             return PyInstruction(res);
+           },
+           "parent_pad"_a, "args"_a, "name"_a)
+      .def("catch_switch",
+           [](PyBuilder &self, PyValue &parentPad, PyBasicBlockWrapper &unwindBB,
+              unsigned numHandlers, const char *name) {
+             auto res = LLVMBuildCatchSwitch(self.get(), parentPad.get(),
+                                             unwindBB.get(), numHandlers,
+                                             name);
+             return PyCatchSwitchInst(res);
+           },
+           "parent_pad"_a, "unwind_bb"_a, "num_handlers"_a, "name"_a)
+       /*
+         Arithmetic
+        */
+  BUILDER_BIND_BINARY_OPS;
+
   BasicBlockWrapperClass
       .def_prop_ro("name",
                    [](PyBasicBlockWrapper &self) {
