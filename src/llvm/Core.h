@@ -65,6 +65,35 @@ namespace nb = nanobind;
   BUILDER_BIND_BINARY_OP(or, LLVMBuildOr) \
   BUILDER_BIND_BINARY_OP(xor, LLVMBuildXor)
 
+#define BUILDER_BIND_CAST_OP(NAME, FUNCTION) \
+  .def(#NAME, \
+      [](PyBuilder &self, PyValue &val, PyType &destType, const char *name) { \
+        return PyValueAuto(FUNCTION(self.get(), val.get(), destType.get(), name)); \
+      }, \
+      "val"_a, "dest_type"_a, "name"_a) 
+
+#define BUILDER_BIND_CAST_OPS \
+  BUILDER_BIND_CAST_OP(trunc, LLVMBuildTrunc) \
+  BUILDER_BIND_CAST_OP(zext, LLVMBuildZExt) \
+  BUILDER_BIND_CAST_OP(xext, LLVMBuildSExt) \
+  BUILDER_BIND_CAST_OP(fp2ui, LLVMBuildFPToUI) \
+  BUILDER_BIND_CAST_OP(fp2si, LLVMBuildFPToSI) \
+  BUILDER_BIND_CAST_OP(ui2fp, LLVMBuildUIToFP) \
+  BUILDER_BIND_CAST_OP(si2fp, LLVMBuildSIToFP) \
+  BUILDER_BIND_CAST_OP(fp_trunc, LLVMBuildFPTrunc) \
+  BUILDER_BIND_CAST_OP(fp_ext, LLVMBuildFPExt) \
+  BUILDER_BIND_CAST_OP(ptr2int, LLVMBuildPtrToInt) \
+  BUILDER_BIND_CAST_OP(int2ptr, LLVMBuildIntToPtr) \
+  BUILDER_BIND_CAST_OP(bit_cast, LLVMBuildBitCast) \
+  BUILDER_BIND_CAST_OP(addr_space_cast, LLVMBuildAddrSpaceCast) \
+  BUILDER_BIND_CAST_OP(zext_or_bit_cast, LLVMBuildZExtOrBitCast) \
+  BUILDER_BIND_CAST_OP(sext_or_bit_cast, LLVMBuildSExtOrBitCast) \
+  BUILDER_BIND_CAST_OP(trunc_or_bit_cast, LLVMBuildTruncOrBitCast) \
+  BUILDER_BIND_CAST_OP(pointer_cast, LLVMBuildPointerCast) \
+  BUILDER_BIND_CAST_OP(fp_cast, LLVMBuildFPCast)
+
+
+
 void populateCore(nb::module_ &m);
 
 #endif

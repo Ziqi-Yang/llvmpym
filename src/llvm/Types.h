@@ -31,47 +31,38 @@ protected:
     return *this; \
   }
 
-#define DEFINE_PY_WRAPPER_CLASS_NONCOPYABLE(ClassName, UnderlyingType, UnderlyingName) \
+// note the underlying type must be a pointer type
+#define DEFINE_PY_WRAPPER_CLASS_SELF_DISPOSABLE_NONCOPYABLE(ClassName, UnderlyingType, DISPOSE_FUNC) \
   class ClassName : public NonCopyable { \
   public: \
-    explicit ClassName(UnderlyingType UnderlyingName) \
-    : UnderlyingName(UnderlyingName) {} \
-    \
+    explicit ClassName(UnderlyingType raw) \
+    : raw(raw) {} \
+\
+    ~ClassName() { \
+      cleanup(); \
+    } \
+\
+    UnderlyingType get() { \
+      return raw; \
+    } \
+\
     DEFINE_MOVE_SEMANTICS(ClassName) \
-    \
+\
     void move(ClassName &&other) noexcept { \
-      UnderlyingName = std::exchange(other.UnderlyingName, nullptr); \
+      cleanup(); \
+      raw = std::exchange(other.raw, nullptr); \
     } \
-    \
-    UnderlyingType get() const { \
-      return UnderlyingName; \
-    } \
-    \
+\
   private: \
-    UnderlyingType UnderlyingName; \
-  };
-
-#define DEFINE_PY_WRAPPER_CLASS_NONCOPYABLE_POLYMORPHIC(ClassName, UnderlyingType, UnderlyingName) \
-  class ClassName : public NonCopyable { \
-  public: \
-    virtual ~ClassName() = default; \
-    explicit ClassName(UnderlyingType UnderlyingName) \
-    : UnderlyingName(UnderlyingName) {} \
-    \
-    DEFINE_MOVE_SEMANTICS(ClassName) \
-    \
-    void move(ClassName &&other) noexcept { \
-      UnderlyingName = std::exchange(other.UnderlyingName, nullptr); \
+    UnderlyingType raw; \
+\
+    void cleanup() { \
+      if (raw) { \
+        DISPOSE_FUNC(raw); \
+        raw = nullptr; \
+      } \
     } \
-    \
-    UnderlyingType get() const { \
-      return UnderlyingName; \
-    } \
-    \
-  private: \
-    UnderlyingType UnderlyingName; \
   };
-
 
 
 #define DEFINE_PY_WRAPPER_CLASS_COPYABLE(ClassName, UnderlyingType, UnderlyingName) \
@@ -321,7 +312,6 @@ DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyUse, LLVMUseRef, Use)
 DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyBasicBlockWrapper, LLVMBasicBlockRef, basicBlock)
 DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyBuilder, LLVMBuilderRef, builder)
 
-
 DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyEnumAttribute);
 DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyTypeAttribute);
 DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyStringAttribute);
@@ -331,6 +321,17 @@ PY_FOR_EACH_TYPE_CLASS_RELASIONSHIP(DEFINE_DIRECT_SUB_CLASS)
 
 DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyIntrinsic, unsigned, id)
 
+DEFINE_PY_WRAPPER_CLASS_SELF_DISPOSABLE_NONCOPYABLE
+  (PyModuleProvider, LLVMModuleProviderRef, LLVMDisposeModuleProvider)
+
+DEFINE_PY_WRAPPER_CLASS_SELF_DISPOSABLE_NONCOPYABLE
+  (PyMemoryBuffer, LLVMMemoryBufferRef, LLVMDisposeMemoryBuffer)
+
+DEFINE_PY_WRAPPER_CLASS_SELF_DISPOSABLE_NONCOPYABLE
+  (PyPassManagerBase, LLVMPassManagerRef, LLVMDisposePassManager)
+
+DEFINE_DIRECT_SUB_CLASS(PyPassManagerBase, PyPassManager);
+DEFINE_DIRECT_SUB_CLASS(PyPassManagerBase, PyFunctionPassManager);
 
 /*
   shared pointer is need to make a NonCopyable object able to be used in
@@ -552,6 +553,8 @@ private:
     }
   }
 };
+
+
 
 
 

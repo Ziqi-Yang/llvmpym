@@ -634,6 +634,11 @@ void bindGlobalFunctions(nb::module_ &m) {
           return LLVMReplaceAllUsesWith(oldVal.get(), newVal.get());
         },
         "Replace all uses of a value with another one.");
+
+  m.def("llvm_is_multithreaded",
+        []() {
+          return LLVMIsMultithreaded() != 0;
+        });
 }
 
 
@@ -1127,6 +1132,28 @@ void bindValueClasses(nb::module_ &m) {
                      return PyBasicBlockWrapper(LLVMValueAsBasicBlock(self.get()));
                    });
 
+  ShuffleVectorInstClass
+      .def_prop_ro("mask_elems_num",
+                   [](PyShuffleVectorInst &self) {
+                     return LLVMGetNumMaskElements(self.get());
+                   })
+      .def_static("get_undef_mask_elem",
+                  [](PyShuffleVectorInst &self) {
+                    return LLVMGetUndefMaskElem();
+                  },
+                  "returns a constant that specifies that the result of a "
+                  "ShuffleVectorInst is undefined.")
+      .def("get_mask_value",
+           [](PyValue &self, unsigned index) {
+             return LLVMGetMaskValue(self.get(), index);
+           },
+           "index"_a,
+           "Get the mask value at position index in the mask of the ShuffleVector"
+           "instruction.\n\n"
+           "Returns the result of LLVMGetUndefMaskElem() if the mask value is"
+           "poison at that position.");
+
+  
   CatchPadInstClass
       .def_prop_rw("parent",
                    [](PyCatchPadInst &self) {
@@ -1565,17 +1592,17 @@ void bindValueClasses(nb::module_ &m) {
 
   ICmpInstClass
       .def_prop_ro("predicate",
-           [](PyInstruction &self) {
-             return LLVMGetICmpPredicate(self.get());
-           },
-           "Obtain the predicate of an instruction.");
+                   [](PyInstruction &self) {
+                     return LLVMGetICmpPredicate(self.get());
+                   },
+                   "Obtain the predicate of an instruction.");
 
   FCmpInstClass
       .def_prop_ro("predicate",
-           [](PyInstruction &self) {
-             return LLVMGetFCmpPredicate(self.get());
-           },
-           "Obtain the float predicate of an instruction.");
+                   [](PyInstruction &self) {
+                     return LLVMGetFCmpPredicate(self.get());
+                   },
+                   "Obtain the float predicate of an instruction.");
 
   GlobalVariableClass
       .def_prop_rw("initializer",
@@ -2253,14 +2280,7 @@ void bindValueClasses(nb::module_ &m) {
       .def_static("block_address",
                   [](PyConstant &value, PyBasicBlockWrapper &bb) {
                     return PyValueAuto(LLVMBlockAddress(value.get(), bb.get()));
-                  })
-      .def("get_icmp_predicate",
-           [](PyInstruction &self) {
-             return LLVMGetICmpPredicate(self.get());
-           },
-           "Obtain the predicate of an instruction."
-           "This is only valid for instructions that correspond to llvm::ICmpInst"
-           "or llvm::ConstantExpr whose opcode is llvm::Instruction::ICmp.");
+                  });
 
   
   // LLVMConstInlineAsm is deprecated in favor of LLVMGetInlineAsm
@@ -2406,6 +2426,13 @@ void bindValueClasses(nb::module_ &m) {
                      },
                      [](PyFenceInst &self, LLVMAtomicOrdering ordering) {
                        return LLVMSetOrdering(self.get(), ordering);
+                     })
+        .def_prop_rw("is_single_thread",
+                     [](PyFenceInst &self) {
+                       return LLVMIsAtomicSingleThread(self.get()) != 0;
+                     },
+                     [](PyFenceInst &self, bool isSingleThread) {
+                       return LLVMSetAtomicSingleThread(self.get(), isSingleThread);
                      });
 
   LoadInstClass
@@ -2431,6 +2458,13 @@ void bindValueClasses(nb::module_ &m) {
                    },
                    [](PyLoadInst &self, LLVMAtomicOrdering ordering) {
                      return LLVMSetOrdering(self.get(), ordering);
+                   })
+      .def_prop_rw("is_single_thread",
+                   [](PyLoadInst &self) {
+                     return LLVMIsAtomicSingleThread(self.get()) != 0;
+                   },
+                   [](PyLoadInst &self, bool isSingleThread) {
+                     return LLVMSetAtomicSingleThread(self.get(), isSingleThread);
                    });
 
   StoreInstClass
@@ -2456,6 +2490,13 @@ void bindValueClasses(nb::module_ &m) {
                    },
                    [](PyStoreInst &self, LLVMAtomicOrdering ordering) {
                      return LLVMSetOrdering(self.get(), ordering);
+                   })
+      .def_prop_rw("is_single_thread",
+                   [](PyStoreInst &self) {
+                     return LLVMIsAtomicSingleThread(self.get()) != 0;
+                   },
+                   [](PyStoreInst &self, bool isSingleThread) {
+                     return LLVMSetAtomicSingleThread(self.get(), isSingleThread);
                    });
   
   AtomicRMWInstClass
@@ -2488,6 +2529,13 @@ void bindValueClasses(nb::module_ &m) {
                    },
                    [](PyAtomicRMWInst &self, LLVMAtomicRMWBinOp binOp) {
                      return LLVMSetAtomicRMWBinOp(self.get(), binOp);
+                   })
+      .def_prop_rw("is_single_thread",
+                   [](PyAtomicRMWInst &self) {
+                     return LLVMIsAtomicSingleThread(self.get()) != 0;
+                   },
+                   [](PyAtomicRMWInst &self, bool isSingleThread) {
+                     return LLVMSetAtomicSingleThread(self.get(), isSingleThread);
                    });
   
   AtomicCmpXchgInstClass
@@ -2513,6 +2561,27 @@ void bindValueClasses(nb::module_ &m) {
                    },
                    [](PyAtomicCmpXchgInst &self, bool isWeak) {
                      return LLVMSetWeak(self.get(), isWeak);
+                   })
+      .def_prop_rw("is_single_thread",
+                   [](PyAtomicCmpXchgInst &self) {
+                     return LLVMIsAtomicSingleThread(self.get()) != 0;
+                   },
+                   [](PyAtomicCmpXchgInst &self, bool isSingleThread) {
+                     return LLVMSetAtomicSingleThread(self.get(), isSingleThread);
+                   })
+      .def_prop_rw("success_ordering",
+                   [](PyAtomicCmpXchgInst &self) {
+                     return LLVMGetCmpXchgSuccessOrdering(self.get());
+                   },
+                   [](PyAtomicCmpXchgInst &self, LLVMAtomicOrdering ordering) {
+                     return LLVMSetCmpXchgSuccessOrdering(self.get(), ordering);
+                   })
+      .def_prop_rw("failure_ordering",
+                   [](PyAtomicCmpXchgInst &self) {
+                     return LLVMGetCmpXchgFailureOrdering(self.get());
+                   },
+                   [](PyAtomicCmpXchgInst &self, LLVMAtomicOrdering ordering) {
+                     return LLVMSetCmpXchgFailureOrdering(self.get(), ordering);
                    });
 
   GlobalObjectClass
@@ -2623,7 +2692,113 @@ void bindOtherClasses(nb::module_ &m) {
   auto OperandBundleClass = nb::class_<PyOperandBundle>(m, "OperandBundle",
                                                         "OperandBundle");
   auto BuilderClass = nb::class_<PyBuilder>(m, "Builder", "Builder");
+  auto ModuleProviderClass = nb::class_<PyModuleProvider>
+                               (m, "ModuleProvider", "ModuleProvider");
+  auto MemoryBufferClass = nb::class_<PyMemoryBuffer>
+                             (m, "MemoryBuffer", "MemoryBuffer");
+  
+  // no need to create PyPassManagerBase binding
+  auto PassManagerClass = nb::class_<PyPassManager>
+                            (m, "PassManager", "PassManager");
+  auto FunctionPassManagerClass = nb::class_<PyFunctionPassManager>
+                                    (m, "FunctionPassManager", "FunctionPassManager");
 
+  PassManagerClass
+      .def("__init__",
+           [](PyPassManager *pm) {
+             new (pm) PyPassManager(LLVMCreatePassManager());
+           },
+           "Constructs a new whole-module pass pipeline. This type of pipeline is"
+           "suitable for link-time optimization and whole-module transformations.")
+      .def("run",
+           [](PyPassManager &self, PyModule &module) {
+             return LLVMRunPassManager(self.get(), module.get()) != 0;
+           },
+           "module"_a,
+           "Initializes, executes on the provided module, and finalizes all of the"
+           "passes scheduled in the pass manager. Returns true if any of the passes"
+           "modified the module, false otherwise.");
+
+  FunctionPassManagerClass
+      .def("__init__",
+           [](PyFunctionPassManager *fpm, PyModule &module) {
+             new (fpm) PyFunctionPassManager(LLVMCreateFunctionPassManagerForModule
+                                               (module.get()));
+           },
+           "module"_a,
+           "Constructs a new function-by-function pass pipeline over the module"
+           "provider. It does not take ownership of the module provider. This type of"
+           "pipeline is suitable for code generation and JIT compilation tasks.")
+      .def("initialize",
+           [](PyFunctionPassManager &self) {
+             return LLVMInitializeFunctionPassManager(self.get()) != 0;
+           },
+           "Initializes all of the function passes scheduled in the function pass"
+           "manager. Returns true if any of the passes modified the module, false "
+           "otherwise.")
+      .def("run",
+           [](PyFunctionPassManager &self, PyFunction f) {
+             return LLVMRunFunctionPassManager(self.get(), f.get()) != 0;
+           },
+           "f"_a,
+           "Executes all of the function passes scheduled in the function pass manager"
+           "on the provided function. Returns true if any of the passes modified the"
+           "function, false otherwise.")
+      .def("finalize",
+           [](PyFunctionPassManager &self) {
+             return LLVMFinalizeFunctionPassManager(self.get()) != 0;
+           },
+           "Finalizes all of the function passes scheduled in the function pass"
+           "manager. Returns 1 if any of the passes modified the module, 0 otherwise.");
+  
+
+  ModuleProviderClass
+      .def("create_function_pass_manager",
+           [](PyModuleProvider &self) {
+             return PyFunctionPassManager(LLVMCreateFunctionPassManager(self.get()));
+           },
+           "Deprecated: Use :func:`Module.create_function_pass_manager` instead.");
+
+  MemoryBufferClass
+      .def_static("create_with_contents_of_file",
+                  [](const char *Path) {
+                    LLVMMemoryBufferRef *OutMemBuf;
+                    char **OutMessage;
+                    auto success = LLVMCreateMemoryBufferWithContentsOfFile
+                                     (Path, OutMemBuf, OutMessage);
+                    return std::make_tuple(success, PyMemoryBuffer(*OutMemBuf), *OutMessage);
+                  },
+                  "path"_a)
+      .def_static("create_with_stdin",
+                  []() {
+                    LLVMMemoryBufferRef *OutMemBuf;
+                    char **OutMessage;
+                    auto success = LLVMCreateMemoryBufferWithSTDIN(OutMemBuf, OutMessage);
+                    return std::make_tuple(success, PyMemoryBuffer(*OutMemBuf), *OutMessage);
+                  })
+      .def_static("create_with_memory_range",
+                  [](std::string &inputData, const char *BufferName, bool RequiresNullTerminator) {
+                    return PyMemoryBuffer(LLVMCreateMemoryBufferWithMemoryRange
+                                            (inputData.c_str(), inputData.size(),
+                                             BufferName, RequiresNullTerminator));
+                  },
+                  "input_data"_a, "buffer_name"_a, "requires_null_terminator"_a)
+      .def_static("with_memory_range_copy",
+                  [](std::string &inputData, const char *BufferName) {
+                    return PyMemoryBuffer
+                             (LLVMCreateMemoryBufferWithMemoryRangeCopy
+                                (inputData.c_str(), inputData.size(), BufferName));
+                  },
+                  "input_data"_a, "buffer_name"_a)
+      .def_prop_ro("buffer_start",
+                   [](PyMemoryBuffer &self) {
+                     return LLVMGetBufferStart(self.get());
+                   })
+      .def_prop_ro("buffer_size",
+                   [](PyMemoryBuffer &self) {
+                     return LLVMGetBufferSize(self.get());
+                   });
+  
 
   BuilderClass
       .def("__init__",
@@ -3049,7 +3224,169 @@ void bindOtherClasses(nb::module_ &m) {
      .def("global_string_ptr",
           [](PyBuilder &self, const char *str, const char *name) {
             return PyValueAuto(LLVMBuildGlobalStringPtr(self.get(), str, name));
-          });
+          })
+       /* cast start  */
+  BUILDER_BIND_CAST_OPS
+     .def("cast",
+          [](PyBuilder &self, LLVMOpcode opcode, PyValue &value,  PyType &destType,
+             const char *name) {
+            return PyValueAuto(LLVMBuildCast(self.get(), opcode, value.get(),
+                                             destType.get(), name));
+          },
+          "opcode"_a, "value"_a, "dest_type"_a, "name"_a)
+     .def("int_cast_2",
+          [](PyBuilder &self, PyValue &value, PyType &destType, const char *name){
+            return PyValueAuto(LLVMBuildFPCast
+                                 (self.get(), value.get(), destType.get(), name));
+          },
+          "value"_a, "dest_type"_a, "name"_a)
+     .def("int_cast",
+          [](PyBuilder &self, PyValue &value, PyType &destType, const char *name){
+            return PyValueAuto(LLVMBuildIntCast
+                                 (self.get(), value.get(), destType.get(), name));
+          },
+          "value"_a, "dest_type"_a, "name"_a,
+          "Deprecated: This cast is always signed. Use LLVMBuildIntCast2 instead.")
+     .def_static("get_cast_opcode",
+                 [](PyValue &src, bool srcIsSigned, PyType &destType, bool destIsSigned) {
+                   return LLVMGetCastOpcode(src.get(), srcIsSigned, destType.get(),
+                                            destIsSigned);
+                 },
+                 "src"_a, "src_is_signed"_a, "dest_type"_a, "dest_is_signed"_a)
+     /* end */
+     .def("icmp",
+          [](PyBuilder &self, LLVMIntPredicate op, PyValue &lhs, PyValue &rhs,
+             const char *name) {
+            return PyValueAuto(LLVMBuildICmp(self.get(), op, lhs.get(), rhs.get(),
+                                             name));
+          },
+          "op"_a, "lhs"_a, "rhs"_a, "name"_a)
+     .def("phi",
+          [](PyBuilder &self, PyType &type, const char *name) {
+            return PyPHINode(LLVMBuildPhi(self.get(), type.get(), name));
+          },
+          "type"_a, "name"_a)
+     .def("call_2",
+          [](PyBuilder &self, PyTypeFunction &type, PyFunction &fn, std::vector<PyValue> args,
+             const char *name) {
+            unsigned args_num = args.size();
+            UNWRAP_VECTOR_WRAPPER_CLASS(LLVMValueRef, args, rawArgs, args_num);
+            return PyCallInst(LLVMBuildCall2
+                                (self.get(), type.get(), fn.get(), rawArgs.data(),
+                                 args_num, name));
+          },
+          "fn_type"_a, "fn"_a, "args"_a, "name"_a)
+     .def("call_with_operand_bundles",
+          [](PyBuilder &self, PyTypeFunction type, PyFunction fn,
+             std::vector<PyValue> args,
+             std::vector<std::shared_ptr<PyOperandBundle>> bundles,
+             const char *name) {
+            unsigned args_num = args.size();
+            UNWRAP_VECTOR_WRAPPER_CLASS(LLVMValueRef, args, rawArgs, args_num);
+
+            unsigned bundles_num = bundles.size();
+            UNWRAP_VECTOR_WRAPPER_CLASS_POINTER(LLVMOperandBundleRef, bundles, rawBundles,
+                                                bundles_num);
+            
+            return PyCallInst(LLVMBuildCallWithOperandBundles
+                                (self.get(), type.get(), fn.get(), rawArgs.data(),
+                                 args_num, rawBundles.data(), bundles_num, name));
+          })
+     .def("select",
+          [](PyBuilder &self, PyValue &If, PyValue &Then, PyValue &Else,
+             const char *name) {
+            return PyCallInst(LLVMBuildSelect
+                                (self.get(), If.get(), Then.get(), Else.get(),
+                                 name));
+          },
+          "If"_a, "Then"_a, "Else"_a, "name"_a)
+     .def("vaarg",
+          [](PyBuilder &self, PyValue &list, PyType &type, const char *name) {
+            return PyValue(LLVMBuildVAArg(self.get(), list.get(), type.get(),
+                                          name));
+          },
+          "list"_a, "type"_a, "name"_a)
+     .def("extract_element",
+          [](PyBuilder &self, PyValue &vecVal, PyValue &index, const char *name) {
+            return PyValueAuto(LLVMBuildExtractElement
+                                 (self.get(), vecVal.get(), index.get(), name));
+          },
+          "vec"_a, "index"_a, "name"_a)
+     .def("insert_element",
+          [](PyBuilder &self, PyValue &vecVal, PyValue &eltVal,
+             PyValue &index, const char *name) {
+            return PyValueAuto(LLVMBuildInsertElement
+                                 (self.get(), vecVal.get(), eltVal.get(),
+                                  index.get(), name));
+          },
+          "vec"_a, "element"_a, "index"_a, "name"_a)
+    .def("shuffle_vector",
+         [](PyBuilder &self, PyValue &v1, PyValue &v2, PyValue &mask, const char *name) {
+           return PyShuffleVectorInst(LLVMBuildShuffleVector
+                                (self.get(), v1.get(), v2.get(), mask.get(), name));
+         },
+         "v1"_a, "v2"_a, "mask"_a, "name"_a)
+    .def("extract_value",
+         [](PyBuilder &self, PyValue &aggVal, unsigned index, const char *name) {
+           return PyValueAuto(LLVMBuildExtractValue
+                                (self.get(), aggVal.get(), index, name));
+         },
+         "agg"_a, "index"_a, "name"_a)
+    .def("insert_value",
+         [](PyBuilder &self, PyValue &aggVal, PyValue &eltVal, unsigned index,
+            const char *name) {
+           return PyValueAuto(LLVMBuildInsertValue
+                                (self.get(), aggVal.get(), eltVal.get(), index,
+                                 name));
+         },
+         "agg"_a, "elt"_a, "index"_a, "name"_a)
+    .def("freeze",
+         [](PyBuilder &self, PyValue &val, const char *name) {
+           return PyValueAuto(LLVMBuildFreeze(self.get(), val.get(), name));
+         },
+         "val"_a, "name"_a)
+    .def("is_null",
+         [](PyBuilder &self, PyValue &val, const char *name) {
+           return PyValueAuto(LLVMBuildIsNull(self.get(), val.get(), name));
+         },
+         "value"_a, "name"_a)
+    .def("is_not_null",
+         [](PyBuilder &self, PyValue &val, const char *name) {
+           return PyValueAuto(LLVMBuildIsNotNull(self.get(), val.get(), name));
+         },
+         "value"_a, "name"_a)
+    .def("ptr_diff_2",
+         [](PyBuilder &self, PyType &elemType, PyValue &lhs, PyValue &rhs,
+            const char *name) {
+           return PyValueAuto(LLVMBuildPtrDiff2
+                                (self.get(), elemType.get(), lhs.get(),
+                                 rhs.get(), name));
+         },
+         "elem_type"_a, "lhs"_a, "rhs"_a, "name"_a)
+    .def("fence",
+         [](PyBuilder &self, LLVMAtomicOrdering ordering, bool singleThread,
+            const char *name) {
+           return PyFenceInst(LLVMBuildFence(self.get(), ordering, singleThread, name));
+         },
+         "ordering"_a, "singleThread"_a, "name"_a)
+    .def("atomic_rmw",
+         [](PyBuilder &self, LLVMAtomicRMWBinOp op, PyValue &ptr, PyValue val,
+            LLVMAtomicOrdering ordering, bool singleThread) {
+           auto res = LLVMBuildAtomicRMW(self.get(), op, ptr.get(), val.get(), ordering,
+                                         singleThread);
+           return PyAtomicRMWInst(res);
+         },
+         "op"_a, "ptr"_a, "val"_a, "ordering"_a, "singleThread"_a)
+    .def("atomic_cmp_xchg",
+         [](PyBuilder &self, PyValue &ptr, PyValue &cmp, PyValue &New,
+            LLVMAtomicOrdering successOrdering, LLVMAtomicOrdering failureOrdering,
+            bool singleThread) {
+           auto res = LLVMBuildAtomicCmpXchg(self.get(), ptr.get(), cmp.get(),
+                                             New.get(), successOrdering,
+                                             failureOrdering, singleThread);
+         });
+
+  
 
   BasicBlockWrapperClass
       .def_prop_ro("name",
@@ -3575,6 +3912,18 @@ void bindOtherClasses(nb::module_ &m) {
              return strCopy;
            },
            "Return a string representation of the module")
+      .def("create_function_pass_manager",
+           [](PyModule &self) {
+             return PyFunctionPassManager(LLVMCreateFunctionPassManagerForModule(self.get()));
+           },
+           "Constructs a new function-by-function pass pipeline over the module"
+           "provider. It does not take ownership of the module provider. This type of"
+           "pipeline is suitable for code generation and JIT compilation tasks.")
+      .def("create_module_provider",
+           [](PyModule &self) {
+             return PyModuleProvider(LLVMCreateModuleProviderForExistingModule
+                                       (self.get()));
+           })
       .def("get_intrinsic_declaration",
            [](PyModule &module, unsigned ID, std::vector<PyType> paramTypes) {
              size_t paramCnt = paramTypes.size();
