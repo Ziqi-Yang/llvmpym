@@ -51,6 +51,9 @@ PyInstruction* PyInstructionAuto(LLVMValueRef inst) {
   case LLVMLandingPad:
     return new PyLandingPadInst(inst);
 
+  case LLVMFence:
+    return new PyFenceInst(inst);
+
   default:
     return new PyInstruction(inst);
   }
@@ -1073,8 +1076,10 @@ void bindValueClasses(nb::module_ &m) {
                                  (m, "ExtractValueInst", "ExtractValueInst");
   auto LandingPadInstClass = nb::class_<PyLandingPadInst, PyInstruction>
                                (m, "LandingPadInst", "LandingPadInst");
-  auto IndirectBrInstClass = nb::class_<PyIndirectBrInst>
+  auto IndirectBrInstClass = nb::class_<PyIndirectBrInst, PyInstruction>
                                (m, "IndirectBrInst", "IndirectBrInst");
+  auto FenceInstClass = nb::class_<PyFenceInst, PyInstruction>
+                          (m, "FenceInst", "FenceInst");
 
 
   ValueClass
@@ -2394,6 +2399,15 @@ void bindValueClasses(nb::module_ &m) {
              return PyBasicBlockWrapper(LLVMGetIncomingBlock(self.get(), index));
            });
 
+  FenceInstClass
+        .def_prop_rw("ordering",
+                     [](PyFenceInst &self) {
+                       return LLVMGetOrdering(self.get());
+                     },
+                     [](PyFenceInst &self, LLVMAtomicOrdering ordering) {
+                       return LLVMSetOrdering(self.get(), ordering);
+                     });
+
   LoadInstClass
       .def_prop_rw("alignment",
                    [](PyLoadInst &v) {
@@ -2403,7 +2417,21 @@ void bindValueClasses(nb::module_ &m) {
                      return LLVMSetAlignment(v.get(), Bytes);
                    },
                    nb::for_setter
-                     (nb::sig("def alignment(self, bytes: int, /) -> None")));
+                     (nb::sig("def alignment(self, bytes: int, /) -> None")))
+      .def_prop_rw("is_volatile",
+                   [](PyLoadInst &self) {
+                     return LLVMGetVolatile(self.get()) != 0;
+                   },
+                   [](PyLoadInst &self, bool isVolatile) {
+                     return LLVMSetVolatile(self.get(), isVolatile);
+                   })
+      .def_prop_rw("ordering",
+                   [](PyLoadInst &self) {
+                     return LLVMGetOrdering(self.get());
+                   },
+                   [](PyLoadInst &self, LLVMAtomicOrdering ordering) {
+                     return LLVMSetOrdering(self.get(), ordering);
+                   });
 
   StoreInstClass
       .def_prop_rw("alignment",
@@ -2414,7 +2442,21 @@ void bindValueClasses(nb::module_ &m) {
                      return LLVMSetAlignment(v.get(), Bytes);
                    },
                    nb::for_setter
-                     (nb::sig("def alignment(self, bytes: int, /) -> None")));
+                     (nb::sig("def alignment(self, bytes: int, /) -> None")))
+      .def_prop_rw("is_volatile",
+                   [](PyStoreInst &self) {
+                     return LLVMGetVolatile(self.get()) != 0;
+                   },
+                   [](PyStoreInst &self, bool isVolatile) {
+                     return LLVMSetVolatile(self.get(), isVolatile);
+                   })
+      .def_prop_rw("ordering",
+                   [](PyStoreInst &self) {
+                     return LLVMGetOrdering(self.get());
+                   },
+                   [](PyStoreInst &self, LLVMAtomicOrdering ordering) {
+                     return LLVMSetOrdering(self.get(), ordering);
+                   });
   
   AtomicRMWInstClass
       .def_prop_rw("alignment",
@@ -2425,7 +2467,28 @@ void bindValueClasses(nb::module_ &m) {
                      return LLVMSetAlignment(v.get(), Bytes);
                    },
                    nb::for_setter
-                     (nb::sig("def alignment(self, bytes: int, /) -> None")));
+                     (nb::sig("def alignment(self, bytes: int, /) -> None")))
+      .def_prop_rw("is_volatile",
+                   [](PyAtomicRMWInst &self) {
+                     return LLVMGetVolatile(self.get()) != 0;
+                   },
+                   [](PyAtomicRMWInst &self, bool isVolatile) {
+                     return LLVMSetVolatile(self.get(), isVolatile);
+                   })
+      .def_prop_rw("ordering",
+                   [](PyAtomicRMWInst &self) {
+                     return LLVMGetOrdering(self.get());
+                   },
+                   [](PyAtomicRMWInst &self, LLVMAtomicOrdering ordering) {
+                     return LLVMSetOrdering(self.get(), ordering);
+                   })
+      .def_prop_rw("bin_op",
+                   [](PyAtomicRMWInst &self) {
+                     return LLVMGetAtomicRMWBinOp(self.get());
+                   },
+                   [](PyAtomicRMWInst &self, LLVMAtomicRMWBinOp binOp) {
+                     return LLVMSetAtomicRMWBinOp(self.get(), binOp);
+                   });
   
   AtomicCmpXchgInstClass
       .def_prop_rw("alignment",
@@ -2436,7 +2499,21 @@ void bindValueClasses(nb::module_ &m) {
                      return LLVMSetAlignment(v.get(), Bytes);
                    },
                    nb::for_setter
-                     (nb::sig("def alignment(self, bytes: int, /) -> None")));
+                     (nb::sig("def alignment(self, bytes: int, /) -> None")))
+      .def_prop_rw("is_volatile",
+                   [](PyLoadInst &self) {
+                     return LLVMGetVolatile(self.get()) != 0;
+                   },
+                   [](PyLoadInst &self, bool isVolatile) {
+                     return LLVMSetVolatile(self.get(), isVolatile);
+                   })
+      .def_prop_rw("is_weak",
+                   [](PyAtomicCmpXchgInst &self) {
+                     return LLVMGetWeak(self.get());
+                   },
+                   [](PyAtomicCmpXchgInst &self, bool isWeak) {
+                     return LLVMSetWeak(self.get(), isWeak);
+                   });
 
   GlobalObjectClass
       .def("set_metadataf",
@@ -2771,7 +2848,208 @@ void bindOtherClasses(nb::module_ &m) {
        /*
          Arithmetic
         */
-  BUILDER_BIND_BINARY_OPS;
+  BUILDER_BIND_BINARY_OPS
+      .def("binop",
+           [](PyBuilder &self, LLVMOpcode op, PyValue &lhs, PyValue &rhs,
+              const char *name) {
+             return PyValueAuto(LLVMBuildBinOp(self.get(), op, lhs.get(), rhs.get(), name));
+           })
+      .def("neg",
+           [](PyBuilder &self, PyValue &v, const char *name) {
+             return PyValueAuto(LLVMBuildNeg(self.get(), v.get(), name));
+           })
+      .def("neg_nsw",
+           [](PyBuilder &self, PyValue &v, const char *name) {
+             return PyValueAuto(LLVMBuildNSWNeg(self.get(), v.get(), name));
+           })
+      .def("neg_nuw",
+           [](PyBuilder &self, PyValue &v, const char *name) {
+             return PyValueAuto(LLVMBuildNUWNeg(self.get(), v.get(), name));
+           })
+      .def("fneg",
+           [](PyBuilder &self, PyValue &v, const char *name) {
+             return PyValueAuto(LLVMBuildFNeg(self.get(), v.get(), name));
+           })
+      .def("not",
+           [](PyBuilder &self, PyValue &v, const char *name) {
+             return PyValueAuto(LLVMBuildNot(self.get(), v.get(), name));
+           })
+      .def_static("get_nuw", // TODO where to put (since we don't have arithInst and its relationship)
+                  [](PyInstruction &arithInst) {
+                    return LLVMGetNUW(arithInst.get()) != 0;
+                  },
+                  "arith_inst"_a)
+      .def_static("set_nuw",
+                  [](PyInstruction &arithInst, bool hasNUW) {
+                    return LLVMSetNUW(arithInst.get(), hasNUW);
+                  },
+                  "arith_inst"_a, "hasNUW"_a)
+      .def_static("get_nsw",
+                  [](PyInstruction &arithInst) {
+                    return LLVMGetNSW(arithInst.get()) != 0;
+                  },
+                  "arithInst"_a)
+      .def_static("set_nsw",
+                  [](PyInstruction &arithInst, bool hasNSW) {
+                    return LLVMSetNSW(arithInst.get(), hasNSW);
+                  },
+                  "arith_inst"_a, "hasNSW"_a)
+      .def_static("get_exact",
+                  [](PyInstruction &DivOrShrInst) {
+                    return LLVMGetExact(DivOrShrInst.get()) != 0;
+                  },
+                  "div_or_shr_inst"_a)
+      .def_static("set_exact",
+                  [](PyInstruction &DivOrShrInst, bool isExact) {
+                    return LLVMSetExact(DivOrShrInst.get(), isExact);
+                  },
+                  "div_or_shr_inst"_a, "is_exact"_a)
+      .def_static("get_nneg",
+                  [](PyInstruction &NonNegInst) {
+                    return LLVMGetNNeg(NonNegInst.get()) != 0;
+                  },
+                  "non_neg_inst"_a,
+                  "Gets if the instruction has the non-negative flag set.\n",
+                  "Only valid for zext instructions.")
+      .def_static("set_nned",
+                  [](PyInstruction &NonNegInst, bool isNonNeg) {
+                    return LLVMSetNNeg(NonNegInst.get(), isNonNeg);
+                  },
+                  "non_neg_inst"_a, "is_non_neg"_a,
+                  "Sets the non-negative flag for the instruction.\n"
+                  "Only valid for zext instructions.")
+      .def_static("get_fast_math_flags",
+                  [](PyInstruction &FPMathInst) {
+                    return LLVMGetFastMathFlags(FPMathInst.get());
+                  },
+                  "fp_math_inst"_a,
+                  "Get the flags for which fast-math-style optimizations are allowed "
+                  "for this value.\n\n"
+                  "Only valid on floating point instructions.")
+      .def_static("set_fast_math_flags",
+                  [](PyInstruction &FPMathInst, LLVMFastMathFlags FMF) {
+                    return LLVMSetFastMathFlags(FPMathInst.get(), FMF);
+                  },
+                  "fp_math_inst"_a, "fmf"_a,
+                  "Sets the flags for which fast-math-style optimizations are allowed "
+                  "for this value.\n\n"
+                  "Only valid on floating point instructions.")
+      .def_static("can_value_use_fast_math_flags",
+                  [](PyInstruction &inst) {
+                    return LLVMCanValueUseFastMathFlags(inst.get()) != 0;
+                  },
+                  "inst",
+                  "Check if a given value can potentially have fast math flags.\n"
+                  "Will return true for floating point arithmetic instructions, and "
+                  "for select, phi, and call instructions whose type is a floating "
+                  "point type, or a vector or array thereof.\n"
+                  "See https://llvm.org/docs/LangRef.html#fast-math-flags")
+      .def_static("get_is_disjoint",
+                  [](PyInstruction &inst) {
+                    return LLVMGetIsDisjoint(inst.get()) != 0;
+                  },
+                  "inst"_a)
+      .def_static("set_is_disjoint",
+                  [](PyInstruction &inst, bool isDisjoint) {
+                    return LLVMSetIsDisjoint(inst.get(), isDisjoint);
+                  },
+                  "inst"_a, "is_disjoint"_a)
+
+      .def("malloc",
+           [](PyBuilder &self, PyType &type, const char *name) {
+             return PyCallInst(LLVMBuildMalloc(self.get(), type.get(), name));
+           },
+           "type"_a, "name"_a)
+      .def("array_malloc",
+           [](PyBuilder &self, PyType &type, PyValue &val, const char *name) {
+             return PyCallInst(LLVMBuildArrayAlloca(self.get(), type.get(), val.get(), name));
+           },
+           "type"_a, "value"_a, "name"_a)
+      .def("memset",
+           [](PyBuilder &self, PyValue &ptr, PyValue &val, PyValue &len, unsigned align) {
+             auto res = LLVMBuildMemSet(self.get(), ptr.get(), val.get(), len.get(),
+                                        align);
+             return PyCallInst(res);
+           },
+           "ptr"_a, "val"_a, "len"_a, "align"_a)
+      .def("memcpy",
+           [](PyBuilder &self, PyValue &dest, unsigned dstAlign, PyValue &src,
+              unsigned srcAlign, PyValue size) {
+             auto res = LLVMBuildMemCpy(self.get(), dest.get(), dstAlign, src.get(),
+                                        srcAlign, size.get());
+             return PyCallInst(res);
+           },
+           "dest"_a, "dest_align"_a, "src"_a, "src_align"_a, "size"_a,
+           "Creates and inserts a memcpy between the specified pointers.")
+      .def("mem_move",
+           [](PyBuilder &self, PyValue &dest, unsigned dstAlign, PyValue &src,
+              unsigned srcAlign, PyValue size) {
+             auto res = LLVMBuildMemMove(self.get(), dest.get(), dstAlign, src.get(),
+                                         srcAlign, size.get());
+             return PyCallInst(res);
+           },
+           "dest"_a, "dest_align"_a, "src"_a, "src_align"_a, "size"_a,
+           "Creates and inserts a memmove between the specified pointers.")
+      .def("alloca",
+           [](PyBuilder &self, PyType &type, const char *name) {
+             return PyAllocaInst(LLVMBuildAlloca(self.get(), type.get(), name));
+           },
+           "type"_a, "name"_a)
+      .def("array_alloca",
+           [](PyBuilder &self, PyType &type, PyValue &val, const char *name) {
+             return PyAllocaInst(LLVMBuildArrayAlloca(self.get(), type.get(),
+                                                      val.get(), name));
+           },
+           "type"_a, "value"_a, "name"_a)
+      .def("free",
+           [](PyBuilder &self, PyValue pointer) {
+             return PyCallInst(LLVMBuildFree(self.get(), pointer.get()));
+           },
+           "pointer"_a)
+      .def("load2",
+           [](PyBuilder &self, PyType &type, PyValue &pointer, const char *name) {
+             return PyLoadInst(LLVMBuildLoad2(self.get(), type.get(), pointer.get(),
+                                              name));
+           },
+           "type"_a, "ptr"_a, "name"_a)
+      .def("store",
+           [](PyBuilder &self, PyValue &val, PyValue &ptr) {
+             return PyStoreInst(LLVMBuildStore(self.get(), val.get(), ptr.get()));
+           },
+           "value"_a, "ptr"_a)
+      .def("gep2",
+           [](PyBuilder &self, PyType &type, PyValue &ptr, std::vector<PyValue> indices,
+              const char *name) {
+             unsigned num_indices = indices.size();
+             UNWRAP_VECTOR_WRAPPER_CLASS(LLVMValueRef, indices, rawIndices, num_indices);
+             return PyValueAuto(LLVMBuildGEP2(self.get(), type.get(), ptr.get(),
+                                rawIndices.data(), num_indices, name));
+           },
+           "type"_a,  "ptr"_a, "indices"_a, "name"_a)
+     .def("in_bounds_gep2",
+          [](PyBuilder &self, PyType &type, PyValue &ptr, std::vector<PyValue> indices,
+             const char *name) {
+            unsigned num_indices = indices.size();
+            UNWRAP_VECTOR_WRAPPER_CLASS(LLVMValueRef, indices, rawIndices, num_indices);
+            return PyValueAuto(LLVMBuildGEP2(self.get(), type.get(), ptr.get(),
+                                             rawIndices.data(), num_indices, name));
+          },
+          "type"_a,  "ptr"_a, "indices"_a, "name"_a)
+     .def("struct_gep2",
+          [](PyBuilder &self, PyType &type, PyValue &ptr, unsigned index, const char *name) {
+            auto res = LLVMBuildStructGEP2(self.get(), type.get(), ptr.get(),
+                                           index, name);
+            return PyValueAuto(res);
+          },
+          "type"_a, "ptr"_a, "index"_a, "name"_a)
+     .def("global_string",
+          [](PyBuilder &self, const char *str, const char *name) {
+            return PyValueAuto(LLVMBuildGlobalString(self.get(), str, name));
+          })
+     .def("global_string_ptr",
+          [](PyBuilder &self, const char *str, const char *name) {
+            return PyValueAuto(LLVMBuildGlobalStringPtr(self.get(), str, name));
+          });
 
   BasicBlockWrapperClass
       .def_prop_ro("name",

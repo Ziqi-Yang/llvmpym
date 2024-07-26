@@ -215,6 +215,8 @@ protected:
       macro(FenceInst)
 
 // customized classes structure
+// the actual classes structure can be viewed on 'classllvm_1_1Value.html' page in
+// LLVM doxygen site
 // e.g.
 // CallBase => CallInst & InvokeInst (refers to LLVM implementation code)
 // NOTE
@@ -254,7 +256,6 @@ protected:
       macro(PyInstruction, PyGetElementPtrInst) \
       macro(PyInstruction, PyPHINode) \
       macro(PyInstruction, PyShuffleVectorInst) \
-      macro(PyInstruction, PyStoreInst) \
       macro(PyInstruction, PyReturnInst) \
       macro(PyInstruction, PySwitchInst) \
       macro(PyInstruction, PyCatchSwitchInst) \
@@ -262,15 +263,17 @@ protected:
       macro(PyInstruction, PyFuncletPadInst) \
         macro(PyFuncletPadInst, PyCatchPadInst) \
       macro(PyInstruction, PyAllocaInst) \
-      macro(PyInstruction, PyLoadInst) \
-      macro(PyInstruction, PyAtomicCmpXchgInst) \
-      macro(PyInstruction, PyAtomicRMWInst) \
       macro(PyInstruction, PyIEValueInstBase) \
         macro(PyIEValueInstBase, PyInsertValueInst) \
         macro(PyIEValueInstBase, PyExtractValueInst) \
       macro(PyInstruction, PyBranchInst) \
       macro(PyInstruction, PyIndirectBrInst) \
-      macro(PyInstruction, PyLandingPadInst)
+      macro(PyInstruction, PyLandingPadInst) \
+      macro(PyInstruction, PyLoadInst) \
+      macro(PyInstruction, PyStoreInst) \
+      macro(PyInstruction, PyAtomicRMWInst) \
+      macro(PyInstruction, PyAtomicCmpXchgInst) \
+      macro(PyInstruction, PyFenceInst)
 
 #define PY_FOR_EACH_TYPE_CLASS_RELASIONSHIP(macro) \
   macro(PyType, PyTypeInt) \
