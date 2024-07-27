@@ -492,10 +492,6 @@ public:
     other.is_global_context = false;
   }
 
-private:
-  LLVMContextRef context;
-  bool is_global_context;
-
   void cleanup() {
     // don't clean global context, which is managed by LLVM
     if (context && !is_global_context) {
@@ -503,6 +499,11 @@ private:
       context = nullptr;
     }
   }
+
+
+private:
+  LLVMContextRef context;
+  bool is_global_context;
 };
 
 
@@ -542,9 +543,6 @@ public:
     cleanup();
     module = std::exchange(other.module, nullptr);
   }
-  
-private:
-  LLVMModuleRef module;
 
   void cleanup() {
     if (module) {
@@ -552,6 +550,9 @@ private:
       module = nullptr;
     }
   }
+  
+private:
+  LLVMModuleRef module;
 };
 
 

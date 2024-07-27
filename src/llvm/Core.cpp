@@ -7,6 +7,7 @@
 #include <memory>
 #include <optional>
 #include <llvm-c/Core.h>
+#include <fmt/core.h>
 #include "Core.h"
 #include "Types.h"
 #include "Utils.h"
@@ -16,6 +17,20 @@ using namespace nb::literals;
 
 template <typename T>
 using optional = std::optional<T>;
+
+/**
+ * Get a python side repr string for obj
+ */
+template <typename T>
+inline const char *get_repr_str(T &&obj) {
+  return nb::repr(nb::cast(obj)).c_str();
+}
+
+inline std::string get_value_name(PyValue &v) {
+  size_t len;
+  const char *str = LLVMGetValueName2(v.get(), &len);
+  return std::string(str, len);
+}
 
 /**
  * NOTE only mapping needed specific instruction sub-classes
@@ -594,19 +609,22 @@ void bindGlobalFunctions(nb::module_ &m) {
         "The version components are returned via the function's three output "
         "parameters or skipped if a NULL pointer was supplied.");
 
-  // NOTE these two functions are useless in Python?
+  // NOTE these two functions seems useless in Python
   // m.def("create_message", &LLVMCreateMessage, "message"_a);
   // m.def("dispose_message", &LLVMDisposeMessage, "message"_a); // error, may need a wrapper for created message
 
 
-  m.def("set_mk_kind_id", [](const std::string &name) {
-    return LLVMGetMDKindID(name.c_str(), name.size());
-  }, "name"_a);
+  m.def("get_md_kind_id",
+        [](const std::string &name) {
+          return LLVMGetMDKindID(name.c_str(), name.size());
+        },
+        "name"_a);
 
   m.def("get_enum_attribute_kind_for_name",
         [](const std::string &name){
           return LLVMGetEnumAttributeKindForName(name.c_str(), name.size());
-        }, "name"_a,
+        },
+        "name"_a,
         "Return an unique id given the name of a enum attribute,"
         "or 0 if no attribute by that name exists.\n\n"
         "See http://llvm.org/docs/LangRef.html#parameter-attributes"
@@ -616,18 +634,6 @@ void bindGlobalFunctions(nb::module_ &m) {
         "going through the C API deprecation cycle.");
 
   m.def("get_last_enum_attribute_kind", &LLVMGetLastEnumAttributeKind);
-
-  m.def("get_inline_asm",
-        [](PyType &ty, std::string asmString, std::string constraints,
-           bool hasSideEffects, bool isAlignStack, LLVMInlineAsmDialect dialect,
-           bool canThrow){
-          return PyInlineAsm(LLVMGetInlineAsm
-                               (ty.get(), asmString.c_str(), asmString.size(),
-                                constraints.c_str(), constraints.size(),
-                                hasSideEffects, isAlignStack, dialect, canThrow));
-        }, "type"_a, "asm"_a, "constraints"_a, "has_side_effects"_a,
-        "is_align_stack"_a, "dialect"_a, "can_throw"_a,
-        "Create the specified uniqued inline asm string.");
 
   m.def("replace_all_uses_with",
         [](PyValue &oldVal, PyValue &newVal) {
@@ -647,6 +653,18 @@ void bindGlobalFunctions(nb::module_ &m) {
 
 void bindTypeClasses(nb::module_ &m) {
   nb::class_<PyType>(m, "Type", "Type")
+      .def("__repr__",
+           [](PyType &self) {
+             auto kind = get_repr_str(LLVMGetTypeKind(self.get()));
+             return fmt::format("<Type kind={}>", kind);
+           })
+      .def("__str__",
+           [](PyType &t) {
+             char *str = LLVMPrintTypeToString(t.get());
+             std::string res(str);
+             LLVMDisposeMessage(str);
+             return res;
+           })
       .def_prop_ro("align",
                    [](PyType &t) {
                      return PyValueAuto(LLVMAlignOf(t.get()));
@@ -665,13 +683,6 @@ void bindTypeClasses(nb::module_ &m) {
       .def_prop_ro("context",
                    [](PyType &t) { return PyContext(LLVMGetTypeContext(t.get())); },
                    "Obtain the context to which this type instance is associated.")
-      .def("__str__",
-           [](PyType &t) {
-             char *str = LLVMPrintTypeToString(t.get());
-             std::string res(str);
-             LLVMDisposeMessage(str);
-             return res;
-           })
       .def_prop_ro("sub_type_number",
              [](PyTypeSequence &t) { return LLVMGetNumContainedTypes(t.get()); })
       .def_prop_ro("sub_types",
@@ -708,7 +719,12 @@ void bindTypeClasses(nb::module_ &m) {
                   [](PyType &t) {
                     return PyPoisonValue(LLVMGetPoison(t.get()));
                   },
-                   "Obtain a constant value referring to a poison value of a type.");
+                   "Obtain a constant value referring to a poison value of a type.")
+      .def("dump",
+           [](PyType &self) {
+             return LLVMDumpType(self.get());
+           },
+           "Dump a representation of a type to stderr.");
   
   auto TypeIntClass = nb::class_<PyTypeInt, PyType>(m, "IntType", "IntType");
   auto TypeRealClass = nb::class_<PyTypeReal, PyType>(m, "RealType", "RealType");
@@ -827,7 +843,8 @@ void bindTypeClasses(nb::module_ &m) {
               UNWRAP_VECTOR_WRAPPER_CLASS(LLVMTypeRef, paramTypes, rawParamTypes, param_count)
               new (t) PyTypeFunction(LLVMFunctionType(returnType.get(), rawParamTypes.data(),
                                                      param_count, isVarArg));
-            }, "return_type"_a, "param_types"_a, "is_var_arg"_a,
+            },
+            "return_type"_a, "param_types"_a, "is_var_arg"_a,
             "Obtain a function type consisting of a specified signature.")
       .def_prop_ro("is_vararg",
                    [](PyTypeFunction &t) { return LLVMIsFunctionVarArg(t.get()) != 0; },
@@ -835,7 +852,7 @@ void bindTypeClasses(nb::module_ &m) {
       .def_prop_ro("return_type",
                    [](PyTypeFunction &t) { return PyTypeAuto(LLVMGetReturnType(t.get())); },
                    "Obtain the Type this function Type returns.")
-      .def_prop_ro("param_number",
+      .def_prop_ro("params_num",
                    [](PyTypeFunction &t) { return LLVMCountParamTypes(t.get()); },
                    "Obtain the number of parameters this function accepts.")
       .def_prop_ro("param_types",
@@ -1096,11 +1113,7 @@ void bindValueClasses(nb::module_ &m) {
                    [](PyValue &v) { return LLVMGetValueKind(v.get()); })
       // NOTE LLVMSetValueName and LLVMGetValueName are depreciated
       .def_prop_rw("name",
-                   [](PyValue &v) {
-                     size_t len;
-                     const char *str = LLVMGetValueName2(v.get(), &len);
-                     return std::string(str, len);
-                   },
+                   &get_value_name,
                    [](PyValue &v, std::string &name) {
                      return LLVMSetValueName2(v.get(), name.c_str(), name.size());
                    },
@@ -1231,6 +1244,18 @@ void bindValueClasses(nb::module_ &m) {
            "keeps it alive.");
 
   InlineAsmClass
+      .def("get_inline_asm",
+           [](PyInlineAsm *iasm, PyType &ty, std::string asmString, std::string constraints,
+              bool hasSideEffects, bool isAlignStack, LLVMInlineAsmDialect dialect,
+              bool canThrow){
+             new (iasm) PyInlineAsm(LLVMGetInlineAsm
+                                      (ty.get(), asmString.c_str(), asmString.size(),
+                                       constraints.c_str(), constraints.size(),
+                                       hasSideEffects, isAlignStack, dialect, canThrow));
+           },
+           "type"_a, "asm"_a, "constraints"_a, "has_side_effects"_a,
+           "is_align_stack"_a, "dialect"_a, "can_throw"_a,
+           "Create the specified unique inline asm string.")
       .def_prop_ro("str",
                    [](PyInlineAsm &iasm) {
                      size_t len;
@@ -1715,6 +1740,17 @@ void bindValueClasses(nb::module_ &m) {
   
 
   FunctionClass
+      .def("__init__",
+           [](PyFunction *f, PyModule &m, std::string &name, PyTypeFunction &functionTy) {
+             new (f) PyFunction(LLVMAddFunction(m.get(), name.c_str(), functionTy.get()));
+           },
+           "module"_a, "name"_a, "function_type"_a,
+           "Add a function to a module under a specified name.")
+      .def("__repr__",
+           [](PyFunction &self) {
+             auto name = get_value_name(self);
+             return fmt::format("<Function name={}>", name);
+           })
       .def_prop_rw("call_conv",
                    [](PyFunction &self){
                      return LLVMGetFunctionCallConv(self.get());
@@ -3580,15 +3616,15 @@ void bindOtherClasses(nb::module_ &m) {
   
   
   AttributeClass
-      .def("is_enum",
+      .def_prop_ro("is_enum",
            [](PyAttribute &attr) {
              return LLVMIsEnumAttribute(attr.get()) != 0;
            })
-      .def("is_string",
+      .def_prop_ro("is_string",
            [](PyAttribute &attr) {
              return LLVMIsStringAttribute(attr.get()) != 0;
            })
-      .def("is_type",
+      .def_prop_ro("is_type",
            [](PyAttribute &attr) {
              return LLVMIsTypeAttribute(attr.get()) != 0;
            });
@@ -3597,7 +3633,14 @@ void bindOtherClasses(nb::module_ &m) {
       .def("__init__",
            [](PyEnumAttribute *t, PyContext &c, unsigned kindID, uint64_t val) {
              new (t) PyEnumAttribute(LLVMCreateEnumAttribute(c.get(), kindID, val));
-           }, "context"_a, "kind_id"_a, "val"_a)
+           },
+           "context"_a, "kind_id"_a, "val"_a)
+      .def("__repr__",
+           [](PyEnumAttribute &self) {
+             auto kind = LLVMGetEnumAttributeKind(self.get());
+             auto value = LLVMGetEnumAttributeValue(self.get());
+             return fmt::format("<EnumAttribute kind={} value={}>", kind, value);
+           })
       .def_prop_ro("kind",
                    [](PyEnumAttribute &attr) {
                      return LLVMGetEnumAttributeKind(attr.get());
@@ -3605,14 +3648,22 @@ void bindOtherClasses(nb::module_ &m) {
       .def_prop_ro("value",
                    [](PyEnumAttribute &attr) {
                      return LLVMGetEnumAttributeValue(attr.get());
-                   });
+                   },
+                   "Get the enum attribute's value. 0 is returned if none exists.");
 
   TypeAttributeClass
       .def("__init__",
            [](PyTypeAttribute *t, PyContext &context, unsigned kind_id, PyType &type) {
-             new (t) PyTypeAttribute(LLVMCreateTypeAttribute(context.get(), kind_id, type.get()));
+             new (t) PyTypeAttribute(LLVMCreateTypeAttribute
+                                       (context.get(), kind_id, type.get()));
            },
            "context"_a, "kind_id"_a, "type"_a)
+      .def("__repr__",
+           [](PyTypeAttribute &self) {
+             auto value = LLVMGetTypeAttributeValue(self.get());
+             auto type_kind = LLVMGetTypeKind(value);
+             return fmt::format("<TypeAttribute value={}>", get_repr_str(type_kind));
+           })
       .def_prop_ro("value",
                    [](PyTypeAttribute &ta){
                      return PyTypeAuto(LLVMGetTypeAttributeValue(ta.get()));
@@ -3626,7 +3677,20 @@ void bindOtherClasses(nb::module_ &m) {
                                                   kind.c_str(), kind.size(),
                                                   value.c_str(), value.size());
              new (t) PyStringAttribute(raw);
-           }, "context"_a, "kind"_a, "value"_a)
+           },
+           "context"_a, "kind"_a, "value"_a)
+      .def("__repr__",
+           [](PyStringAttribute &self) {
+             unsigned kind_length;
+             const char *raw_kind = LLVMGetStringAttributeKind(self.get(), &kind_length);
+             auto kind = std::string(raw_kind, kind_length);
+             
+             unsigned value_length;
+             const char *raw_value = LLVMGetStringAttributeValue(self.get(), &value_length);
+             auto value = std::string(raw_value, value_length);
+
+             return fmt::format("<TypeAttribute kind={} value={}>", kind, value);
+           })
       .def_prop_ro("kind",
                    [](PyStringAttribute &ta) {
                      unsigned length;
@@ -3638,7 +3702,8 @@ void bindOtherClasses(nb::module_ &m) {
                      unsigned length;
                      const char *value = LLVMGetStringAttributeValue(ta.get(), &length);
                      return std::string(value, length);
-                   }, "Get the type attribute's value.");
+                   },
+                   "Get the type attribute's value.");
   
 
   DiagnosticInfoClass
@@ -3660,7 +3725,7 @@ void bindOtherClasses(nb::module_ &m) {
   
   NamedMDNodeClass
       .def_prop_ro("next",
-                   [](PyNamedMDNode &nmdn) -> std::optional<PyNamedMDNode>{
+                   [](PyNamedMDNode &nmdn) -> optional<PyNamedMDNode>{
                      auto res = LLVMGetNextNamedMetadata(nmdn.get());
                      WRAP_OPTIONAL_RETURN(res, PyNamedMDNode);
                    },
@@ -3668,7 +3733,7 @@ void bindOtherClasses(nb::module_ &m) {
                    "Returns NULL if the iterator was already at the end and there"
                    " are no more named metadata nodes.")
       .def_prop_ro("prev",
-                   [](PyNamedMDNode &nmdn) -> std::optional<PyNamedMDNode> {
+                   [](PyNamedMDNode &nmdn) -> optional<PyNamedMDNode> {
                      auto res = LLVMGetPreviousNamedMetadata(nmdn.get());
                      WRAP_OPTIONAL_RETURN(res, PyNamedMDNode);
                    },
@@ -3686,18 +3751,29 @@ void bindOtherClasses(nb::module_ &m) {
   
   ContextClass
       .def(nb::init<>(), "Create a new context.")
+      .def("__enter__",
+           [](PyContext &self) {
+             return &self;
+           })
+      .def("__exit__",
+           [](PyContext &self, nb::args args, nb::kwargs kwargs) {
+             self.cleanup();
+           })
       .def_static("get_global_context", &PyContext::getGlobalContext,
                   "Obtain the global context instance.")
-      .def_prop_ro("diagnostic_context", // TODO more check: in my test it simply None
-                   [](PyContext &c) { return LLVMContextGetDiagnosticContext(c.get()); },
+      .def_prop_ro("diagnostic_context",
+                   [](PyContext &c) {
+                     // FIXME The function cannot work correctly (always None) since
+                     // `LLVMContextSetDiagnosticHandler` cannot, which set
+                     // the diagnostic context
+                     return LLVMContextGetDiagnosticContext(c.get());
+                   },
                    "Get the diagnostic context of this context.")
       .def_prop_rw("should_discard_value_names", // TODO convert LLVMBool to bool
                    [](PyContext &c) -> bool { return LLVMContextShouldDiscardValueNames(c.get()) != 0; },
                    [](PyContext &c, bool discard) {
                      return LLVMContextSetDiscardValueNames(c.get(), discard);
                    },
-                   nb::for_getter(nb::sig("def should_discard_value_names(self, /) -> bool")),
-                   nb::for_setter(nb::sig("def should_discard_value_names(self, bool /) -> None")),
                    nb::for_getter
                      ("Retrieve whether the given context is set to"
                       "discard all value names.\n\n"
@@ -3755,16 +3831,20 @@ void bindOtherClasses(nb::module_ &m) {
       .def("get_md_kind_id",
            [](PyContext &c, const std::string &name) {
              return LLVMGetMDKindIDInContext(c.get(), name.c_str(), name.size());
-           }, "name"_a)
+           },
+           "name"_a)
       .def("create_enum_attribute",
            [](PyContext &c, unsigned kindID, uint64_t val) {
              return PyEnumAttribute(LLVMCreateEnumAttribute(c.get(), kindID, val));
-           }, "kind_id"_a, "val"_a,
+           },
+           "kind_id"_a, "val"_a,
            "Create an enum attribute.")
       .def("create_type_attribute",
            [](PyContext &context, unsigned kind_id, PyType &type) {
-             return PyTypeAttribute(LLVMCreateTypeAttribute(context.get(), kind_id, type.get()));
-           }, "kind_id"_a, "type"_a,
+             return PyTypeAttribute(LLVMCreateTypeAttribute
+                                      (context.get(), kind_id, type.get()));
+           },
+           "kind_id"_a, "type"_a,
            "Create a type attribute")
       .def("create_string_attribute",
            [](PyContext &c, const std::string &kind, const std::string &value) {
@@ -3774,9 +3854,11 @@ void bindOtherClasses(nb::module_ &m) {
              return PyStringAttribute(raw);
            })
       .def("get_type_by_name_2", // TODO also create one in PyType static method
-           [](PyContext &c, std::string &name) {
-             return PyTypeAuto(LLVMGetTypeByName2(c.get(), name.c_str()));
-           })
+           [](PyContext &c, const char *name) -> optional<PyType*> {
+             auto res = LLVMGetTypeByName2(c.get(), name);
+             WRAP_OPTIONAL_RETURN(res, PyTypeAuto);
+           },
+           "name"_a)
       .def("create_md_string_2",
            [](PyContext &self, std::string &name) {
              return PyMetadata(LLVMMDStringInContext2(self.get(), name.c_str(), name.size()));
@@ -3800,6 +3882,28 @@ void bindOtherClasses(nb::module_ &m) {
 
   ModuleClass
       .def(nb::init<const std::string &>(), "id"_a)
+      .def("__repr__",
+           [](PyModule &self) {
+             size_t len;
+             const char *raw_identifier = LLVMGetModuleIdentifier(self.get(), &len);
+             auto id = std::string(raw_identifier, len);
+             return fmt::format("<Module id={}>", id);
+           })
+      .def("__str__",
+           [](PyModule &self) {
+             size_t len;
+             const char *iasm = LLVMGetModuleInlineAsm(self.get(), &len);
+             return std::string(iasm, len);
+           })
+      .def("__enter__",
+           [](PyModule &self) {
+             return &self;
+           })
+      .def("__exit__",
+           [](PyModule &self, nb::args args, nb::kwargs kwargs) {
+             // NOTE `delete &self` doesn't work properly
+             self.cleanup();
+           })
       .def_prop_ro("first_global",
                    [](PyModule &m) { return PyValueAuto(LLVMGetFirstGlobal(m.get())); })
       .def_prop_ro("last_global",
@@ -3825,13 +3929,15 @@ void bindOtherClasses(nb::module_ &m) {
                      return PyValueAuto(LLVMGetLastGlobalAlias(self.get()));
                    })
       .def_prop_ro("first_named_metadata",
-                   [](PyModule &m) {
-                     return PyNamedMDNode(LLVMGetFirstNamedMetadata(m.get()));
+                   [](PyModule &m) -> optional<PyNamedMDNode> {
+                     auto res = LLVMGetFirstNamedMetadata(m.get());
+                     WRAP_OPTIONAL_RETURN(res, PyNamedMDNode);
                    },
                    "Obtain an iterator to the first NamedMDNode in a Module.")
       .def_prop_ro("last_named_metadata",
-                   [](PyModule &m) {
-                     return PyNamedMDNode(LLVMGetLastNamedMetadata(m.get()));
+                   [](PyModule &m) -> optional<PyNamedMDNode> {
+                     auto res = LLVMGetLastNamedMetadata(m.get());
+                     WRAP_OPTIONAL_RETURN(res, PyNamedMDNode);
                    },
                    "Obtain an iterator to the last NamedMDNode in a Module.")
       .def_prop_ro("context",
@@ -3849,7 +3955,6 @@ void bindOtherClasses(nb::module_ &m) {
                      return LLVMSetModuleIdentifier(m.get(), id.c_str(),
                                                     id.size());
                    },
-                   nb::for_setter(nb::sig("def id(self, id: str, /) -> None")),
                    nb::for_getter("Get the module identifier.\n"
                                   "Origin Function: LLVMSetModuleIdentifier."),
                    nb::for_setter("Set the module identifier.\n"
@@ -3870,7 +3975,6 @@ void bindOtherClasses(nb::module_ &m) {
                    [](PyModule &m, const std::string &dlstr) {
                      return LLVMSetDataLayout(m.get(), dlstr.c_str());
                    },
-                   nb::for_setter(nb::sig("def data_layout(self, data_layout_str: str, /) -> None")),
                    nb::for_getter("Obtain the data layout for a module."),
                    nb::for_setter("Set the data layout for a module."))
       .def_prop_rw("target",
@@ -3880,7 +3984,6 @@ void bindOtherClasses(nb::module_ &m) {
                    [](PyModule &m, const std::string &triple) {
                      return LLVMSetTarget(m.get(), triple.c_str());
                    },
-                   nb::for_setter(nb::sig("def triple(self, triple: str, /) -> None")),
                    nb::for_getter("Obtain the target triple for a module."),
                    nb::for_setter("Set the target triple for a module."))
       .def_prop_rw("inline_asm",
@@ -3892,8 +3995,7 @@ void bindOtherClasses(nb::module_ &m) {
                    [](PyModule &m, std::string &iasm) {
                      // NOTE LLVMSetModuleInlineAsm is deprecated
                      return LLVMSetModuleInlineAsm2(m.get(), iasm.c_str(), iasm.size());
-                   },
-                   nb::for_setter(nb::sig("def inline_asm(self, str, /) -> None")))
+                   })
       .def_prop_ro("first_function",
                    [](PyModule &m) {
                      return PyFunction(LLVMGetFirstFunction(m.get()));
@@ -3981,7 +4083,8 @@ void bindOtherClasses(nb::module_ &m) {
       .def("add_function",
            [](PyModule &m, std::string &name, PyTypeFunction &functionTy) {
              return PyFunction(LLVMAddFunction(m.get(), name.c_str(), functionTy.get()));
-           }, "name"_a, "function_type"_a,
+           },
+           "name"_a, "function_type"_a,
            "Add a function to a module under a specified name.")
       .def("get_named_function",
            [](PyModule &m, std::string &name) {
@@ -3989,10 +4092,11 @@ void bindOtherClasses(nb::module_ &m) {
            }, "name"_a,
            "Obtain a Function value from a Module by its name.")
       .def("get_named_metadata",
-           [](PyModule &m, std::string &name) -> std::optional<PyNamedMDNode> {
+           [](PyModule &m, std::string &name) -> optional<PyNamedMDNode> {
              auto res = LLVMGetNamedMetadata(m.get(), name.c_str(), name.size());
              WRAP_OPTIONAL_RETURN(res, PyNamedMDNode);
-           }, "name"_a,
+           },
+           "name"_a,
            "Retrieve a NamedMDNode with the given name, returning NULL if no such"
            "node exists.")
       .def("get_or_insert_named_metadata",
@@ -4000,10 +4104,11 @@ void bindOtherClasses(nb::module_ &m) {
              return PyNamedMDNode
                       (LLVMGetOrInsertNamedMetadata
                          (m.get(), name.c_str(), name.size()));
-           }, "name"_a,
+           },
+           "name"_a,
            "Retrieve a NamedMDNode with the given name, creating a new node if no such"
            "node exists.")
-      .def("get_named_metadata_num_operands",
+      .def("get_named_metadata_operands_num",
            [](PyModule &m, std::string &name) {
              return LLVMGetNamedMetadataNumOperands(m.get(), name.c_str());
            }, "name"_a,
@@ -4015,7 +4120,8 @@ void bindOtherClasses(nb::module_ &m) {
              LLVMGetNamedMetadataOperands(m.get(), name.c_str(), dest);
              WRAP_VECTOR_FROM_DEST_AUTO(PyValue, num, res, dest);
              return res;
-           }, "name"_a,
+           },
+           "name"_a,
            "Obtain the named metadata operands for a module.\n\n"
            "The passed LLVMValueRef pointer should refer to an array of"
            "LLVMValueRef at least LLVMGetNamedMetadataNumOperands long. This"
@@ -4029,7 +4135,8 @@ void bindOtherClasses(nb::module_ &m) {
       .def("clone",
            [](PyModule &m) {
              return PyModule(LLVMCloneModule(m.get()));
-           }, "Return an exact copy of the specified module.")
+           },
+           "Return an exact copy of the specified module.")
       .def("copy_module_flags_metadata",
            [](PyModule &m) {
              size_t Len;
@@ -4039,9 +4146,11 @@ void bindOtherClasses(nb::module_ &m) {
            },
            "Returns the module flags as an array of flag-key-value triples.")
       .def("get_flag",
-           [](PyModule &m, const std::string &key) {
-             return PyMetadata(LLVMGetModuleFlag(m.get(), key.c_str(), key.size()));
-           }, "key"_a,
+           [](PyModule &m, const std::string &key) -> optional<PyMetadata> {
+             auto res = LLVMGetModuleFlag(m.get(), key.c_str(), key.size());
+             WRAP_OPTIONAL_RETURN(res, PyMetadata);
+           },
+           "key"_a,
            "Return the corresponding value if Key appears in module flags, otherwise"
            "return null.")
       .def("add_flag",
@@ -4049,7 +4158,8 @@ void bindOtherClasses(nb::module_ &m) {
               const std::string key, PyMetadata &val) {
              return LLVMAddModuleFlag(m.get(), behavior, key.c_str(), key.size(),
                                       val.get());
-           }, "behavior"_a, "key"_a, "val"_a,
+           },
+           "behavior"_a, "key"_a, "val"_a,
            "Add a module-level flag to the module-level flags metadata if it doesn't"
            "already exist.")
       .def("dump",
@@ -4071,12 +4181,12 @@ void bindOtherClasses(nb::module_ &m) {
              }
              
              return std::make_tuple(success, std::string(""));
-           }, "filename"_a,
-           "Print a representation of a module to a file. The ErrorMessage needs to be"
-           "disposed with LLVMDisposeMessage. Returns 0 on success, 1 otherwise.")
+           },
+           "filename"_a,
+           "Print a representation of a module to a file.\n"
+           "The first element of the returned value is True on success, False otherwise.")
       .def("append_inline_asm",
            [](PyModule &m, std::string &iasm) {
-
              return LLVMAppendModuleInlineAsm(m.get(), iasm.c_str(), iasm.size());
            })
       .def("get_type_by_name",
@@ -4104,6 +4214,7 @@ void bindOtherClasses(nb::module_ &m) {
            "Returns the key for a module flag entry at a specific index.")
       .def("get_metadata",
            [](PyModuleFlagEntries &self, unsigned index) {
+             // TODO can this return null?
              return PyMetadata(LLVMModuleFlagEntriesGetMetadata(self.get(), index));
            },
            "index"_a,

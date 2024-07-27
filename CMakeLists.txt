@@ -2,6 +2,14 @@ cmake_minimum_required(VERSION 3.20.0...3.29.6)
 
 project(${SKBUILD_PROJECT_NAME} LANGUAGES CXX)
 
+include(FetchContent)
+FetchContent_Declare(
+  fmt
+  GIT_REPOSITORY https://github.com/fmtlib/fmt
+  GIT_TAG        ffdc3fdbd90385429dd2ea6a774848e39d4f957a)
+FetchContent_MakeAvailable(fmt)
+
+
 if (NOT SKBUILD)
   message(WARNING "\
   This CMake file is meant to be executed using 'scikit-build'. Running
@@ -48,6 +56,7 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 include_directories(${CMAKE_SOURCE_DIR}/src/llvm)
+include_directories(${CMAKE_SOURCE_DIR}/vender)
 
 include_directories(${LLVM_INCLUDE_DIRS})
 separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
@@ -79,7 +88,7 @@ nanobind_add_module(
 llvm_map_components_to_libnames(llvm_libs core transformutils)
 
 # Link against LLVM libraries
-target_link_libraries(llvmpym_ext PRIVATE ${llvm_libs})
+target_link_libraries(llvmpym_ext PRIVATE ${llvm_libs} fmt::fmt)
 # -flto and --exclude-libs allow us to remove those parts of LLVM we don't use
 # although we are going build a full llvm python binding :-
 set_property(TARGET llvmpym_ext APPEND_STRING PROPERTY LINK_FLAGS "-flto -Wl,--exclude-libs,ALL") # taken from llvmite

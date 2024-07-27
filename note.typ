@@ -47,13 +47,17 @@ directory(e.g. `.venv/lib/python3.12/site-packages/llvmpym/llvmpym_ext`) to corr
 - TODO change all possible unsigned return value into corresponding enum type
     - also parameter (like `kindID`?)
 
-
 == More Python Style
 1. iterator: next, prev ?
 2. `with` clause
 3. More see mlir python binding (doc & c++ code )
 
-
+=== Python methods:
++ `__eq__`
++ `__hash__`
++ `__str__`
++ `__repr__`
++ with clause: `__enter__` and `__exit__`
 
 
 
