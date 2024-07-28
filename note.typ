@@ -56,7 +56,7 @@ directory(e.g. `.venv/lib/python3.12/site-packages/llvmpym/llvmpym_ext`) to corr
 + `__eq__`
 + `__hash__`
 + `__str__`
-+ `__repr__`
++ `__repr__` (TODO subclasses for type, value)
 + with clause: `__enter__` and `__exit__`
 
 

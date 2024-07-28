@@ -65,33 +65,33 @@ protected:
   };
 
 
-#define DEFINE_PY_WRAPPER_CLASS_COPYABLE(ClassName, UnderlyingType, UnderlyingName) \
+#define DEFINE_PY_WRAPPER_CLASS_COPYABLE(ClassName, UnderlyingType) \
   class ClassName { \
   public: \
-    explicit ClassName(UnderlyingType UnderlyingName) \
-    : UnderlyingName(UnderlyingName) {} \
+    explicit ClassName(UnderlyingType raw) \
+    : raw(raw) {} \
     \
     UnderlyingType get() const { \
-      return UnderlyingName; \
+      return raw; \
     } \
     \
   private: \
-    UnderlyingType UnderlyingName; \
+    UnderlyingType raw; \
   };
 
-#define DEFINE_PY_WRAPPER_CLASS_COPYABLE_POLYMORPHIC(ClassName, UnderlyingType, UnderlyingName) \
+#define DEFINE_PY_WRAPPER_CLASS_COPYABLE_POLYMORPHIC(ClassName, UnderlyingType) \
   class ClassName { \
   public: \
     virtual ~ClassName() = default; \
-    explicit ClassName(UnderlyingType UnderlyingName) \
-    : UnderlyingName(UnderlyingName) {} \
+    explicit ClassName(UnderlyingType raw) \
+    : raw(raw) {} \
     \
     UnderlyingType get() const { \
-      return UnderlyingName; \
+      return raw; \
     } \
     \
   private: \
-    UnderlyingType UnderlyingName; \
+    UnderlyingType raw; \
   };
 
 
@@ -110,12 +110,11 @@ protected:
          return std::nullopt; \
        }, \
        "Origin function: LLVMIsA" #name "\n\n" \
-       "None means conversion failed.")
+       "None means conversion failed.\n\n" \
+       "Note if the target class is not supported in python binding, then it will " \
+       "return a generic PyValue type object") 
 
 #define PY_FOR_EACH_VALUE_SUBCLASS(macro) \
-  macro(MDNode) \
-  macro(ValueAsMetadata) \
-  macro(MDString) \
   macro(Argument)                           \
   macro(BasicBlock)                         \
   macro(InlineAsm)                          \
@@ -214,8 +213,10 @@ protected:
 // rename python side name of PyBasicBlock to BasicBlockValue to avoid collision
 // with PyBasicBlockWrapper
 #define PY_FOR_EACH_VALUE_CLASS_RELATIONSHIP(macro) \
-  macro(PyValue, PyMDNode) \
-  macro(PyValue, PyMDString) \
+  macro(PyValue, PyMetadataAsValue) \
+  macro(PyMetadataAsValue, PyMDNodeValue) \
+  macro(PyMetadataAsValue, PyValueAsMetadataValue) \
+  macro(PyMetadataAsValue, PyMDStringValue) \
   macro(PyValue, PyArgument) \
   macro(PyValue, PyBasicBlock) \
   macro(PyValue, PyInlineAsm) \
@@ -302,15 +303,21 @@ enum class PyLLVMFastMathFlags {
 };
 
 
-DEFINE_PY_WRAPPER_CLASS_COPYABLE_POLYMORPHIC(PyValue, LLVMValueRef, value)
-DEFINE_PY_WRAPPER_CLASS_COPYABLE_POLYMORPHIC(PyType, LLVMTypeRef, type)
-DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyDiagnosticInfo, LLVMDiagnosticInfoRef, diagnosticInfo)
-DEFINE_PY_WRAPPER_CLASS_COPYABLE_POLYMORPHIC(PyAttribute, LLVMAttributeRef, attribute)
-DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyMetadata, LLVMMetadataRef, metadata)
-DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyNamedMDNode, LLVMNamedMDNodeRef, namedMDNode)
-DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyUse, LLVMUseRef, Use)
-DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyBasicBlockWrapper, LLVMBasicBlockRef, basicBlock)
-DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyBuilder, LLVMBuilderRef, builder)
+DEFINE_PY_WRAPPER_CLASS_COPYABLE_POLYMORPHIC(PyValue, LLVMValueRef)
+DEFINE_PY_WRAPPER_CLASS_COPYABLE_POLYMORPHIC(PyType, LLVMTypeRef)
+DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyDiagnosticInfo, LLVMDiagnosticInfoRef)
+DEFINE_PY_WRAPPER_CLASS_COPYABLE_POLYMORPHIC(PyAttribute, LLVMAttributeRef)
+DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyNamedMDNode, LLVMNamedMDNodeRef)
+DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyUse, LLVMUseRef)
+DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyBasicBlockWrapper, LLVMBasicBlockRef)
+DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyBuilder, LLVMBuilderRef)
+
+DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyMetadata, LLVMMetadataRef)
+DEFINE_DIRECT_SUB_CLASS(PyMetadata, PyMDNode)
+DEFINE_DIRECT_SUB_CLASS(PyMetadata, PyValueAsMetadata)
+DEFINE_DIRECT_SUB_CLASS(PyMetadata, PyMDString)
+
+
 
 DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyEnumAttribute);
 DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyTypeAttribute);
@@ -319,7 +326,7 @@ DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyStringAttribute);
 PY_FOR_EACH_VALUE_CLASS_RELATIONSHIP(DEFINE_DIRECT_SUB_CLASS)
 PY_FOR_EACH_TYPE_CLASS_RELASIONSHIP(DEFINE_DIRECT_SUB_CLASS)
 
-DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyIntrinsic, unsigned, id)
+DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyIntrinsic, unsigned)
 
 DEFINE_PY_WRAPPER_CLASS_SELF_DISPOSABLE_NONCOPYABLE
   (PyModuleProvider, LLVMModuleProviderRef, LLVMDisposeModuleProvider)

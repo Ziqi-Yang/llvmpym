@@ -32,6 +32,8 @@ inline std::string get_value_name(PyValue &v) {
   return std::string(str, len);
 }
 
+
+// TODO FIXME
 /**
  * NOTE only mapping needed specific instruction sub-classes
  * 
@@ -110,7 +112,7 @@ PyType* PyTypeAuto(LLVMTypeRef rawType) {
   case LLVMTokenTypeKind:
     return new PyTypeToken(rawType);
   case LLVMScalableVectorTypeKind:
-    return new PyTypeSequence(rawType);
+    return new PyTypeVector(rawType);
   case LLVMX86_AMXTypeKind:
     return new PyTypeX86AMX(rawType);
   case LLVMTargetExtTypeKind:
@@ -120,7 +122,7 @@ PyType* PyTypeAuto(LLVMTypeRef rawType) {
   }
 }
 
-
+// TODO FIXME
 /**
  * It seems like the enum type doesn't cover all the sub-classes,
  * so user may still need to do a manual cast using `to_XXX` method
@@ -169,7 +171,8 @@ PyValue* PyValueAuto(LLVMValueRef rawValue) {
   case LLVMConstantPointerNullValueKind:
     return new PyConstant(rawValue);
 
-  // case LLVMMetadataAsValueValueKind: //
+  case LLVMMetadataAsValueValueKind:
+    return new PyMetadataAsValue(rawValue); // TODO More specific?
   case LLVMInlineAsmValueKind:
     return new PyInlineAsm(rawValue);
 
@@ -613,34 +616,6 @@ void bindGlobalFunctions(nb::module_ &m) {
   // m.def("create_message", &LLVMCreateMessage, "message"_a);
   // m.def("dispose_message", &LLVMDisposeMessage, "message"_a); // error, may need a wrapper for created message
 
-
-  m.def("get_md_kind_id",
-        [](const std::string &name) {
-          return LLVMGetMDKindID(name.c_str(), name.size());
-        },
-        "name"_a);
-
-  m.def("get_enum_attribute_kind_for_name",
-        [](const std::string &name){
-          return LLVMGetEnumAttributeKindForName(name.c_str(), name.size());
-        },
-        "name"_a,
-        "Return an unique id given the name of a enum attribute,"
-        "or 0 if no attribute by that name exists.\n\n"
-        "See http://llvm.org/docs/LangRef.html#parameter-attributes"
-        "and http://llvm.org/docs/LangRef.html#function-attributes"
-        "for the list of available attributes.\n\n"
-        "NB: Attribute names and/or id are subject to change without"
-        "going through the C API deprecation cycle.");
-
-  m.def("get_last_enum_attribute_kind", &LLVMGetLastEnumAttributeKind);
-
-  m.def("replace_all_uses_with",
-        [](PyValue &oldVal, PyValue &newVal) {
-          return LLVMReplaceAllUsesWith(oldVal.get(), newVal.get());
-        },
-        "Replace all uses of a value with another one.");
-
   m.def("llvm_is_multithreaded",
         []() {
           return LLVMIsMultithreaded() != 0;
@@ -667,11 +642,11 @@ void bindTypeClasses(nb::module_ &m) {
            })
       .def_prop_ro("align",
                    [](PyType &t) {
-                     return PyValueAuto(LLVMAlignOf(t.get()));
+                     return PyConstantExpr(LLVMAlignOf(t.get()));
                    })
       .def_prop_ro("size",
                    [](PyType &t) {
-                     return PyValueAuto(LLVMSizeOf(t.get()));
+                     return PyConstantExpr(LLVMSizeOf(t.get()));
                    })
       .def_prop_ro("kind",
                    [](PyType &t) { return LLVMGetTypeKind(t.get()); },
@@ -684,42 +659,38 @@ void bindTypeClasses(nb::module_ &m) {
                    [](PyType &t) { return PyContext(LLVMGetTypeContext(t.get())); },
                    "Obtain the context to which this type instance is associated.")
       .def_prop_ro("sub_type_number",
-             [](PyTypeSequence &t) { return LLVMGetNumContainedTypes(t.get()); })
+                   [](PyType &t) {
+                     return LLVMGetNumContainedTypes(t.get());
+                   })
       .def_prop_ro("sub_types",
-                   [](PyTypeSequence &t) {
+                   [](PyType &t) {
                      unsigned num = LLVMGetNumContainedTypes(t.get());
                      LLVMTypeRef *arr;
                      LLVMGetSubtypes(t.get(), arr);
                      WRAP_VECTOR_FROM_DEST(PyTypeSequence, num, res, arr);
                      return res;
                    })
-      .def_prop_ro("Null",
-                  [](PyType &t) {
-                    return PyValueAuto(LLVMConstNull(t.get()));
-                  },
-                   "Obtain a constant value referring to the null instance of the type.")
-      .def_static("PointerNull",
-                  [](PyType &t) {
-                    return PyValueAuto(LLVMConstPointerNull(t.get()));
-                  },
-                  "Obtain a constant that is a constant pointer pointing to NULL for the"
-                  "type.")
-      .def_prop_ro("AllOnes",
-                  [](PyTypeInt &t) {
-                    return PyValueAuto(LLVMConstAllOnes(t.get()));
-                  },
-                  "Obtain a constant value referring to the instance of the type"
-                  "consisting of all ones.")
-      .def_prop_ro("Undef",
-                  [](PyType &t) {
-                    return PyUndefValue(LLVMGetUndef(t.get()));
-                  },
-                  "Obtain a constant value referring to an undefined value of a type.")
-      .def_prop_ro("Poison",
-                  [](PyType &t) {
-                    return PyPoisonValue(LLVMGetPoison(t.get()));
-                  },
-                   "Obtain a constant value referring to a poison value of a type.")
+      .def("null",
+           [](PyType &t) {
+             return PyValueAuto(LLVMConstNull(t.get()));
+           },
+           "Obtain a constant value referring to the null instance of the type.")
+      .def("pointer_null",
+           [](PyType &t) {
+             return PyValueAuto(LLVMConstPointerNull(t.get()));
+           },
+           "Obtain a constant that is a constant pointer pointing to NULL for the"
+           "type.")
+      .def("undef",
+           [](PyType &t) {
+             return PyUndefValue(LLVMGetUndef(t.get()));
+           },
+           "Obtain a constant value referring to an undefined value of a type.")
+      .def("poison",
+           [](PyType &t) {
+             return PyPoisonValue(LLVMGetPoison(t.get()));
+           },
+           "Obtain a constant value referring to a poison value of a type.")
       .def("dump",
            [](PyType &self) {
              return LLVMDumpType(self.get());
@@ -788,7 +759,13 @@ void bindTypeClasses(nb::module_ &m) {
                   [](unsigned numBits) { return PyTypeInt(LLVMIntType(numBits)); },
                   "Get type from global context.")
       .def_prop_ro("width",
-                   [](PyTypeInt &t) { return LLVMGetIntTypeWidth(t.get()); });
+                   [](PyTypeInt &t) { return LLVMGetIntTypeWidth(t.get()); })
+      .def("all_ones",
+           [](PyTypeInt &t) {
+             return PyValueAuto(LLVMConstAllOnes(t.get()));
+           },
+           "Obtain a constant value referring to the instance of the type"
+           "consisting of all ones.");
   
 
   TypeRealClass
@@ -872,14 +849,16 @@ void bindTypeClasses(nb::module_ &m) {
              UNWRAP_VECTOR_WRAPPER_CLASS(LLVMTypeRef, elementTypes, rawElemTypes, elem_count);
              new (t) PyTypeStruct(LLVMStructTypeInContext(c.get(), rawElemTypes.data(),
                                                          elem_count, packed));
-           }, "context"_a, "element_types"_a, "packed"_a,
+           },
+           "context"_a, "element_types"_a, "packed"_a,
            "Create a new structure type in context.")
       .def("__init__",
            [](PyTypeStruct *t, PyContext &c, std::string name) {
              new (t) PyTypeStruct(LLVMStructCreateNamed(c.get(), name.c_str()));
-           }, "context"_a, "name"_a,
+           },
+           "context"_a, "name"_a,
            "Create an empty structure in the context having a specified name.")
-      .def_static("global",
+      .def_static("Global",
         [](std::vector<PyType> elementTypes, bool packed) {
           unsigned elem_count = elementTypes.size();
           UNWRAP_VECTOR_WRAPPER_CLASS(LLVMTypeRef, elementTypes, rawElemTypes, elem_count);
@@ -888,7 +867,10 @@ void bindTypeClasses(nb::module_ &m) {
         "element_types"_a, "packed"_a,
         "Create a new structure type in the global context.")
       .def_prop_ro("name", [](PyTypeStruct &t) { return LLVMGetStructName(t.get()); })
-      .def_prop_ro("elem_number", [](PyTypeStruct &t) { return LLVMCountStructElementTypes(t.get()); })
+      .def_prop_ro("elem_number",
+                   [](PyTypeStruct &t) {
+                     return LLVMCountStructElementTypes(t.get());
+                   })
       .def_prop_ro("elem_types",
                    [](PyTypeStruct &t) {
                      unsigned num = LLVMCountStructElementTypes(t.get());
@@ -911,28 +893,39 @@ void bindTypeClasses(nb::module_ &m) {
              UNWRAP_VECTOR_WRAPPER_CLASS(LLVMTypeRef, elementTypes, rawElemTypes, elem_count);
              return LLVMStructSetBody(t.get(), rawElemTypes.data(), elem_count, packed);
            },
+           "elem_types"_a, "packed"_a,
            "Set the contents of a structure type.")
       .def("get_type_at_index",
-           [](PyTypeStruct &t, unsigned i) {
-             return PyTypeAuto(LLVMStructGetTypeAtIndex(t.get(), i));
+           [](PyTypeStruct &t, unsigned i) -> optional<PyType*> {
+             auto res = LLVMStructGetTypeAtIndex(t.get(), i);
+             WRAP_OPTIONAL_RETURN(res, PyTypeAuto);
            },
+           "index"_a,
            "Get the type of the element at a given index in the structure.");
 
   TypeSequenceClass
       .def_prop_ro("element_type", // TODO test pointer type
-                   [](PyTypeSequence &t) { return PyTypeAuto(LLVMGetElementType(t.get())); });
+                   [](PyTypeSequence &t) {
+                     return PyTypeAuto(LLVMGetElementType(t.get()));
+                   });
 
   TypeArrayClass
-      .def("__init__", // NOTE LLVMArrayType and LLVMArrayType2 are nearly the same
-           [](PyTypeArray *t, PyType &elementType, unsigned elementCount) {
-             new (t) PyTypeArray(LLVMArrayType(elementType.get(), elementCount));
+      // NOTE We use LLVMArrayType2 instead of LLVMArrayType to coordinate
+      // with the `length` property
+      .def("__init__", 
+           [](PyTypeArray *t, PyType &elementType, uint64_t elementCount) {
+             new (t) PyTypeArray(LLVMArrayType2(elementType.get(), elementCount));
            },
            "elem_type"_a, "elem_count"_a,
            "Create a fixed size array type that refers to a specific type.\n\n"
            "The created type will exist in the context that its element type"
            "exists in.")
-      .def_prop_ro("length", // LLVMGetArrayLength and LLVMGetArrayLength2 are nearly the same
-                   [](PyTypeArray &t) { return LLVMGetArrayLength(t.get()); });
+       // LLVMGetArrayLength is deprecated in favor of the API accurate
+       //  LLVMGetArrayLength2
+      .def_prop_ro("length",
+                   [](PyTypeArray &t) {
+                     return LLVMGetArrayLength2(t.get());
+                   });
 
 
   TypePointerClass
@@ -968,7 +961,9 @@ void bindTypeClasses(nb::module_ &m) {
            "The created type will exist in the context thats its element type"
            "exists in.")
       .def_prop_ro_static("__len__",
-                   [](PyTypeVector &t) { return LLVMGetVectorSize(t.get()); });
+                          [](PyTypeVector &t) { return LLVMGetVectorSize(t.get()); });
+
+  
   TypeVoidClass
       .def("__init__",
            [](PyTypeVoid *t, PyContext &c) {
@@ -977,6 +972,8 @@ void bindTypeClasses(nb::module_ &m) {
            "context"_a)
       .def_prop_ro_static("Global",
                           [](nb::handle) { return PyTypeVoid(LLVMVoidType()); } );
+
+  
   TypeLabelClass
       .def("__init__",
            [](PyTypeLabel *t, PyContext &c) {
@@ -1042,17 +1039,26 @@ void bindTypeClasses(nb::module_ &m) {
 void bindValueClasses(nb::module_ &m) {
   auto ValueClass = nb::class_<PyValue>(m, "Value", "Value");
 
-  auto MDNodeClass = nb::class_<PyMDNode, PyValue>(m, "MDNode", "MDNode");
-  auto MDStringClass = nb::class_<PyMDString, PyValue>(m, "MDString", "MDString");
+  nb::class_<PyMetadataAsValue, PyValue>(m, "MetadataAsValue", "MetadataAsValue");
+  auto MDNodeValueClass = nb::class_<PyMDNodeValue, PyMetadataAsValue>
+                            (m, "MDNodeValue", "MDNodeValue");
+  auto ValueAsMetadataValueClass = nb::class_<PyValueAsMetadataValue, PyMetadataAsValue>
+                                (m, "ValueAsMetadataValue", "ValueAsMetadataValue");
+  auto MDStringValueClass = nb::class_<PyMDStringValue, PyMetadataAsValue>
+                         (m, "MDStringValue", "MDStringValue");
+    
   auto ArgumentClass = nb::class_<PyArgument, PyValue>(m, "Argument", "Argument");
   auto BasicBlockClass = nb::class_<PyBasicBlock, PyValue>(m, "BasicBlockValue", "BasicBlockValue");
   auto InlineAsmClass = nb::class_<PyInlineAsm, PyValue>(m, "InlineAsm", "InlineAsm");
   auto UserClass = nb::class_<PyUser, PyValue>(m, "User", "User");
   auto ConstantClass = nb::class_<PyConstant, PyUser>(m, "Constant", "Constant");
   auto ConstantArrayClass = nb::class_<PyConstantArray, PyConstant>(m, "ConstantArray", "ConstantArray");
-  auto ConstantDataSequentialClass = nb::class_<PyConstantDataSequential, PyConstant>(m, "ConstantDataSequential", "ConstantDataSequential");
-  auto ConstantDataArrayClass = nb::class_<PyConstantDataArray, PyConstantDataSequential>(m, "ConstantDataArray", "ConstantDataArray");
-  auto ConstantDataVectorClass = nb::class_<PyConstantDataVector, PyConstantDataSequential>(m, "ConstantDataVector", "ConstantDataVector");
+  auto ConstantDataSequentialClass = nb::class_<PyConstantDataSequential, PyConstant>
+                                       (m, "ConstantDataSequential", "ConstantDataSequential");
+  auto ConstantDataArrayClass = nb::class_<PyConstantDataArray, PyConstantDataSequential>
+                                  (m, "ConstantDataArray", "ConstantDataArray");
+  auto ConstantDataVectorClass = nb::class_<PyConstantDataVector, PyConstantDataSequential>
+                                   (m, "ConstantDataVector", "ConstantDataVector");
   auto ConstantExprClass = nb::class_<PyConstantExpr, PyConstant>(m, "ConstantExpr", "ConstantExpr");
   auto ConstantFPClass = nb::class_<PyConstantFP, PyConstant>(m, "ConstantFP", "ConstantFP");
   auto ConstantIntClass = nb::class_<PyConstantInt, PyConstant>(m, "ConstantInt", "ConstantInt");
@@ -1103,9 +1109,50 @@ void bindValueClasses(nb::module_ &m) {
   auto FenceInstClass = nb::class_<PyFenceInst, PyInstruction>
                           (m, "FenceInst", "FenceInst");
 
+  MDNodeValueClass
+      // deprecated functions not binded:
+      // LLVMMDNodeInContext, LLVMMDNode
+      .def_prop_ro("num_operands",
+                   [](PyMDNodeValue &self) {
+                     return LLVMGetMDNodeNumOperands(self.get());
+                   })
+      .def_prop_ro("operands",
+                   [](PyMDNodeValue &self) {
+                     unsigned num = LLVMGetMDNodeNumOperands(self.get());
+                     LLVMValueRef *dest;
+                     LLVMGetMDNodeOperands(self.get(), dest);
+                     WRAP_VECTOR_FROM_DEST_AUTO(PyValue, num, res, dest);
+                     return res;
+                   },
+                   "Obtain the given MDNode's operands.")
+      .def_prop_ro("replace_operand_with",
+                   [](PyMDNodeValue &self, unsigned index, PyMetadata &replacement) {
+                     return LLVMReplaceMDNodeOperandWith
+                              (self.get(), index, replacement.get());
+                   },
+                   "Replace an operand at a specific index in a llvm::MDNode value.");
+  
+  MDStringValueClass
+      // deprecated functions not binded:
+      // LLVMMDStringInContext, LLVMMDString
+      .def_prop_ro("raw_string",
+                   [](PyMDStringValue &v) {
+                     unsigned len;
+                     auto str = LLVMGetMDString(v.get(), &len);
+                     return std::string(str, len);
+                   },
+                   "Obtain the underlying string from a MDString value.");
 
   ValueClass
       // TODO note there are many functions here that belongs `UserClass`
+      .def("__repr__",
+           [](PyValue &self) {
+             auto name = get_value_name(self);
+             auto kind = get_repr_str(LLVMGetValueKind(self.get()));
+             return fmt::format("<Value name={} kind={}>", name, kind);
+           })
+      .def("__str__",
+           [](PyValue &v) { return LLVMPrintValueToString(v.get()); })
       .def_prop_ro("type",
                    // TODO PyType convertion to more specific type according to kind
                    [](PyValue &v) { return PyTypeAuto(LLVMTypeOf(v.get())); })
@@ -1116,8 +1163,7 @@ void bindValueClasses(nb::module_ &m) {
                    &get_value_name,
                    [](PyValue &v, std::string &name) {
                      return LLVMSetValueName2(v.get(), name.c_str(), name.size());
-                   },
-                   nb::for_setter("def name(self, name: str, /) -> None"))
+                   })
       .def_prop_ro("is_constant",
                    [](PyValue &v) { return LLVMIsConstant(v.get()) != 0; })
       .def_prop_ro("is_undef",
@@ -1125,17 +1171,41 @@ void bindValueClasses(nb::module_ &m) {
       .def_prop_ro("is_poisonous",
                    [](PyValue &v) { return LLVMIsPoison(v.get()) != 0;})
       .def_prop_ro("first_use",
-                   [](PyValue &v) { return PyUse(LLVMGetFirstUse(v.get())); })
+                   [](PyValue &v) -> optional<PyUse> {
+                     auto res = LLVMGetFirstUse(v.get());
+                     WRAP_OPTIONAL_RETURN(res, PyUse);
+                   })
       .def("as_metadata",
            [](PyValue &self) {
-             return PyMetadata(LLVMValueAsMetadata(self.get()));
+             return PyValueAsMetadata(LLVMValueAsMetadata(self.get()));
            })
       .def("dump",
            [](PyValue &v) { return LLVMDumpValue(v.get()); },
            "Dump a representation of a value to stderr.")
-      .def("__str__",
-           [](PyValue &v) { return std::string(LLVMPrintValueToString(v.get())); })
+      .def_static("replace_all_uses_with",
+                  [](PyValue &oldVal, PyValue &newVal) {
+                    return LLVMReplaceAllUsesWith(oldVal.get(), newVal.get());
+                  },
+                  "Replace all uses of a value with another one.")
   PY_FOR_EACH_VALUE_SUBCLASS(PY_DECLARE_VALUE_CAST)
+      .def("to_MDNode",
+           [](PyValue &self) -> optional<PyValue> {
+             auto res = LLVMIsAMDNode(self.get());
+             WRAP_OPTIONAL_RETURN(res, PyValue);
+           },
+           "Note this function doesn't do cast actually, but can be used for judgment.")
+      .def("to_ValueAsMetadata",
+           [](PyValue &self) -> optional<PyValue> {
+             auto res = LLVMIsAValueAsMetadata(self.get());
+             WRAP_OPTIONAL_RETURN(res, PyValue);
+           },
+           "Note this function doesn't do cast actually, but can be used for judgment.")
+      .def("to_MDString",
+           [](PyValue &self) -> optional<PyValue> {
+             auto res = LLVMIsAMDString(self.get());
+             WRAP_OPTIONAL_RETURN(res, PyValue);
+           },
+           "Note this function doesn't do cast actually, but can be used for judgment.")
       .def_prop_ro("is_basic_block",
                    [](PyValue &self) {
                      return LLVMValueIsBasicBlock(self.get()) != 0;
@@ -1144,6 +1214,24 @@ void bindValueClasses(nb::module_ &m) {
                    [](PyValue &self) {
                      return PyBasicBlockWrapper(LLVMValueAsBasicBlock(self.get()));
                    });
+
+  PoisonValueClass
+      .def("__init__",
+           [](PyPoisonValue *p, PyType &t) {
+             new (p) PyPoisonValue(LLVMGetPoison(t.get()));
+           },
+           "type"_a,
+           "Obtain a constant value referring to a poison value of a type.");
+
+  
+  UndefValueClass
+      .def("__init__",
+           [](PyUndefValue *uv, PyType &t) {
+             new (uv) PyUndefValue(LLVMGetUndef(t.get()));
+           },
+           "type"_a,
+           "Obtain a constant value referring to an undefined value of a type.");
+  
 
   ShuffleVectorInstClass
       .def_prop_ro("mask_elems_num",
@@ -1176,37 +1264,6 @@ void bindValueClasses(nb::module_ &m) {
                      return LLVMSetParentCatchSwitch(self.get(), catchSwitch.get());
                    });
   
-  MDStringClass
-      .def_prop_ro("raw_string",
-                   [](PyMDString &v) {
-                     unsigned len;
-                     auto str = LLVMGetMDString(v.get(), &len);
-                     return std::string(str, len);
-                   },
-                   "Obtain the underlying string from a MDString value.");
-
-  MDNodeClass
-      // deprecated functions not binded:
-      // LLVMMDStringInContext, LLVMMDString, LLVMMDNodeInContext, LLVMMDNode
-      .def_prop_ro("num_operands",
-           [](PyMDNode &self) {
-             return LLVMGetMDNodeNumOperands(self.get());
-           })
-      .def_prop_ro("operands",
-                   [](PyMDNode &self) {
-                     unsigned num = LLVMGetMDNodeNumOperands(self.get());
-                     LLVMValueRef *dest;
-                     LLVMGetMDNodeOperands(self.get(), dest);
-                     WRAP_VECTOR_FROM_DEST_AUTO(PyValue, num, res, dest);
-                     return res;
-                   },
-                   "Obtain the given MDNode's operands.")
-      .def_prop_ro("replace_operand_with",
-                   [](PyMDNode &self, unsigned index, PyMetadata &replacement) {
-                     return LLVMReplaceMDNodeOperandWith
-                              (self.get(), index, replacement.get());
-                   },
-                   "Replace an operand at a specific index in a llvm::MDNode value.");
 
   
 
@@ -1229,7 +1286,7 @@ void bindValueClasses(nb::module_ &m) {
                    [](PyGlobalIFunc &self, PyConstant resolver) {
                      return LLVMSetGlobalIFuncResolver(self.get(), resolver.get());
                    })
-      .def("destory", // TODO test
+      .def("destory",
            [](PyGlobalIFunc &self) {
              return LLVMEraseGlobalIFunc(self.get());
            },
@@ -1630,6 +1687,11 @@ void bindValueClasses(nb::module_ &m) {
                    "Obtain the float predicate of an instruction.");
 
   GlobalVariableClass
+      .def("__init__",
+           [](PyGlobalVariable *g, PyModule &m, PyType &type, const char *name) {
+             new (g) PyGlobalVariable(LLVMAddGlobal(m.get(), type.get(), name));
+           },
+           "module"_a, "type"_a, "name"_a)
       .def_prop_rw("initializer",
                    [](PyGlobalVariable &self) {
                      return PyValueAuto(LLVMGetInitializer(self.get()));
@@ -1714,6 +1776,15 @@ void bindValueClasses(nb::module_ &m) {
 
   
   GlobalAliasClass
+      .def("__init__",
+           [](PyGlobalAlias *g, PyModule &self, PyType &valueType, unsigned addrSpace,
+              PyValue aliasee, const char *name) {
+             new (g) PyGlobalAlias(LLVMAddAlias2
+                                     (self.get(), valueType.get(), addrSpace,
+                                      aliasee.get(), name));
+           },
+           "module"_a, "value_type"_a, "addr_space"_a, "aliasee"_a, "name"_a,
+           "Add a GlobalAlias with the given value type, address space and aliasee.")
       .def_prop_ro("next",
            [](PyGlobalAlias &self) -> std::optional<PyGlobalAlias> {
              auto res = LLVMGetNextGlobalAlias(self.get());
@@ -1753,9 +1824,10 @@ void bindValueClasses(nb::module_ &m) {
            })
       .def_prop_rw("call_conv",
                    [](PyFunction &self){
-                     return LLVMGetFunctionCallConv(self.get());
+                     auto res = LLVMGetFunctionCallConv(self.get());
+                     return static_cast<LLVMCallConv>(res);
                    },
-                   [](PyFunction &self, unsigned CC) {
+                   [](PyFunction &self, LLVMCallConv CC) {
                      return LLVMSetFunctionCallConv(self.get(), CC);
                    })
       .def_prop_rw("gc",
@@ -1764,7 +1836,10 @@ void bindValueClasses(nb::module_ &m) {
                    },
                    [](PyFunction &self, const char *name) {
                      return LLVMSetGC(self.get(), name);
-                   })
+                   },
+                   nb::for_getter
+                     ("Obtain the name of the garbage collector to use "
+                      "during code generation."))
       .def_prop_ro("basic_block_num",
                    [](PyFunction &self) {
                      return LLVMCountBasicBlocks(self.get());
@@ -1794,7 +1869,7 @@ void bindValueClasses(nb::module_ &m) {
                    })
       .def_prop_ro("has_personality_fn",
                    [](PyFunction &self) {
-                     return LLVMGetPersonalityFn(self.get()) != 0;
+                     return LLVMHasPersonalityFn(self.get()) != 0;
                    })
       .def_prop_rw("personality_fn",
                    [](PyFunction &self) {
@@ -1852,14 +1927,13 @@ void bindValueClasses(nb::module_ &m) {
                      WRAP_VECTOR_FROM_DEST(PyArgument, param_num, res, params);
                      return res;
                    })
-      // TODO add LLVMGetParamParent binding
       .def_prop_ro("first_param",
-                   [](PyFunction &self) -> std::optional<PyArgument> {
+                   [](PyFunction &self) -> optional<PyArgument> {
                      auto res = LLVMGetFirstParam(self.get());
                      WRAP_OPTIONAL_RETURN(res, PyArgument);
                    })
       .def_prop_ro("last_param",
-                   [](PyFunction &self) -> std::optional<PyArgument> {
+                   [](PyFunction &self) -> optional<PyArgument> {
                      auto res = LLVMGetLastParam(self.get());
                      WRAP_OPTIONAL_RETURN(res, PyArgument);
                    })
@@ -1961,7 +2035,8 @@ void bindValueClasses(nb::module_ &m) {
       .def("get_operand",
            [](PyUser &u, unsigned index) {
              return PyValueAuto(LLVMGetOperand(u.get(), index));
-           }, "index"_a,
+           },
+           "index"_a,
            "Obtain an operand at a specific index.")
       .def("get_operand_use",
            [](PyUser &u, unsigned index) {
@@ -1972,37 +2047,38 @@ void bindValueClasses(nb::module_ &m) {
            [](PyUser &u, unsigned index, PyValue &v) {
              return LLVMSetOperand(u.get(), index, v.get());
            },
+           "index"_a, "value"_a,
            "Set an operand at a specific index")
-       .def_prop_ro("operands_number",
+       .def_prop_ro("operands_num",
                     [](PyUser &u) {
                       return LLVMGetNumOperands(u.get());
                     });
 
   ConstantClass
       // note these constructors are also available in TypeClass
-      .def_static("Null",
+      .def_static("null",
                   [](PyType &t) {
                     return PyValueAuto(LLVMConstNull(t.get()));
                   }, "type"_a,
                   "Obtain a constant value referring to the null instance of the type.")
-      .def_static("PointerNull",
+      .def_static("pointer_null",
                   [](PyType &t) {
                     return PyValueAuto(LLVMConstPointerNull(t.get()));
                   }, "type"_a,
                   "Obtain a constant that is a constant pointer pointing to NULL for the"
                   "type.")
-      .def_static("AllOnes",
+      .def_static("all_ones",
                   [](PyTypeInt &t) {
                     return PyValueAuto(LLVMConstAllOnes(t.get()));
                   }, "type"_a,
                   "Obtain a constant value referring to the instance of the type"
                   "consisting of all ones.")
-      .def_static("Undef",
+      .def_static("undef",
                   [](PyType &t) {
                     return PyUndefValue(LLVMGetUndef(t.get()));
                   }, "type"_a,
                   "Obtain a constant value referring to an undefined value of a type.")
-      .def_static("Poison",
+      .def_static("poison",
                   [](PyType &t) {
                     return PyPoisonValue(LLVMGetPoison(t.get()));
                   }, "type"_a,
@@ -2017,37 +2093,41 @@ void bindValueClasses(nb::module_ &m) {
                                             (t.get(), N, SignExtend));
            },
            "int_type"_a, "value"_a, "sign_extend"_a,
+           "Original Function: LLVMConstInt.\n"
            "Obtain a constant value for an integer type.\n\n"
            "Parameters:\n--------"
            "int_type: IntTy Integer type to obtain value of.\n"
            "value: The value the returned instance should refer to.\n"
            "sign_extend: Whether to sign extend the produced value.")
-      .def_static("ArbitraryPrecision",
-                  [](PyTypeInt &t, unsigned NumWords, const uint64_t Words[]) {
-                    auto res = LLVMConstIntOfArbitraryPrecision
-                                 (t.get(), NumWords, Words);
-                    return PyConstantInt(res);
-                  },
-                  "int_type"_a, "num_words"_a, "words"_a,
-                  "Obtain a constant value for an integer of arbitrary precision.")
+      .def("__init__",
+           [](PyConstantInt *c, PyTypeInt &t, unsigned NumWords, const uint64_t Words[]) {
+             auto res = LLVMConstIntOfArbitraryPrecision
+                          (t.get(), NumWords, Words);
+             new (c) PyConstantInt(res);
+           },
+           "int_type"_a, "num_words"_a, "words"_a,
+           "Origin Function: LLVMConstIntOfArbitraryPrecision.\n"
+           "Obtain a constant value for an integer of arbitrary precision.")
       // LLVMConstIntOfString is discarded in favor of LLVMConstIntOfStringAndSize 
-      .def_static("String", 
-                  [](PyTypeInt &t, std::string &text, uint8_t Radix) {
-                    return PyConstantInt(LLVMConstIntOfStringAndSize
-                                           (t.get(), text.c_str(), text.size(),
-                                            Radix));
-                  },
-                  "int_type"_a, "text"_a, "radix"_a,
-                  "Obtain a constant value for an integer parsed from a string.")
-      .def_prop_ro("zero_extension",
+      .def("__init__", 
+           [](PyConstantInt *c, PyTypeInt &t, std::string &text, uint8_t Radix) {
+             new (c) PyConstantInt(LLVMConstIntOfStringAndSize
+                                    (t.get(), text.c_str(), text.size(),
+                                     Radix));
+           },
+           "int_type"_a, "text"_a, "radix"_a,
+           "Original Function: LLVMConstIntOfStringAndSize\n"
+           "Obtain a constant value for an integer parsed from a string.")
+      .def_prop_ro("zext",
                    [](PyConstantInt &c) {
                      return LLVMConstIntGetZExtValue(c.get());
                    },
-                   "Obtain the zero extended value for an integer constant value.")
-      .def_prop_ro("signed_extension",
+                   "Obtain the zero extended value.")
+      .def_prop_ro("sext",
                    [](PyConstantInt &c) {
                      return LLVMConstIntGetSExtValue(c.get());
-                   });
+                   },
+                   "Obtain the sign extended value.");
 
   ConstantFPClass
       .def("__init__",
@@ -2055,26 +2135,37 @@ void bindValueClasses(nb::module_ &m) {
              new (c) PyConstantFP(LLVMConstReal(t.get(), value));
            },
            "real_type"_a, "value"_a,
+           "Original Function: LLVMConstReal.\n"
            "Obtain a constant value referring to a double floating point value.\n\n")
       // LLVMConstRealOfString is discarded in favor of LLVMConstRealOfStringAndSize
-      .def_static("String",
-                  [](PyTypeReal &t, std::string text) {
-                    return PyConstantFP(LLVMConstRealOfStringAndSize
-                                          (t.get(), text.c_str(), text.size()));
-                  },
-                  "Obtain a constant for a floating point value parsed from a string.")
-      .def("get_double",
-           [](PyConstantFP &c) {
-             LLVMBool losesInfo;
-             double res = LLVMConstRealGetDouble(c.get(), &losesInfo);
-             return std::make_tuple(res, losesInfo);
+      .def("__init__",
+           [](PyConstantFP *c, PyTypeReal &t, std::string text) {
+             new (c) PyConstantFP(LLVMConstRealOfStringAndSize
+                                   (t.get(), text.c_str(), text.size()));
            },
-           "Obtain the double value for an floating point constant value.\n\n"
-           "Parameters\n--------"
-           "loses_info: indicates if some precision was lost in the conversion.");
+           "type"_a, "text"_a,
+           "Original Function: LLVMConstRealOfStringAndSize\n"
+           "Obtain a constant for a floating point value parsed from a string.")
+      .def_prop_ro("double",
+                   [](PyConstantFP &c) {
+                     LLVMBool losesInfo;
+                     double res = LLVMConstRealGetDouble(c.get(), &losesInfo);
+                     return std::make_tuple(res, losesInfo);
+                   },
+                   "Obtain the double value for an floating point constant value.\n\n"
+                   "The returned value is a tuple, with first one as the double"
+                   "value and the second one indicating whether the some precision"
+                   "was lost in the conversion.");
 
   ConstantDataArrayClass
-      .def_static("StringInContext",
+       .def("__str__",
+            [](PyConstantDataArray &c) {
+              size_t len;
+              auto str = LLVMGetAsString(c.get(), &len);
+              return std::string(str, len);
+            },
+            "Get the given constant data sequential as a string.")
+      .def_static("create_string_in_context",
                   [](PyContext &cxt, std::string &str, bool DontNullTerminate) {
                     return PyConstantDataArray
                              (LLVMConstStringInContext
@@ -2084,7 +2175,7 @@ void bindValueClasses(nb::module_ &m) {
                   "context"_a, "str"_a, "dont_null_terminate"_a,
                   "Create a ConstantDataSequential and initialize it"
                   "with a string.")
-      .def_static("String",
+      .def_static("create_string",
                   [](std::string &str, bool DontNullTerminate) {
                     return PyConstantDataArray
                              (LLVMConstString
@@ -2201,12 +2292,12 @@ void bindValueClasses(nb::module_ &m) {
             "The opcode needs to be llvm::Instruction::FCmp.")
       .def_static("get_align_of",
                    [](PyType &t) {
-                     return PyValueAuto(LLVMAlignOf(t.get()));
+                     return PyConstantExpr(LLVMAlignOf(t.get()));
                    },
                   "type"_a)
       .def_static("get_size_of",
                    [](PyType &t) {
-                     return PyValueAuto(LLVMSizeOf(t.get()));
+                     return PyConstantExpr(LLVMSizeOf(t.get()));
                    },
                   "type"_a)
       .def_static("neg",
@@ -2621,7 +2712,7 @@ void bindValueClasses(nb::module_ &m) {
                    });
 
   GlobalObjectClass
-      .def("set_metadataf",
+      .def("set_metadata",
            [](PyGlobalObject &g, unsigned kind, PyMetadata md) {
              return LLVMGlobalSetMetadata(g.get(), kind, md.get());
            },
@@ -2718,7 +2809,13 @@ void bindOtherClasses(nb::module_ &m) {
 
   auto ModuleFlagEntriesClass = nb::class_<PyModuleFlagEntries>
                                   (m, "ModuleFlagEntry", "ModuleFlagEntry");
-  auto MetaDataClass = nb::class_<PyMetadata>(m, "Metadata", "Metadata");
+  auto MetadataClass = nb::class_<PyMetadata>(m, "Metadata", "Metadata");
+  auto MDNodeClass = nb::class_<PyMDNode, PyMetadata>(m, "MDNode", "MDNode");
+  auto MDStringClass = nb::class_<PyMDString, PyMetadata>(m, "MDString", "MDString");
+  auto ValueAsMetadata = nb::class_<PyValueAsMetadata, PyMetadata>
+                           (m, "ValueAsMetadata", "ValueAsMetadata");
+
+  
   auto MetadataEntriesClass = nb::class_<PyMetadataEntries>
                               (m, "MetadataEntry", "MetadataEntry");
   
@@ -2738,6 +2835,48 @@ void bindOtherClasses(nb::module_ &m) {
                             (m, "PassManager", "PassManager");
   auto FunctionPassManagerClass = nb::class_<PyFunctionPassManager>
                                     (m, "FunctionPassManager", "FunctionPassManager");
+
+  MetadataClass
+      .def_static("get_md_kind_id",
+                  [](const std::string &name) {
+                    return LLVMGetMDKindID(name.c_str(), name.size());
+                  },
+                  "name"_a)
+      .def("as_value",
+           [](PyMetadata &self, PyContext &c) {
+             return PyMetadataAsValue(LLVMMetadataAsValue(c.get(), self.get()));
+           },
+           "context"_a);
+
+
+  MDStringClass
+      .def("__init__",
+           [](PyMDString *mds, PyContext &context, std::string &name) {
+             new (mds) PyMDString(LLVMMDStringInContext2
+                                    (context.get(), name.c_str(), name.size()));
+           },
+           "context"_a, "name"_a,
+           "Create an MDString value from a given string value.")
+      .def("as_value",
+           [](PyMDString &self, PyContext &c) {
+             return PyMDStringValue(LLVMMetadataAsValue(c.get(), self.get()));
+           },
+           "context"_a);
+
+  MDNodeClass
+      .def("__init__",
+           [](PyMDNode *mdd, PyContext &c, std::vector<PyMetadata> mds) {
+             size_t num = mds.size();
+             UNWRAP_VECTOR_WRAPPER_CLASS(LLVMMetadataRef, mds, raw, num);
+             new (mdd) PyMDNode(LLVMMDNodeInContext2(c.get(), raw.data(), num));
+           },
+           "context"_a, "metadata"_a)
+      .def("as_value",
+           [](PyMDNode &self, PyContext &c) {
+             return PyMDNodeValue(LLVMMetadataAsValue(c.get(), self.get()));
+           },
+           "context"_a);
+
 
   PassManagerClass
       .def("__init__",
@@ -3524,6 +3663,13 @@ void bindOtherClasses(nb::module_ &m) {
     
 
   IntrinsicClass
+       .def("__repr__",
+            [](PyIntrinsic &self) {
+              size_t len;
+              auto raw_name = LLVMIntrinsicGetName(self.get(), &len);
+              auto name = std::string(raw_name, len);
+              return fmt::format("<Instrinsic id={} name={}>", self.get(), name);
+            })
        .def_static("lookup",
                     [](std::string &name) {
                       return PyIntrinsic(LLVMLookupIntrinsicID(name.c_str(), name.size()));
@@ -3542,6 +3688,10 @@ void bindOtherClasses(nb::module_ &m) {
                   "context"_a, "param_types"_a,
                   "Retrieves the type of an intrinsic.  For overloaded intrinsics,"
                   " parameter types must be provided to uniquely identify an overload.")
+      .def_prop_ro("id",
+                   [](PyIntrinsic &self) {
+                     return self.get();
+                   })
       .def_prop_ro("name",
                    [](PyIntrinsic &self) {
                     size_t len;
@@ -3598,7 +3748,7 @@ void bindOtherClasses(nb::module_ &m) {
 
   UseClass
       .def_prop_ro("next",
-                   [](PyUse &u) -> std::optional<PyUse> {
+                   [](PyUse &u) -> optional<PyUse> {
                      auto res = LLVMGetNextUse(u.get());
                      WRAP_OPTIONAL_RETURN(res, PyUse);
                    },
@@ -3649,7 +3799,20 @@ void bindOtherClasses(nb::module_ &m) {
                    [](PyEnumAttribute &attr) {
                      return LLVMGetEnumAttributeValue(attr.get());
                    },
-                   "Get the enum attribute's value. 0 is returned if none exists.");
+                   "Get the enum attribute's value. 0 is returned if none exists.")
+      .def_static("get_enum_attribute_kind_for_name",
+              [](const std::string &name){
+                return LLVMGetEnumAttributeKindForName(name.c_str(), name.size());
+              },
+              "name"_a,
+              "Return an unique id given the name of a enum attribute,"
+              "or 0 if no attribute by that name exists.\n\n"
+              "See http://llvm.org/docs/LangRef.html#parameter-attributes"
+              "and http://llvm.org/docs/LangRef.html#function-attributes"
+              "for the list of available attributes.\n\n"
+              "NB: Attribute names and/or id are subject to change without"
+              "going through the C API deprecation cycle.")
+      .def_static("get_last_enum_attribute_kind", &LLVMGetLastEnumAttributeKind);
 
   TypeAttributeClass
       .def("__init__",
@@ -3861,7 +4024,7 @@ void bindOtherClasses(nb::module_ &m) {
            "name"_a)
       .def("create_md_string_2",
            [](PyContext &self, std::string &name) {
-             return PyMetadata(LLVMMDStringInContext2(self.get(), name.c_str(), name.size()));
+             return PyMDString(LLVMMDStringInContext2(self.get(), name.c_str(), name.size()));
            },
            "name"_a,
            "Create an MDString value from a given string value.")
@@ -3869,7 +4032,7 @@ void bindOtherClasses(nb::module_ &m) {
            [](PyContext &self, std::vector<PyMetadata> mds) {
              size_t num = mds.size();
              UNWRAP_VECTOR_WRAPPER_CLASS(LLVMMetadataRef, mds, raw, num);
-             return PyMetadata(LLVMMDNodeInContext2(self.get(), raw.data(), num));
+             return PyMDNode(LLVMMDNodeInContext2(self.get(), raw.data(), num));
            },
            "metadata"_a)
       .def("get_metadata_as_value",
@@ -3905,10 +4068,14 @@ void bindOtherClasses(nb::module_ &m) {
              self.cleanup();
            })
       .def_prop_ro("first_global",
-                   [](PyModule &m) { return PyValueAuto(LLVMGetFirstGlobal(m.get())); })
+                   [](PyModule &m) -> optional<PyGlobalVariable> {
+                     auto res = LLVMGetFirstGlobal(m.get());
+                     WRAP_OPTIONAL_RETURN(res, PyGlobalVariable);
+                   })
       .def_prop_ro("last_global",
-                   [](PyModule &self) {
-                     return PyValueAuto(LLVMGetLastGlobal(self.get()));
+                   [](PyModule &self) -> optional<PyGlobalVariable> {
+                     auto res = LLVMGetLastGlobal(self.get());
+                     WRAP_OPTIONAL_RETURN(res, PyGlobalVariable);
                    })
       .def_prop_ro("first_global_ifunc",
                    [](PyModule &self) -> optional<PyGlobalIFunc> {
@@ -3921,12 +4088,14 @@ void bindOtherClasses(nb::module_ &m) {
                      WRAP_OPTIONAL_RETURN(res, PyGlobalIFunc);
                    })
       .def_prop_ro("first_global_alias",
-                   [](PyModule &self) {
-                     return PyValueAuto(LLVMGetFirstGlobalAlias(self.get()));
+                   [](PyModule &self) -> optional<PyGlobalAlias> {
+                     auto res = LLVMGetFirstGlobalAlias(self.get());
+                     WRAP_OPTIONAL_RETURN(res, PyGlobalAlias);
                    })
       .def_prop_ro("last_global_alias",
-                   [](PyModule &self) {
-                     return PyValueAuto(LLVMGetLastGlobalAlias(self.get()));
+                   [](PyModule &self) -> optional<PyGlobalAlias> {
+                     auto res = LLVMGetLastGlobalAlias(self.get());
+                     WRAP_OPTIONAL_RETURN(res, PyGlobalAlias);
                    })
       .def_prop_ro("first_named_metadata",
                    [](PyModule &m) -> optional<PyNamedMDNode> {
@@ -4039,7 +4208,7 @@ void bindOtherClasses(nb::module_ &m) {
       .def("add_alias",
            [](PyModule &self, PyType &valueType, unsigned addrSpace, PyValue aliasee,
               const char *name) {
-             return PyValueAuto(LLVMAddAlias2
+             return PyGlobalAlias(LLVMAddAlias2
                                   (self.get(), valueType.get(), addrSpace,
                                    aliasee.get(), name));
            },
@@ -4047,25 +4216,25 @@ void bindOtherClasses(nb::module_ &m) {
            "Add a GlobalAlias with the given value type, address space and aliasee.")
       .def("get_named_global_alias",
            [](PyModule &self, std::string &name) {
-             return PyValueAuto(LLVMGetNamedGlobalAlias
+             return PyGlobalAlias(LLVMGetNamedGlobalAlias
                                   (self.get(), name.c_str(), name.size()));
            },
            "name"_a,
            "Obtain a GlobalAlias value from by its name.")
       .def("add_global",
            [](PyModule &self, PyType &type, const char *name) {
-             return PyValueAuto(LLVMAddGlobal(self.get(), type.get(), name));
+             return PyGlobalVariable(LLVMAddGlobal(self.get(), type.get(), name));
            },
            "type"_a, "name"_a)
       .def("add_global_in_address_space",
            [](PyModule &self, PyType &type, const char *name, unsigned addressSpace) {
-             return PyValueAuto(LLVMAddGlobalInAddressSpace
+             return PyGlobalVariable(LLVMAddGlobalInAddressSpace
                                   (self.get(), type.get(), name, addressSpace));
            },
            "type"_a, "name"_a, "address_space"_a)
       .def("get_named_global",
            [](PyModule &self, const char *name) {
-             return PyValueAuto(LLVMGetNamedGlobal(self.get(), name));
+             return PyGlobalVariable(LLVMGetNamedGlobal(self.get(), name));
            })
       .def("add_global_indirect_func",
            [](PyModule &self, std::string &name, PyType &type, unsigned addrSpace,
