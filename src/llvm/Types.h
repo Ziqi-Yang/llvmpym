@@ -101,22 +101,11 @@ protected:
     using ParentClassName::ParentClassName; \
   };
 
-#define PY_DECLARE_VALUE_CAST(name) \
-  .def("to_" #name, \
-       [](PyValue &v) -> std::optional<PyValue *> { \
-         auto res = LLVMIsA##name(v.get()); \
-         if (res) \
-           return PyValueAuto(res); \
-         return std::nullopt; \
-       }, \
-       "Origin function: LLVMIsA" #name "\n\n" \
-       "None means conversion failed.\n\n" \
-       "Note if the target class is not supported in python binding, then it will " \
-       "return a generic PyValue type object") 
 
+// NOTE BasicBlock(Value) and custom added entries are not included in
+// this macro
 #define PY_FOR_EACH_VALUE_SUBCLASS(macro) \
   macro(Argument)                           \
-  macro(BasicBlock)                         \
   macro(InlineAsm)                          \
   macro(User)                               \
     macro(Constant)                         \
@@ -218,7 +207,7 @@ protected:
   macro(PyMetadataAsValue, PyValueAsMetadataValue) \
   macro(PyMetadataAsValue, PyMDStringValue) \
   macro(PyValue, PyArgument) \
-  macro(PyValue, PyBasicBlock) \
+  macro(PyValue, PyBasicBlockValue) \
   macro(PyValue, PyInlineAsm) \
   macro(PyValue, PyUser) \
     macro(PyUser, PyConstant) \
@@ -309,7 +298,7 @@ DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyDiagnosticInfo, LLVMDiagnosticInfoRef)
 DEFINE_PY_WRAPPER_CLASS_COPYABLE_POLYMORPHIC(PyAttribute, LLVMAttributeRef)
 DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyNamedMDNode, LLVMNamedMDNodeRef)
 DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyUse, LLVMUseRef)
-DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyBasicBlockWrapper, LLVMBasicBlockRef)
+DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyBasicBlock, LLVMBasicBlockRef)
 DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyBuilder, LLVMBuilderRef)
 
 DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyMetadata, LLVMMetadataRef)

@@ -4,6 +4,21 @@
 #include <nanobind/nanobind.h>
 namespace nb = nanobind;
 
+
+#define PY_DECLARE_VALUE_CAST(name) \
+  .def("to_" #name, \
+       [](PyValue &v) -> std::optional<PyValue *> { \
+         auto res = LLVMIsA##name(v.get()); \
+         if (res) \
+           return PyValueAuto(res); \
+         return std::nullopt; \
+       }, \
+       "Origin function: LLVMIsA" #name "\n\n" \
+       "None means conversion failed.\n\n" \
+       "Note if the target class is not supported in python binding, then it will " \
+       "return a generic PyValue type object") 
+
+
 #define CONSTANT_EXPR_BIND_BINARY_OP(NAME, FUNCTION) \
   .def_static(#NAME, \
       [](PyConstant &lhs, PyConstant &rhs) { \

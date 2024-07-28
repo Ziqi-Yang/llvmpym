@@ -32,42 +32,71 @@ inline std::string get_value_name(PyValue &v) {
   return std::string(str, len);
 }
 
+PyMetadataAsValue* getMoreSpcMetadataAsValue(LLVMValueRef raw) {
+  if (auto v = LLVMIsAMDNode(raw)) {
+    return new PyMDNodeValue(v);
+  } else if (auto v = LLVMIsAMDString(raw)) {
+    return new PyMDStringValue(v);
+  } 
+  return new PyMetadataAsValue(raw);
+}
 
-// TODO FIXME
 /**
  * NOTE only mapping needed specific instruction sub-classes
+ * add the order here is according to `PY_FOR_EACH_VALUE_CLASS_RELATIONSHIP` macro
+ * in Types.h
  * 
  * @param Inst: should be of LLVMInstructionValueKind
  */
 PyInstruction* PyInstructionAuto(LLVMValueRef inst) {
   LLVMOpcode opcode = LLVMGetInstructionOpcode(inst);
   switch (opcode) {
-  case LLVMICmp:
-    return new PyICmpInst(inst);
-  case LLVMFCmp:
-    return new PyFCmpInst(inst);
-    
-  case LLVMInvoke:
-    return new PyInvokeInst(inst);
   case LLVMCall:
     return new PyCallInst(inst);
+  case LLVMInvoke:
+    return new PyInvokeInst(inst);
 
-  case LLVMCleanupRet:
-    return new PyCleanupReturnInst(inst);
+  case LLVMFCmp:
+    return new PyFCmpInst(inst);
+  case LLVMICmp:
+    return new PyICmpInst(inst);
+  case LLVMGetElementPtr:
+    return new PyGetElementPtrInst(inst);
+  case LLVMPHI:
+    return new PyPHINode(inst);
+  case LLVMShuffleVector:
+    return new PyShuffleVectorInst(inst);
+  case LLVMRet:
+    return new PyReturnInst(inst);
+  case LLVMSwitch:
+    return new PySwitchInst(inst);
   case LLVMCatchSwitch:
     return new PyCatchSwitchInst(inst);
-
+  case LLVMCleanupRet:
+    return new PyCleanupReturnInst(inst);
+  // no kind corresponding to PyFuncletPadInst
+  case LLVMCatchPad:
+    return new PyCatchPadInst(inst);
+  case LLVMAlloca:
+    return new PyAllocaInst(inst);
   case LLVMInsertValue:
     return new PyInsertValueInst(inst);
   case LLVMExtractValue:
     return new PyExtractValueInst(inst);
-
+  case LLVMBr:
+    return new PyBranchInst(inst);
   case LLVMIndirectBr:
     return new PyIndirectBrInst(inst);
-    
   case LLVMLandingPad:
     return new PyLandingPadInst(inst);
-
+  case LLVMLoad:
+    return new PyLoadInst(inst);
+  case LLVMStore:
+    return new PyStoreInst(inst);
+  case LLVMAtomicRMW:
+    return new PyAtomicRMWInst(inst);
+  case LLVMAtomicCmpXchg:
+    return new PyAtomicCmpXchgInst(inst);
   case LLVMFence:
     return new PyFenceInst(inst);
 
@@ -122,7 +151,6 @@ PyType* PyTypeAuto(LLVMTypeRef rawType) {
   }
 }
 
-// TODO FIXME
 /**
  * It seems like the enum type doesn't cover all the sub-classes,
  * so user may still need to do a manual cast using `to_XXX` method
@@ -133,7 +161,7 @@ PyValue* PyValueAuto(LLVMValueRef rawValue) {
   case LLVMArgumentValueKind:
     return new PyArgument(rawValue);
   case LLVMBasicBlockValueKind:
-    return new PyBasicBlock(rawValue);
+    return new PyBasicBlockValue(rawValue);
   // case LLVMMemoryUseValueKind:
   // case LLVMMemoryDefValueKind:
   // case LLVMMemoryPhiValueKind:
@@ -172,7 +200,7 @@ PyValue* PyValueAuto(LLVMValueRef rawValue) {
     return new PyConstant(rawValue);
 
   case LLVMMetadataAsValueValueKind:
-    return new PyMetadataAsValue(rawValue); // TODO More specific?
+    return getMoreSpcMetadataAsValue(rawValue);
   case LLVMInlineAsmValueKind:
     return new PyInlineAsm(rawValue);
 
@@ -1048,7 +1076,7 @@ void bindValueClasses(nb::module_ &m) {
                          (m, "MDStringValue", "MDStringValue");
     
   auto ArgumentClass = nb::class_<PyArgument, PyValue>(m, "Argument", "Argument");
-  auto BasicBlockClass = nb::class_<PyBasicBlock, PyValue>(m, "BasicBlockValue", "BasicBlockValue");
+  auto BasicBlockValueClass = nb::class_<PyBasicBlockValue, PyValue>(m, "BasicBlockValue", "BasicBlockValue");
   auto InlineAsmClass = nb::class_<PyInlineAsm, PyValue>(m, "InlineAsm", "InlineAsm");
   auto UserClass = nb::class_<PyUser, PyValue>(m, "User", "User");
   auto ConstantClass = nb::class_<PyConstant, PyUser>(m, "Constant", "Constant");
@@ -1112,6 +1140,10 @@ void bindValueClasses(nb::module_ &m) {
   MDNodeValueClass
       // deprecated functions not binded:
       // LLVMMDNodeInContext, LLVMMDNode
+      .def("as_metadata",
+           [](PyMDStringValue &self) {
+             return PyMDNode(LLVMValueAsMetadata(self.get()));
+           })
       .def_prop_ro("num_operands",
                    [](PyMDNodeValue &self) {
                      return LLVMGetMDNodeNumOperands(self.get());
@@ -1135,6 +1167,10 @@ void bindValueClasses(nb::module_ &m) {
   MDStringValueClass
       // deprecated functions not binded:
       // LLVMMDStringInContext, LLVMMDString
+      .def("as_metadata",
+           [](PyMDStringValue &self) {
+             return PyMDString(LLVMValueAsMetadata(self.get()));
+           })
       .def_prop_ro("raw_string",
                    [](PyMDStringValue &v) {
                      unsigned len;
@@ -1188,32 +1224,35 @@ void bindValueClasses(nb::module_ &m) {
                   },
                   "Replace all uses of a value with another one.")
   PY_FOR_EACH_VALUE_SUBCLASS(PY_DECLARE_VALUE_CAST)
-      .def("to_MDNode",
-           [](PyValue &self) -> optional<PyValue> {
+      .def("to_BasicBlockValue",
+           [](PyValue &self) -> optional<PyBasicBlockValue> {
+             auto res = LLVMIsABasicBlock(self.get());
+             WRAP_OPTIONAL_RETURN(res, PyBasicBlockValue);
+           })
+      .def("to_MDNodeValue",
+           [](PyValue &self) -> optional<PyMDNodeValue> {
              auto res = LLVMIsAMDNode(self.get());
-             WRAP_OPTIONAL_RETURN(res, PyValue);
-           },
-           "Note this function doesn't do cast actually, but can be used for judgment.")
-      .def("to_ValueAsMetadata",
-           [](PyValue &self) -> optional<PyValue> {
+             WRAP_OPTIONAL_RETURN(res, PyMDNodeValue);
+           })
+      .def("to_ValueAsMetadataValue",
+           [](PyValue &self) -> optional<PyValueAsMetadataValue> {
              auto res = LLVMIsAValueAsMetadata(self.get());
-             WRAP_OPTIONAL_RETURN(res, PyValue);
-           },
-           "Note this function doesn't do cast actually, but can be used for judgment.")
-      .def("to_MDString",
-           [](PyValue &self) -> optional<PyValue> {
+             WRAP_OPTIONAL_RETURN(res, PyValueAsMetadataValue);
+           })
+      .def("to_MDStringValue",
+           [](PyValue &self) -> optional<PyMDStringValue> {
              auto res = LLVMIsAMDString(self.get());
-             WRAP_OPTIONAL_RETURN(res, PyValue);
-           },
-           "Note this function doesn't do cast actually, but can be used for judgment.")
+             WRAP_OPTIONAL_RETURN(res, PyMDStringValue);
+           })
+      // TODO test whether these property are only true to BasicBlockValue
       .def_prop_ro("is_basic_block",
                    [](PyValue &self) {
                      return LLVMValueIsBasicBlock(self.get()) != 0;
                    })
-      .def_prop_ro("as_basic_block",
-                   [](PyValue &self) {
-                     return PyBasicBlockWrapper(LLVMValueAsBasicBlock(self.get()));
-                   });
+      .def("as_basic_block",
+           [](PyValue &self) {
+             return PyBasicBlock(LLVMValueAsBasicBlock(self.get()));
+           });
 
   PoisonValueClass
       .def("__init__",
@@ -1353,6 +1392,15 @@ void bindValueClasses(nb::module_ &m) {
                    });
 
   InstructionClass
+      .def_prop_ro("can_use_fast_math_flags",
+                  [](PyInstruction &self) {
+                    return LLVMCanValueUseFastMathFlags(self.get()) != 0;
+                  },
+                  "Check if a given value can potentially have fast math flags.\n"
+                  "Will return true for floating point arithmetic instructions, and "
+                  "for select, phi, and call instructions whose type is a floating "
+                  "point type, or a vector or array thereof.\n"
+                  "See https://llvm.org/docs/LangRef.html#fast-math-flags")
       .def_prop_ro("next",
                    [](PyInstruction &self) -> optional<PyInstruction> {
                      auto res = LLVMGetNextInstruction(self.get());
@@ -1395,8 +1443,9 @@ void bindValueClasses(nb::module_ &m) {
                    [](PyInstruction &i) { return LLVMGetDebugLocColumn(i.get()); },
                    "Return the column number of the debug location for this value")
       .def_prop_ro("parent",
-                   [](PyInstruction &self) {
-                     return PyBasicBlockWrapper(LLVMGetInstructionParent(self.get()));
+                   [](PyInstruction &self) -> optional<PyBasicBlock> {
+                     auto res = LLVMGetInstructionParent(self.get());
+                     WRAP_OPTIONAL_RETURN(res, PyBasicBlock);
                    },
                    "Obtain the basic block to which an instruction belongs.")
       .def_prop_ro("opcode",
@@ -1443,7 +1492,7 @@ void bindValueClasses(nb::module_ &m) {
            },
            "kind_id"_a)
       .def("set_metadata",
-           [](PyInstruction &self, unsigned kindID, PyValue node) { // TODO PyMDNode?
+           [](PyInstruction &self, unsigned kindID, PyMetadataAsValue node) {
              return LLVMSetMetadata(self.get(), kindID, node.get());
            },
            "kind_id"_a, "value"_a)
@@ -1472,12 +1521,89 @@ void bindValueClasses(nb::module_ &m) {
                    })
       .def("get_successor",
            [](PyInstruction &self, unsigned index) {
-             return PyBasicBlockWrapper(LLVMGetSuccessor(self.get(), index));
+             return PyBasicBlock(LLVMGetSuccessor(self.get(), index));
            })
       .def("set_successor",
-           [](PyInstruction &self, unsigned index, PyBasicBlockWrapper bb) {
+           [](PyInstruction &self, unsigned index, PyBasicBlock bb) {
              return LLVMSetSuccessor(self.get(), index, bb.get());
-           });
+           })
+       // TODO
+      .def_static("get_nuw", 
+                  [](PyInstruction &arithInst) {
+                    return LLVMGetNUW(arithInst.get()) != 0;
+                  },
+                  "arith_inst"_a)
+      .def_static("set_nuw",
+                  [](PyInstruction &arithInst, bool hasNUW) {
+                    return LLVMSetNUW(arithInst.get(), hasNUW);
+                  },
+                  "arith_inst"_a, "hasNUW"_a)
+      .def_static("get_nsw",
+                  [](PyInstruction &arithInst) {
+                    return LLVMGetNSW(arithInst.get()) != 0;
+                  },
+                  "arithInst"_a)
+      .def_static("set_nsw",
+                  [](PyInstruction &arithInst, bool hasNSW) {
+                    return LLVMSetNSW(arithInst.get(), hasNSW);
+                  },
+                  "arith_inst"_a, "hasNSW"_a)
+      .def_static("get_exact",
+                  [](PyInstruction &DivOrShrInst) {
+                    return LLVMGetExact(DivOrShrInst.get()) != 0;
+                  },
+                  "div_or_shr_inst"_a)
+      .def_static("set_exact",
+                  [](PyInstruction &DivOrShrInst, bool isExact) {
+                    return LLVMSetExact(DivOrShrInst.get(), isExact);
+                  },
+                  "div_or_shr_inst"_a, "is_exact"_a)
+      .def_static("get_nneg",
+                  [](PyInstruction &NonNegInst) {
+                    return LLVMGetNNeg(NonNegInst.get()) != 0;
+                  },
+                  "non_neg_inst"_a,
+                  "Gets if the instruction has the non-negative flag set.\n",
+                  "Only valid for zext instructions.")
+      .def_static("set_nned",
+                  [](PyInstruction &NonNegInst, bool isNonNeg) {
+                    return LLVMSetNNeg(NonNegInst.get(), isNonNeg);
+                  },
+                  "non_neg_inst"_a, "is_non_neg"_a,
+                  "Sets the non-negative flag for the instruction.\n"
+                  "Only valid for zext instructions.")
+      .def_static("get_fast_math_flags",
+                  [](PyInstruction &FPMathInst) {
+                    return LLVMGetFastMathFlags(FPMathInst.get());
+                  },
+                  "fp_math_inst"_a,
+                  "Get the flags for which fast-math-style optimizations are allowed "
+                  "for this value.\n\n"
+                  "Only valid on floating point instructions."
+                  "See `can_use_fast_math_flags`.")
+      .def_static("set_fast_math_flags",
+                  [](PyInstruction &FPMathInst, LLVMFastMathFlags FMF) {
+                    return LLVMSetFastMathFlags(FPMathInst.get(), FMF);
+                  },
+                  "fp_math_inst"_a, "fmf"_a,
+                  "Sets the flags for which fast-math-style optimizations are allowed "
+                  "for this value.\n\n"
+                  "Only valid on floating point instructions.\n"
+                  "See `can_use_fast_math_flags`.")
+      .def_static("get_is_disjoint",
+                  [](PyInstruction &inst) {
+                    return LLVMGetIsDisjoint(inst.get()) != 0;
+                  },
+                  "inst"_a,
+                  "Gets whether the instruction has the disjoint flag set.\n"
+                  "Only valid for or instructions.")
+      .def_static("set_is_disjoint",
+                  [](PyInstruction &inst, bool isDisjoint) {
+                    return LLVMSetIsDisjoint(inst.get(), isDisjoint);
+                  },
+                  "inst"_a, "is_disjoint"_a,
+                  "Sets the disjoint flag for the instruction.\n"
+                  "Only valid for or instructions.");
 
   /*
     Terminator only methods needs ===================================
@@ -1499,10 +1625,10 @@ void bindValueClasses(nb::module_ &m) {
   SwitchInstClass
       .def_prop_ro("default_dest",
                    [](PySwitchInst &self) {
-                     return PyBasicBlockWrapper(LLVMGetSwitchDefaultDest(self.get()));
+                     return PyBasicBlock(LLVMGetSwitchDefaultDest(self.get()));
                    })
       .def_prop_ro("add_case",
-                   [](PySwitchInst &self, PyConstantInt &onVal, PyBasicBlockWrapper dest) {
+                   [](PySwitchInst &self, PyConstantInt &onVal, PyBasicBlock dest) {
                      return LLVMAddCase(self.get(), onVal.get(), dest.get());
                    });
 
@@ -1517,17 +1643,34 @@ void bindValueClasses(nb::module_ &m) {
            });
 
 
+  CallInstClass
+      .def_prop_rw("is_tail_call",
+                   [](PyCallInst &self) {
+                     return LLVMIsTailCall(self.get()) != 0;
+                   },
+                   [](PyCallInst &self, bool isTailCall) {
+                     return LLVMSetTailCall(self.get(), isTailCall);
+                   })
+      .def_prop_rw("tail_call_kind",
+                   [](PyCallInst &self) {
+                     return LLVMGetTailCallKind(self.get());
+                   },
+                   [](PyCallInst &self, LLVMTailCallKind kind) {
+                     return LLVMSetTailCallKind(self.get(), kind);
+                   });
+
   
   CallBaseClass
       .def_prop_ro("arg_num",
                    [](PyCallBase &self) {
                      return LLVMGetNumArgOperands(self.get());
                    })
-      .def_prop_rw("calling_convention",
+      .def_prop_rw("call_conv",
                    [](PyCallBase &self) {
-                     return LLVMGetInstructionCallConv(self.get());
+                     auto res = LLVMGetInstructionCallConv(self.get());
+                     return static_cast<LLVMCallConv>(res);
                    },
-                   [](PyCallBase &self, unsigned CC) {
+                   [](PyCallBase &self, LLVMCallConv CC) {
                      return LLVMSetInstructionCallConv(self.get(), CC);
                    })
       .def_prop_ro("called_fn_type",
@@ -1542,20 +1685,6 @@ void bindValueClasses(nb::module_ &m) {
       .def_prop_ro("operand_bundles_num",
                    [](PyCallBase &self) {
                      return LLVMGetNumOperandBundles(self.get());
-                   })
-      .def_prop_rw("is_tail_call",
-                   [](PyCallBase &self) {
-                     return LLVMIsTailCall(self.get()) != 0;
-                   },
-                   [](PyCallBase &self, bool isTailCall) {
-                     return LLVMSetTailCall(self.get(), isTailCall);
-                   })
-      .def_prop_rw("tail_call_kind",
-                   [](PyCallBase &self) {
-                     return LLVMGetTailCallKind(self.get());
-                   },
-                   [](PyCallBase &self, LLVMTailCallKind kind) {
-                     return LLVMSetTailCallKind(self.get(), kind);
                    })
       .def("get_operand_bundle_at",
            [](PyCallBase &self, unsigned index) {
@@ -1585,21 +1714,21 @@ void bindValueClasses(nb::module_ &m) {
              WRAP_VECTOR_FROM_DEST_AUTO(PyAttribute, num, res, attrs);
              return res;
            })
-      .def("get_call_site_enum_attributes",
+      .def("get_call_site_enum_attribute",
            [](PyCallBase &self, LLVMAttributeIndex idx, unsigned kindID) {
              return PyEnumAttribute(LLVMGetCallSiteEnumAttribute(self.get(), idx,
                                                                  kindID));
            })
-      .def("get_call_site_string_attributes",
+      .def("get_call_site_string_attribute",
            [](PyCallBase &self, LLVMAttributeIndex idx, std::string &kind) {
              return PyStringAttribute(LLVMGetCallSiteStringAttribute
                                         (self.get(), idx, kind.c_str(), kind.size()));
            })
-      .def("remove_call_site_enum_attributes",
+      .def("remove_call_site_enum_attribute",
            [](PyCallBase &self, LLVMAttributeIndex idx, unsigned kindID) {
              return LLVMRemoveCallSiteEnumAttribute(self.get(), idx, kindID);
            })
-      .def("remove_call_site_string_attributes",
+      .def("remove_call_site_string_attribute",
            [](PyCallBase &self, LLVMAttributeIndex idx, std::string &kind) {
              return LLVMRemoveCallSiteStringAttribute
                       (self.get(), idx, kind.c_str(), kind.size());
@@ -1608,34 +1737,34 @@ void bindValueClasses(nb::module_ &m) {
   InvokeInstClass
       .def_prop_rw("normal_dest",
                    [](PyInvokeInst &self) {
-                     return PyBasicBlockWrapper(LLVMGetNormalDest(self.get()));
+                     return PyBasicBlock(LLVMGetNormalDest(self.get()));
                    },
-                   [](PyInvokeInst &self, PyBasicBlockWrapper bb) {
+                   [](PyInvokeInst &self, PyBasicBlock bb) {
                      return LLVMSetNormalDest(self.get(), bb.get());
                    })
       .def_prop_rw("unwind_dest",
                    [](PyInvokeInst &self) {
-                     return PyBasicBlockWrapper(LLVMGetUnwindDest(self.get()));
+                     return PyBasicBlock(LLVMGetUnwindDest(self.get()));
                    },
-                   [](PyInvokeInst &self, PyBasicBlockWrapper bb) {
+                   [](PyInvokeInst &self, PyBasicBlock bb) {
                      return LLVMSetUnwindDest(self.get(), bb.get());
                    });
 
   CleanupReturnInstClass
       .def_prop_rw("unwind_dest",
                    [](PyCleanupReturnInst &self) {
-                     return PyBasicBlockWrapper(LLVMGetUnwindDest(self.get()));
+                     return PyBasicBlock(LLVMGetUnwindDest(self.get()));
                    },
-                   [](PyCleanupReturnInst &self, PyBasicBlockWrapper bb) {
+                   [](PyCleanupReturnInst &self, PyBasicBlock bb) {
                      return LLVMSetUnwindDest(self.get(), bb.get());
                    });
 
   CatchSwitchInstClass
         .def_prop_rw("unwind_dest",
                      [](PyCatchSwitchInst &self) {
-                       return PyBasicBlockWrapper(LLVMGetUnwindDest(self.get()));
+                       return PyBasicBlock(LLVMGetUnwindDest(self.get()));
                      },
-                     [](PyCatchSwitchInst &self, PyBasicBlockWrapper bb) {
+                     [](PyCatchSwitchInst &self, PyBasicBlock bb) {
                        return LLVMSetUnwindDest(self.get(), bb.get());
                      })
         .def_prop_ro("handlers_num",
@@ -1647,11 +1776,13 @@ void bindValueClasses(nb::module_ &m) {
                        unsigned num = LLVMGetNumHandlers(self.get());
                        LLVMBasicBlockRef *handlers;
                        LLVMGetHandlers(self.get(), handlers);
-                       WRAP_VECTOR_FROM_DEST(PyBasicBlockWrapper, num, res, handlers);
+                       WRAP_VECTOR_FROM_DEST(PyBasicBlock, num, res, handlers);
                        return res;
-                     })
+                     },
+                     "Obtain the basic blocks acting as handlers for a catchswitch "
+                     "instruction.")
         .def("add_handler",
-             [](PyCatchSwitchInst &self, PyBasicBlockWrapper dest) {
+             [](PyCatchSwitchInst &self, PyBasicBlock dest) {
                return LLVMAddHandler(self.get(), dest.get());
              });
 
@@ -1840,7 +1971,7 @@ void bindValueClasses(nb::module_ &m) {
                    nb::for_getter
                      ("Obtain the name of the garbage collector to use "
                       "during code generation."))
-      .def_prop_ro("basic_block_num",
+      .def_prop_ro("basic_blocks_num",
                    [](PyFunction &self) {
                      return LLVMCountBasicBlocks(self.get());
                    })
@@ -1849,23 +1980,23 @@ void bindValueClasses(nb::module_ &m) {
                      unsigned num = LLVMCountBasicBlocks(self.get());
                      LLVMBasicBlockRef *BasicBlocks;
                      LLVMGetBasicBlocks(self.get(), BasicBlocks);
-                     WRAP_VECTOR_FROM_DEST(PyBasicBlockWrapper, num,
+                     WRAP_VECTOR_FROM_DEST(PyBasicBlock, num,
                                            res, BasicBlocks);
                      return res;
                    })
       .def_prop_ro("first_basic_block",
-                   [](PyFunction &self) -> optional<PyBasicBlockWrapper> {
+                   [](PyFunction &self) -> optional<PyBasicBlock> {
                      auto res =  LLVMGetFirstBasicBlock(self.get());
-                     WRAP_OPTIONAL_RETURN(res, PyBasicBlockWrapper);
+                     WRAP_OPTIONAL_RETURN(res, PyBasicBlock);
                    })
       .def_prop_ro("last_basic_block",
-                   [](PyFunction &self) -> optional<PyBasicBlockWrapper> {
+                   [](PyFunction &self) -> optional<PyBasicBlock> {
                      auto res = LLVMGetLastBasicBlock(self.get());
-                     WRAP_OPTIONAL_RETURN(res, PyBasicBlockWrapper);
+                     WRAP_OPTIONAL_RETURN(res, PyBasicBlock);
                    })
       .def_prop_ro("entry_basic_block",
                    [](PyFunction &self) {
-                     return PyBasicBlockWrapper(LLVMGetEntryBasicBlock(self.get()));
+                     return PyBasicBlock(LLVMGetEntryBasicBlock(self.get()));
                    })
       .def_prop_ro("has_personality_fn",
                    [](PyFunction &self) {
@@ -1955,14 +2086,15 @@ void bindValueClasses(nb::module_ &m) {
              return LLVMAddAttributeAtIndex(self.get(), idx, attr.get());
            },
            "index"_a, "attr"_a)
-      .def("append_basic_block",
-           [](PyFunction &self, PyBasicBlockWrapper bb) {
+      .def("append_existing_basic_block",
+           [](PyFunction &self, PyBasicBlock bb) {
              return LLVMAppendExistingBasicBlock(self.get(), bb.get());
            },
-           "basic_block"_a)
+           "basic_block"_a,
+           "Append the given basic block to the basic block list of the given function.")
       .def("append_basic_block",
            [](PyFunction &self, const char *name) {
-             return PyBasicBlockWrapper(LLVMAppendBasicBlock(self.get(), name));
+             return PyBasicBlock(LLVMAppendBasicBlock(self.get(), name));
            },
            "name"_a,
            "Append a basic block to the end of a function using the global context.")
@@ -2405,7 +2537,7 @@ void bindValueClasses(nb::module_ &m) {
                   },
                   "vector_a"_a, "vector_b"_a, "mask"_a)
       .def_static("block_address",
-                  [](PyConstant &value, PyBasicBlockWrapper &bb) {
+                  [](PyConstant &value, PyBasicBlock &bb) {
                     return PyValueAuto(LLVMBlockAddress(value.get(), bb.get()));
                   });
 
@@ -2528,7 +2660,7 @@ void bindValueClasses(nb::module_ &m) {
                    "Obtain the number of incoming basic blocks to a PHI node.")
       .def("add_incoming",
            [](PyPHINode &self, std::vector<PyValue> incomingValues,
-              std::vector<PyBasicBlockWrapper> incomingBlocks, unsigned Count) {
+              std::vector<PyBasicBlock> incomingBlocks, unsigned Count) {
              unsigned cnt = incomingValues.size();
              UNWRAP_VECTOR_WRAPPER_CLASS(LLVMValueRef, incomingValues,
                                          rawValues, cnt);
@@ -2543,7 +2675,7 @@ void bindValueClasses(nb::module_ &m) {
            })
       .def("get_incoming_block",
            [](PyPHINode &self, unsigned index) {
-             return PyBasicBlockWrapper(LLVMGetIncomingBlock(self.get(), index));
+             return PyBasicBlock(LLVMGetIncomingBlock(self.get(), index));
            });
 
   FenceInstClass
@@ -2700,7 +2832,7 @@ void bindValueClasses(nb::module_ &m) {
                    [](PyAtomicCmpXchgInst &self) {
                      return LLVMGetCmpXchgSuccessOrdering(self.get());
                    },
-                   [](PyAtomicCmpXchgInst &self, LLVMAtomicOrdering ordering) {
+                   [](PyAtomicCmpXchgInst &self, LLVMAtomicOrdering ordering) { 
                      return LLVMSetCmpXchgSuccessOrdering(self.get(), ordering);
                    })
       .def_prop_rw("failure_ordering",
@@ -2740,7 +2872,7 @@ void bindValueClasses(nb::module_ &m) {
   
   IndirectBrInstClass
       .def("add_destination",
-           [](PyIndirectBrInst &self, PyBasicBlockWrapper &dest) {
+           [](PyIndirectBrInst &self, PyBasicBlock &dest) {
              return LLVMAddDestination(self.get(), dest.get());
            },
            "dest"_a,
@@ -2794,7 +2926,7 @@ void bindOtherClasses(nb::module_ &m) {
                                 (m, "StringAttribute", "StringAttribute");
   
   
-  auto BasicBlockWrapperClass = nb::class_<PyBasicBlockWrapper>
+  auto BasicBlockClass = nb::class_<PyBasicBlock>
                                   (m, "BasicBlock", "BasicBlock");
   auto DiagnosticInfoClass = nb::class_<PyDiagnosticInfo>
                                (m, "DiagnosticInfo", "DiagnosticInfo");
@@ -2986,7 +3118,7 @@ void bindOtherClasses(nb::module_ &m) {
            })
       .def_prop_ro("insert_block",
                    [](PyBuilder &self) {
-                     return PyBasicBlockWrapper(LLVMGetInsertBlock(self.get()));
+                     return PyBasicBlock(LLVMGetInsertBlock(self.get()));
                    })
       // note LLVMSetCurrentDebugLocation is deprecated in favor of
       // LLVMSetCurrentDebugLocation2. Also the LLVMGetCurrentDebugLocation
@@ -3006,7 +3138,7 @@ void bindOtherClasses(nb::module_ &m) {
                    },
                    nb::for_getter("Get the dafult floating-point math metadata."))
       .def("position",
-           [](PyBuilder &self, PyBasicBlockWrapper bb, PyInstruction &inst) {
+           [](PyBuilder &self, PyBasicBlock bb, PyInstruction &inst) {
              return LLVMPositionBuilder(self.get(), bb.get(), inst.get());
            },
            "Original Function: LLVMPositionBuilder.")
@@ -3017,7 +3149,7 @@ void bindOtherClasses(nb::module_ &m) {
            "instruction"_a,
            "Original function: LLVMPositionBuilderBefore.")
       .def("position_at_end",
-           [](PyBuilder &self, PyBasicBlockWrapper bb) {
+           [](PyBuilder &self, PyBasicBlock bb) {
              return LLVMPositionBuilderAtEnd(self.get(), bb.get());
            },
            "basicblock"_a,
@@ -3027,7 +3159,7 @@ void bindOtherClasses(nb::module_ &m) {
              return LLVMClearInsertionPosition(self.get());
            })
       .def("insert",
-           [](PyBuilder &self, PyBasicBlockWrapper &bb) {
+           [](PyBuilder &self, PyBasicBlock &bb) {
              return LLVMInsertExistingBasicBlockAfterInsertBlock(self.get(), bb.get());
            },
            "basic_block"_a,
@@ -3087,19 +3219,19 @@ void bindOtherClasses(nb::module_ &m) {
            },
            "values"_a)
       .def("br",
-           [](PyBuilder &self, PyBasicBlockWrapper &dest) {
+           [](PyBuilder &self, PyBasicBlock &dest) {
              return PyBranchInst(LLVMBuildBr(self.get(), dest.get()));
            },
            "dest"_a)
       .def("cond_br",
-           [](PyBuilder &self, PyValue &If, PyBasicBlockWrapper &Then,
-              PyBasicBlockWrapper &Else) {
+           [](PyBuilder &self, PyValue &If, PyBasicBlock &Then,
+              PyBasicBlock &Else) {
              return PyBranchInst(LLVMBuildCondBr(self.get(), If.get(),
                                                  Then.get(), Else.get()));
            },
            "If"_a, "Then"_a, "Else"_a)
       .def("switch",
-           [](PyBuilder &self, PyValue &value, PyBasicBlockWrapper &Else,
+           [](PyBuilder &self, PyValue &value, PyBasicBlock &Else,
               unsigned numCases) {
              return PySwitchInst(LLVMBuildSwitch(self.get(), value.get(), Else.get(), numCases));
            },
@@ -3111,7 +3243,7 @@ void bindOtherClasses(nb::module_ &m) {
            "addr"_a, "num_dests"_a)
       .def("invoke",
            [](PyBuilder &self, PyType &type, PyFunction &fn, std::vector<PyValue> args,
-              PyBasicBlockWrapper Then, PyBasicBlockWrapper Catch, const char *name) {
+              PyBasicBlock Then, PyBasicBlock Catch, const char *name) {
              unsigned args_num  = args.size();
              UNWRAP_VECTOR_WRAPPER_CLASS(LLVMValueRef, args, rawArgs, args_num);
              auto res = LLVMBuildInvoke2(self.get(), type.get(), fn.get(),
@@ -3123,7 +3255,7 @@ void bindOtherClasses(nb::module_ &m) {
            "Original Function: LLVMBuildInvoke2.")
       .def("invoke_with_operand_bundles",
            [](PyBuilder &self, PyType &type, PyFunction &fn, std::vector<PyValue> args,
-              PyBasicBlockWrapper Then, PyBasicBlockWrapper Catch,
+              PyBasicBlock Then, PyBasicBlock Catch,
               std::vector<std::shared_ptr<PyOperandBundle>> bundles, const char *name) {
              unsigned args_num  = args.size();
              UNWRAP_VECTOR_WRAPPER_CLASS(LLVMValueRef, args, rawArgs, args_num);
@@ -3159,7 +3291,7 @@ void bindOtherClasses(nb::module_ &m) {
            },
            "type"_a, "pers_fn"_a, "num_clauses"_a, "name"_a)
       .def("cleanup_ret",
-           [](PyBuilder &self, PyValue &catchPad, PyBasicBlockWrapper bb) {
+           [](PyBuilder &self, PyValue &catchPad, PyBasicBlock bb) {
              return PyCleanupReturnInst(LLVMBuildCleanupRet(self.get(), catchPad.get(),
                                                       bb.get()));
            },
@@ -3187,7 +3319,7 @@ void bindOtherClasses(nb::module_ &m) {
            },
            "parent_pad"_a, "args"_a, "name"_a)
       .def("catch_switch",
-           [](PyBuilder &self, PyValue &parentPad, PyBasicBlockWrapper &unwindBB,
+           [](PyBuilder &self, PyValue &parentPad, PyBasicBlock &unwindBB,
               unsigned numHandlers, const char *name) {
              auto res = LLVMBuildCatchSwitch(self.get(), parentPad.get(),
                                              unwindBB.get(), numHandlers,
@@ -3224,87 +3356,6 @@ void bindOtherClasses(nb::module_ &m) {
            [](PyBuilder &self, PyValue &v, const char *name) {
              return PyValueAuto(LLVMBuildNot(self.get(), v.get(), name));
            })
-      .def_static("get_nuw", // TODO where to put (since we don't have arithInst and its relationship)
-                  [](PyInstruction &arithInst) {
-                    return LLVMGetNUW(arithInst.get()) != 0;
-                  },
-                  "arith_inst"_a)
-      .def_static("set_nuw",
-                  [](PyInstruction &arithInst, bool hasNUW) {
-                    return LLVMSetNUW(arithInst.get(), hasNUW);
-                  },
-                  "arith_inst"_a, "hasNUW"_a)
-      .def_static("get_nsw",
-                  [](PyInstruction &arithInst) {
-                    return LLVMGetNSW(arithInst.get()) != 0;
-                  },
-                  "arithInst"_a)
-      .def_static("set_nsw",
-                  [](PyInstruction &arithInst, bool hasNSW) {
-                    return LLVMSetNSW(arithInst.get(), hasNSW);
-                  },
-                  "arith_inst"_a, "hasNSW"_a)
-      .def_static("get_exact",
-                  [](PyInstruction &DivOrShrInst) {
-                    return LLVMGetExact(DivOrShrInst.get()) != 0;
-                  },
-                  "div_or_shr_inst"_a)
-      .def_static("set_exact",
-                  [](PyInstruction &DivOrShrInst, bool isExact) {
-                    return LLVMSetExact(DivOrShrInst.get(), isExact);
-                  },
-                  "div_or_shr_inst"_a, "is_exact"_a)
-      .def_static("get_nneg",
-                  [](PyInstruction &NonNegInst) {
-                    return LLVMGetNNeg(NonNegInst.get()) != 0;
-                  },
-                  "non_neg_inst"_a,
-                  "Gets if the instruction has the non-negative flag set.\n",
-                  "Only valid for zext instructions.")
-      .def_static("set_nned",
-                  [](PyInstruction &NonNegInst, bool isNonNeg) {
-                    return LLVMSetNNeg(NonNegInst.get(), isNonNeg);
-                  },
-                  "non_neg_inst"_a, "is_non_neg"_a,
-                  "Sets the non-negative flag for the instruction.\n"
-                  "Only valid for zext instructions.")
-      .def_static("get_fast_math_flags",
-                  [](PyInstruction &FPMathInst) {
-                    return LLVMGetFastMathFlags(FPMathInst.get());
-                  },
-                  "fp_math_inst"_a,
-                  "Get the flags for which fast-math-style optimizations are allowed "
-                  "for this value.\n\n"
-                  "Only valid on floating point instructions.")
-      .def_static("set_fast_math_flags",
-                  [](PyInstruction &FPMathInst, LLVMFastMathFlags FMF) {
-                    return LLVMSetFastMathFlags(FPMathInst.get(), FMF);
-                  },
-                  "fp_math_inst"_a, "fmf"_a,
-                  "Sets the flags for which fast-math-style optimizations are allowed "
-                  "for this value.\n\n"
-                  "Only valid on floating point instructions.")
-      .def_static("can_value_use_fast_math_flags",
-                  [](PyInstruction &inst) {
-                    return LLVMCanValueUseFastMathFlags(inst.get()) != 0;
-                  },
-                  "inst",
-                  "Check if a given value can potentially have fast math flags.\n"
-                  "Will return true for floating point arithmetic instructions, and "
-                  "for select, phi, and call instructions whose type is a floating "
-                  "point type, or a vector or array thereof.\n"
-                  "See https://llvm.org/docs/LangRef.html#fast-math-flags")
-      .def_static("get_is_disjoint",
-                  [](PyInstruction &inst) {
-                    return LLVMGetIsDisjoint(inst.get()) != 0;
-                  },
-                  "inst"_a)
-      .def_static("set_is_disjoint",
-                  [](PyInstruction &inst, bool isDisjoint) {
-                    return LLVMSetIsDisjoint(inst.get(), isDisjoint);
-                  },
-                  "inst"_a, "is_disjoint"_a)
-
       .def("malloc",
            [](PyBuilder &self, PyType &type, const char *name) {
              return PyCallInst(LLVMBuildMalloc(self.get(), type.get(), name));
@@ -3559,22 +3610,51 @@ void bindOtherClasses(nb::module_ &m) {
            auto res = LLVMBuildAtomicCmpXchg(self.get(), ptr.get(), cmp.get(),
                                              New.get(), successOrdering,
                                              failureOrdering, singleThread);
+           return PyAtomicCmpXchgInst(res);
          });
 
   
 
-  BasicBlockWrapperClass
+  BasicBlockClass
+      .def("__init__",
+           [](PyBasicBlock *bb, PyContext &c, const char *name) {
+             new (bb) PyBasicBlock(LLVMCreateBasicBlockInContext(c.get(), name));
+           },
+           "context"_a, "name"_a,
+           "Create a new basic block without inserting it into a function.")
+      .def("__init__",
+           [](PyBasicBlock *bb, PyContext &c, PyFunction &f, const char *name) {
+             new (bb) PyBasicBlock(LLVMAppendBasicBlockInContext
+                                     (c.get(), f.get(), name));
+           },
+           "context"_a, "function"_a, "name"_a,
+           "Create a new basic block without inserting it into a function.")
+      .def("__init__",
+           [](PyBasicBlock *bb, PyContext &c, PyBasicBlock &BB, const char *name) {
+             new (bb) PyBasicBlock(LLVMInsertBasicBlockInContext
+                                     (c.get(), BB.get(), name));
+           },
+           "context"_a, "bb"_a, "name"_a,
+           "Insert a basic block in a function before another basic block.\n\n"
+           "The function to add to is determined by the function of the"
+           "passed basic block.")
+      .def("__init__",
+           [](PyBasicBlock *bb, PyBasicBlock &BB, const char *name) {
+             new (bb) PyBasicBlock(LLVMInsertBasicBlock(BB.get(), name));
+           },
+           "insert_before_bb"_a, "name"_a,
+           "Insert a basic block in a function using the global context.")
       .def_prop_ro("name",
-                   [](PyBasicBlockWrapper &self) {
+                   [](PyBasicBlock &self) {
                      return LLVMGetBasicBlockName(self.get());
                    })
       .def_prop_ro("parent",
-                   [](PyBasicBlockWrapper &self) {
+                   [](PyBasicBlock &self) {
                      return PyFunction(LLVMGetBasicBlockParent(self.get()));
                    },
                    "Obtain the function to which a basic block belongs.")
       .def_prop_ro("terminator",
-                   [](PyBasicBlockWrapper &self) -> optional<PyInstruction> {
+                   [](PyBasicBlock &self) -> optional<PyInstruction> {
                      auto res = LLVMGetBasicBlockTerminator(self.get());
                      WRAP_OPTIONAL_RETURN(res, PyInstruction);
                    },
@@ -3582,54 +3662,56 @@ void bindOtherClasses(nb::module_ &m) {
                    "If the basic block does not have a terminator (it is not well-formed"
                    "if it doesn't), then NULL is returned.")
       .def_prop_ro("value",
-                   [](PyBasicBlockWrapper &self) {
-                     return PyBasicBlock(LLVMBasicBlockAsValue(self.get()));
+                   [](PyBasicBlock &self) {
+                     return PyBasicBlockValue(LLVMBasicBlockAsValue(self.get()));
                    })
       .def_prop_ro("next",
-                   [](PyBasicBlockWrapper &self) -> optional<PyBasicBlockWrapper> {
+                   [](PyBasicBlock &self) -> optional<PyBasicBlock> {
                      auto res = LLVMGetNextBasicBlock(self.get());
-                     WRAP_OPTIONAL_RETURN(res, PyBasicBlockWrapper);
+                     WRAP_OPTIONAL_RETURN(res, PyBasicBlock);
                    })
       .def_prop_ro("prev",
-                   [](PyBasicBlockWrapper &self) -> optional<PyBasicBlockWrapper> {
+                   [](PyBasicBlock &self) -> optional<PyBasicBlock> {
                      auto res = LLVMGetPreviousBasicBlock(self.get());
-                     WRAP_OPTIONAL_RETURN(res, PyBasicBlockWrapper);
+                     WRAP_OPTIONAL_RETURN(res, PyBasicBlock);
                    })
       .def_prop_ro("first_instruction",
-                   [](PyBasicBlockWrapper &self) {
-                     return PyInstruction(LLVMGetFirstInstruction(self.get()));
+                   [](PyBasicBlock &self) -> optional<PyInstruction> {
+                     auto res = LLVMGetFirstInstruction(self.get());
+                     WRAP_OPTIONAL_RETURN(res, PyInstruction);
                    })
       .def_prop_ro("last_instruction",
-                   [](PyBasicBlockWrapper &self) {
-                     return PyInstruction(LLVMGetLastInstruction(self.get()));
+                   [](PyBasicBlock &self) -> optional<PyInstruction> {
+                     auto res = LLVMGetLastInstruction(self.get());
+                     WRAP_OPTIONAL_RETURN(res, PyInstruction);
                    })
       .def("create_and_insert_before",
-           [](PyBasicBlockWrapper &self, const char *name) {
-             return PyBasicBlockWrapper(LLVMInsertBasicBlock(self.get(), name));
+           [](PyBasicBlock &self, const char *name) {
+             return PyBasicBlock(LLVMInsertBasicBlock(self.get(), name));
            },
            "Insert a basic block in a function using the global context.")
       .def("destroy", // TODO test
-           [](PyBasicBlockWrapper &self) {
+           [](PyBasicBlock &self) {
              return LLVMDeleteBasicBlock(self.get());
            },
            "Remove a basic block from a function and delete it.\n\n"
            "This deletes the basic block from its containing function and deletes"
            "the basic block itself.")
       .def("remove_from_parent",
-           [](PyBasicBlockWrapper &self) {
+           [](PyBasicBlock &self) {
              return LLVMRemoveBasicBlockFromParent(self.get());
            },
            "Remove a basic block from a function.\n\n"
            "This deletes the basic block from its containing function but keep"
            "the basic block alive.")
       .def("move_before",
-           [](PyBasicBlockWrapper &self, PyBasicBlockWrapper posBB) {
+           [](PyBasicBlock &self, PyBasicBlock posBB) {
              return LLVMMoveBasicBlockBefore(self.get(), posBB.get());
            },
            "pos"_a,
            "Move a basic block to before another one.")
       .def("move_after",
-           [](PyBasicBlockWrapper &self, PyBasicBlockWrapper posBB) {
+           [](PyBasicBlock &self, PyBasicBlock posBB) {
              return LLVMMoveBasicBlockAfter(self.get(), posBB.get());
            },
            "pos",
@@ -3651,11 +3733,11 @@ void bindOtherClasses(nb::module_ &m) {
                      auto tag = LLVMGetOperandBundleTag(self.get(), &len);
                      return std::string(tag, len);
                    })
-      .def_prop_ro("args_num",
+      .def_prop_ro("operands_num",
                    [](PyOperandBundle &self) {
                      return LLVMGetNumOperandBundleArgs(self.get());
                    })
-      .def("get_arg_at",
+      .def("get_operand_at",
            [](PyOperandBundle &self, unsigned index) {
              return PyValueAuto(LLVMGetOperandBundleArgAtIndex(self.get(), index));
            });
@@ -3970,21 +4052,21 @@ void bindOtherClasses(nb::module_ &m) {
            })
       .def("create_basic_block",
            [](PyContext &self, const char *name) {
-             return PyBasicBlockWrapper(LLVMCreateBasicBlockInContext
+             return PyBasicBlock(LLVMCreateBasicBlockInContext
                                           (self.get(), name));
            },
            "name"_a,
            "Create a new basic block without inserting it into a function.")
       .def("append_basic_block",
            [](PyContext &self, PyFunction fn, const char *name) {
-             return PyBasicBlockWrapper(LLVMAppendBasicBlockInContext
+             return PyBasicBlock(LLVMAppendBasicBlockInContext
                                           (self.get(), fn.get(), name));
            },
            "fn"_a, "name"_a,
            "Append a basic block to the end of a function.")
       .def("insert_basic_block",
-           [](PyContext &self, PyBasicBlockWrapper bb, const char *name) {
-             return PyBasicBlockWrapper(LLVMInsertBasicBlockInContext
+           [](PyContext &self, PyBasicBlock bb, const char *name) {
+             return PyBasicBlock(LLVMInsertBasicBlockInContext
                                           (self.get(), bb.get(), name));
            },
            "bb"_a, "name"_a,
@@ -4037,9 +4119,9 @@ void bindOtherClasses(nb::module_ &m) {
            "metadata"_a)
       .def("get_metadata_as_value",
            [](PyContext &self, PyMetadata &md) {
-             return PyValueAuto(LLVMMetadataAsValue(self.get(), md.get()));
+             return getMoreSpcMetadataAsValue(LLVMMetadataAsValue
+                                                (self.get(), md.get()));
            });
-
 
   
 
