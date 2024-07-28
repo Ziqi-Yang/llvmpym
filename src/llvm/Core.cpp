@@ -26,12 +26,6 @@ inline const char *get_repr_str(T &&obj) {
   return nb::repr(nb::cast(obj)).c_str();
 }
 
-inline std::string get_value_name(PyValue &v) {
-  size_t len;
-  const char *str = LLVMGetValueName2(v.get(), &len);
-  return std::string(str, len);
-}
-
 PyMetadataAsValue* getMoreSpcMetadataAsValue(LLVMValueRef raw) {
   if (auto v = LLVMIsAMDNode(raw)) {
     return new PyMDNodeValue(v);
@@ -40,6 +34,31 @@ PyMetadataAsValue* getMoreSpcMetadataAsValue(LLVMValueRef raw) {
   } 
   return new PyMetadataAsValue(raw);
 }
+
+inline std::string get_type_str(PyType &t) {
+  char *str = LLVMPrintTypeToString(t.get());
+  std::string res(str);
+  LLVMDisposeMessage(str);
+  return res;
+}
+
+inline char *get_value_str(LLVMValueRef v) {
+  return LLVMPrintValueToString(v);
+}
+
+inline std::string get_value_name(LLVMValueRef v) {
+  size_t len;
+  const char *str = LLVMGetValueName2(v, &len);
+  return std::string(str, len);
+}
+
+inline std::string gen_value_repr(const char *typeName, PyValue &v) {
+  LLVMValueRef raw = v.get();
+  auto name = get_value_name(raw);
+  auto str = get_value_str(raw);
+  return fmt::format("<{} name='{}' str='{}'>", typeName, name, str);
+}
+
 
 /**
  * NOTE only mapping needed specific instruction sub-classes
@@ -659,15 +678,9 @@ void bindTypeClasses(nb::module_ &m) {
       .def("__repr__",
            [](PyType &self) {
              auto kind = get_repr_str(LLVMGetTypeKind(self.get()));
-             return fmt::format("<Type kind={}>", kind);
+             return fmt::format("<Type kind='{}' sig=''>", kind, get_type_str(self));
            })
-      .def("__str__",
-           [](PyType &t) {
-             char *str = LLVMPrintTypeToString(t.get());
-             std::string res(str);
-             LLVMDisposeMessage(str);
-             return res;
-           })
+      .def("__str__", &get_type_str)
       .def_prop_ro("align",
                    [](PyType &t) {
                      return PyConstantExpr(LLVMAlignOf(t.get()));
@@ -743,6 +756,10 @@ void bindTypeClasses(nb::module_ &m) {
   
 
   TypeIntClass
+      .def("__repr__",
+           [](PyTypeInt &self) {
+             return fmt::format("<IntType {}>", get_type_str(self));
+           })
       .def("__init__",
            [](PyTypeInt *t, PyContext &c, unsigned numBits) {
              new (t) PyTypeInt(LLVMIntTypeInContext(c.get(), numBits));
@@ -797,6 +814,10 @@ void bindTypeClasses(nb::module_ &m) {
   
 
   TypeRealClass
+      .def("__repr__",
+           [](PyTypeReal &self) {
+             return fmt::format("<RealType {}>", get_type_str(self));
+           })
       .def_static("Half",
                   [](PyContext &c) { return PyTypeReal(LLVMHalfTypeInContext(c.get())); },
                   "context"_a)
@@ -842,6 +863,10 @@ void bindTypeClasses(nb::module_ &m) {
 
 
   TypeFunctionClass
+      .def("__repr__",
+           [](PyTypeFunction &self) {
+             return fmt::format("<FunctionType {}>", get_type_str(self));
+           })
        .def("__init__",
             [](PyTypeFunction *t, PyType &returnType, std::vector<PyType> &paramTypes, bool isVarArg) {
               unsigned param_count = paramTypes.size();
@@ -871,6 +896,10 @@ void bindTypeClasses(nb::module_ &m) {
                    "Obtain the types of a function's parameters.");
   
   TypeStructClass
+      .def("__repr__",
+           [](PyTypeStruct &self) {
+             return fmt::format("<StructType {}>", get_type_str(self));
+           })
       .def("__init__",
            [](PyTypeStruct *t, PyContext &c, std::vector<PyType> &elementTypes, bool packed) {
              unsigned elem_count = elementTypes.size();
@@ -932,12 +961,20 @@ void bindTypeClasses(nb::module_ &m) {
            "Get the type of the element at a given index in the structure.");
 
   TypeSequenceClass
+      .def("__repr__",
+           [](PyTypeSequence &self) {
+             return fmt::format("<SequenceType {}>", get_type_str(self));
+           })
       .def_prop_ro("element_type", // TODO test pointer type
                    [](PyTypeSequence &t) {
                      return PyTypeAuto(LLVMGetElementType(t.get()));
                    });
 
   TypeArrayClass
+      .def("__repr__",
+           [](PyTypeArray &self) {
+             return fmt::format("<ArrayType {}>", get_type_str(self));
+           })
       // NOTE We use LLVMArrayType2 instead of LLVMArrayType to coordinate
       // with the `length` property
       .def("__init__", 
@@ -957,6 +994,10 @@ void bindTypeClasses(nb::module_ &m) {
 
 
   TypePointerClass
+      .def("__repr__",
+           [](PyTypePointer &self) {
+             return fmt::format("<PointerType {}>", get_type_str(self));
+           })
       .def("__init__",
            [](PyTypePointer *t, PyContext &c, unsigned AddressSpace) {
              new (t) PyTypePointer(LLVMPointerTypeInContext(c.get(), AddressSpace));
@@ -977,6 +1018,10 @@ void bindTypeClasses(nb::module_ &m) {
                    [](PyTypePointer &t) { return LLVMGetPointerAddressSpace(t.get()); });
 
   TypeVectorClass
+      .def("__repr__",
+           [](PyTypeVector &self) {
+             return fmt::format("<VectorType {}>", get_type_str(self));
+           })
       .def("__init__",
            [](PyTypeVector *t, PyType &ElementType, unsigned ElementCount, bool IsScalable) {
              if (IsScalable) {
@@ -993,6 +1038,10 @@ void bindTypeClasses(nb::module_ &m) {
 
   
   TypeVoidClass
+      .def("__repr__",
+           [](PyTypeVoid &self) {
+             return fmt::format("<VoidType {}>", get_type_str(self));
+           })
       .def("__init__",
            [](PyTypeVoid *t, PyContext &c) {
              new (t) PyTypeVoid(LLVMVoidTypeInContext(c.get()));
@@ -1003,6 +1052,10 @@ void bindTypeClasses(nb::module_ &m) {
 
   
   TypeLabelClass
+      .def("__repr__",
+           [](PyTypeLabel &self) {
+             return fmt::format("<LabelType {}>", get_type_str(self));
+           })
       .def("__init__",
            [](PyTypeLabel *t, PyContext &c) {
              new (t) PyTypeLabel(LLVMLabelTypeInContext(c.get()));
@@ -1013,6 +1066,10 @@ void bindTypeClasses(nb::module_ &m) {
 
 
   TypeX86MMXClass
+      .def("__repr__",
+           [](PyTypeX86MMX &self) {
+             return fmt::format("<X86MMXType {}>", get_type_str(self));
+           })
       .def("__init__",
            [](PyTypeX86MMX *t, PyContext &c) {
              new (t) PyTypeX86MMX(LLVMX86MMXTypeInContext(c.get()));
@@ -1023,6 +1080,10 @@ void bindTypeClasses(nb::module_ &m) {
 
 
   TypeX86AMXClass
+      .def("__repr__",
+           [](PyTypeX86AMX &self) {
+             return fmt::format("<X86AMXType {}>", get_type_str(self));
+           })
        .def("__init__",
             [](PyTypeX86AMX *t, PyContext &c) {
               new (t) PyTypeX86AMX(LLVMX86AMXTypeInContext(c.get()));
@@ -1033,6 +1094,10 @@ void bindTypeClasses(nb::module_ &m) {
 
 
   TypeTokenClass
+      .def("__repr__",
+           [](PyTypeToken &self) {
+             return fmt::format("<TokenType {}>", get_type_str(self));
+           })
       .def("__init__",
            [](PyTypeToken *t, PyContext &c) {
              new (t) PyTypeToken(LLVMTokenTypeInContext(c.get()));
@@ -1040,6 +1105,10 @@ void bindTypeClasses(nb::module_ &m) {
            "context"_a);
 
   TypeMetadataClass
+      .def("__repr__",
+           [](PyTypeMetadata &self) {
+             return fmt::format("<MetadataType {}>", get_type_str(self));
+           })
       .def("__init__",
            [](PyTypeMetadata *t, PyContext &c) {
              new (t) PyTypeMetadata(LLVMMetadataTypeInContext(c.get()));
@@ -1047,16 +1116,20 @@ void bindTypeClasses(nb::module_ &m) {
            "context"_a);
 
   TypeTargetExtClass
-        .def("__init__",
-             [](PyTypeVoid *t, PyContext &c, std::string &name, std::vector<PyType> typeParams,
-                std::vector<unsigned> intParams) {
-               unsigned typeParamSize = typeParams.size();
-               unsigned intParamSize = intParams.size();
-               UNWRAP_VECTOR_WRAPPER_CLASS(LLVMTypeRef, typeParams, rawTypeParams, typeParamSize);
-               new (t) PyTypeVoid(LLVMTargetExtTypeInContext
-                                    (c.get(), name.c_str(), rawTypeParams.data(),
-                                     typeParamSize, intParams.data(), intParamSize));
-             });
+      .def("__repr__",
+           [](PyTypeTargetExt &self) {
+             return fmt::format("<TargetType {}>", get_type_str(self));
+           })
+      .def("__init__",
+           [](PyTypeVoid *t, PyContext &c, std::string &name, std::vector<PyType> typeParams,
+              std::vector<unsigned> intParams) {
+             unsigned typeParamSize = typeParams.size();
+             unsigned intParamSize = intParams.size();
+             UNWRAP_VECTOR_WRAPPER_CLASS(LLVMTypeRef, typeParams, rawTypeParams, typeParamSize);
+             new (t) PyTypeVoid(LLVMTargetExtTypeInContext
+                                  (c.get(), name.c_str(), rawTypeParams.data(),
+                                   typeParamSize, intParams.data(), intParamSize));
+           });
 
 }
 
@@ -1138,6 +1211,10 @@ void bindValueClasses(nb::module_ &m) {
                           (m, "FenceInst", "FenceInst");
 
   MDNodeValueClass
+      .def("__repr__",
+           [](PyMDNodeValue &self) {
+             return gen_value_repr("MDNodeValue", self);
+           })
       // deprecated functions not binded:
       // LLVMMDNodeInContext, LLVMMDNode
       .def("as_metadata",
@@ -1165,6 +1242,10 @@ void bindValueClasses(nb::module_ &m) {
                    "Replace an operand at a specific index in a llvm::MDNode value.");
   
   MDStringValueClass
+      .def("__repr__",
+           [](PyMDStringValue &self) {
+             return gen_value_repr("MDStringValue", self);
+           })
       // deprecated functions not binded:
       // LLVMMDStringInContext, LLVMMDString
       .def("as_metadata",
@@ -1183,12 +1264,16 @@ void bindValueClasses(nb::module_ &m) {
       // TODO note there are many functions here that belongs `UserClass`
       .def("__repr__",
            [](PyValue &self) {
-             auto name = get_value_name(self);
-             auto kind = get_repr_str(LLVMGetValueKind(self.get()));
-             return fmt::format("<Value name={} kind={}>", name, kind);
+             auto raw = self.get();
+             auto name = get_value_name(raw);
+             auto kind = get_repr_str(LLVMGetValueKind(raw));
+             return fmt::format("<Value name={} kind={} str='{}'>",
+                                name, kind, get_value_str(raw));
            })
       .def("__str__",
-           [](PyValue &v) { return LLVMPrintValueToString(v.get()); })
+           [](PyValue &self) {
+             return get_value_str(self.get());
+           })
       .def_prop_ro("type",
                    // TODO PyType convertion to more specific type according to kind
                    [](PyValue &v) { return PyTypeAuto(LLVMTypeOf(v.get())); })
@@ -1196,7 +1281,9 @@ void bindValueClasses(nb::module_ &m) {
                    [](PyValue &v) { return LLVMGetValueKind(v.get()); })
       // NOTE LLVMSetValueName and LLVMGetValueName are depreciated
       .def_prop_rw("name",
-                   &get_value_name,
+                   [](PyValue &v) {
+                     return get_value_name(v.get());
+                   },
                    [](PyValue &v, std::string &name) {
                      return LLVMSetValueName2(v.get(), name.c_str(), name.size());
                    })
@@ -1255,6 +1342,10 @@ void bindValueClasses(nb::module_ &m) {
            });
 
   PoisonValueClass
+      .def("__repr__",
+           [](PyPoisonValue &self) {
+             return gen_value_repr("PoisonValue", self);
+           })
       .def("__init__",
            [](PyPoisonValue *p, PyType &t) {
              new (p) PyPoisonValue(LLVMGetPoison(t.get()));
@@ -1264,6 +1355,10 @@ void bindValueClasses(nb::module_ &m) {
 
   
   UndefValueClass
+      .def("__repr__",
+           [](PyUndefValue &self) {
+             return gen_value_repr("UndefValue", self);
+           })
       .def("__init__",
            [](PyUndefValue *uv, PyType &t) {
              new (uv) PyUndefValue(LLVMGetUndef(t.get()));
@@ -1273,6 +1368,10 @@ void bindValueClasses(nb::module_ &m) {
   
 
   ShuffleVectorInstClass
+      .def("__repr__",
+           [](PyShuffleVectorInst &self) {
+             return gen_value_repr("ShuffleVectorInst", self);
+           })
       .def_prop_ro("mask_elems_num",
                    [](PyShuffleVectorInst &self) {
                      return LLVMGetNumMaskElements(self.get());
@@ -1295,6 +1394,10 @@ void bindValueClasses(nb::module_ &m) {
 
   
   CatchPadInstClass
+      .def("__repr__",
+           [](PyCatchPadInst &self) {
+             return gen_value_repr("CatchPadInst", self);
+           })
       .def_prop_rw("parent",
                    [](PyCatchPadInst &self) {
                      return PyCatchSwitchInst(LLVMGetParentCatchSwitch(self.get()));
@@ -1307,6 +1410,10 @@ void bindValueClasses(nb::module_ &m) {
   
 
   GlobalIFuncClass
+      .def("__repr__",
+           [](PyGlobalIFunc &self) {
+             return gen_value_repr("GlobalIFunc", self);
+           })
       .def_prop_ro("next",
                    [](PyGlobalIFunc &self) -> optional<PyGlobalIFunc> {
                      auto res = LLVMGetNextGlobalIFunc(self.get());
@@ -1340,6 +1447,10 @@ void bindValueClasses(nb::module_ &m) {
            "keeps it alive.");
 
   InlineAsmClass
+      .def("__repr__",
+           [](PyInlineAsm &self) {
+             return gen_value_repr("InlineAsm", self);
+           })
       .def("get_inline_asm",
            [](PyInlineAsm *iasm, PyType &ty, std::string asmString, std::string constraints,
               bool hasSideEffects, bool isAlignStack, LLVMInlineAsmDialect dialect,
@@ -1392,6 +1503,11 @@ void bindValueClasses(nb::module_ &m) {
                    });
 
   InstructionClass
+      .def("__repr__",
+           // TODO add opcode (and also refactor all instruction based classes)
+           [](PyInstruction &self) {
+             return gen_value_repr("Instruction", self);
+           })
       .def_prop_ro("can_use_fast_math_flags",
                   [](PyInstruction &self) {
                     return LLVMCanValueUseFastMathFlags(self.get()) != 0;
@@ -1950,8 +2066,7 @@ void bindValueClasses(nb::module_ &m) {
            "Add a function to a module under a specified name.")
       .def("__repr__",
            [](PyFunction &self) {
-             auto name = get_value_name(self);
-             return fmt::format("<Function name={}>", name);
+             return gen_value_repr("Function", self);
            })
       .def_prop_rw("call_conv",
                    [](PyFunction &self){
