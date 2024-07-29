@@ -2,6 +2,7 @@
 /dist
 /build
 /llvm-build
+/wheelhouse
 
 /pyrightconfig.json
 

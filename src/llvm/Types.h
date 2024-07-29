@@ -3,6 +3,7 @@
 
 #include <llvm-c/Core.h>
 #include <utility>
+#include <iostream>
 
 /*
   We don't define MoveOnly class to also give `Move` operation a default method
@@ -46,12 +47,22 @@ protected:
       return raw; \
     } \
 \
-    DEFINE_MOVE_SEMANTICS(ClassName) \
-\
-    void move(ClassName &&other) noexcept { \
-      cleanup(); \
-      raw = std::exchange(other.raw, nullptr); \
+    ClassName(ClassName&& other) noexcept : raw(other.raw) { \
+      other.raw = nullptr; \
     } \
+\
+    ClassName& operator=(ClassName&& other) noexcept { \
+      if (this != &other) { \
+        cleanup(); \
+        raw = other.raw; \
+        other.raw = nullptr; \
+      } \
+      return *this; \
+    } \
+\
+    void resetNoClean() { \
+      raw = nullptr; \
+    }     \
 \
   private: \
     UnderlyingType raw; \
@@ -328,6 +339,7 @@ DEFINE_PY_WRAPPER_CLASS_SELF_DISPOSABLE_NONCOPYABLE
 
 DEFINE_DIRECT_SUB_CLASS(PyPassManagerBase, PyPassManager);
 DEFINE_DIRECT_SUB_CLASS(PyPassManagerBase, PyFunctionPassManager);
+
 
 /*
   shared pointer is need to make a NonCopyable object able to be used in

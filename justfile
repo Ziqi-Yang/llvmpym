@@ -18,7 +18,7 @@ install-normal:
     pip install .
     
 install-dev-requirements:
-    pip install nanobind scikit-build-core[pyproject] pytest build
+    pip install nanobind scikit-build-core[pyproject] pytest build cibuildwheel
 
 # Example: just find-components ./build/cp312-abi3-linux_x86_64/ LLVMCloneModule
 # Find which llvm archive file contains the desired symbol

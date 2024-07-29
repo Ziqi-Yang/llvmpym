@@ -15,6 +15,9 @@
             (python312.withPackages (ppkgs: with ppkgs; [
               pip
             ]))
+
+            llvm_18
+            cmake # need for finding ZLIB::ZLIB LLVM cmake dependency
           ];
         };
       });

@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.20.0...3.29.6)
 
-project(${SKBUILD_PROJECT_NAME} LANGUAGES CXX)
+# default for both c and c++ (c is needed for MacOS build)
+project(${SKBUILD_PROJECT_NAME})
+
+# required for linking fmt library during cibuildwheels build on manylinux_2_28
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+if(UNIX)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+endif()
 
 include(FetchContent)
 FetchContent_Declare(
@@ -13,32 +20,13 @@ FetchContent_MakeAvailable(fmt)
 if (NOT SKBUILD)
   message(WARNING "\
   This CMake file is meant to be executed using 'scikit-build'. Running
-  it directly will almost certainly not produce the desired result. If
-  you are a user trying to install this package, please use the command
-  below, which will install all necessary build dependencies, compile
-  the package in an isolated environment, and then install it.
-  =====================================================================
-   $ pip install .
-  =====================================================================
-  If you are a software developer, and this is your own package, then
-  it is usually much more efficient to install the build dependencies
-  in your environment once and use the following command that avoids
-  a costly creation of a new virtual environment at every compilation:
-TODO outdated
-  =====================================================================
-   $ pip install nanobind scikit-build-core[pyproject]
-   $ pip install --no-build-isolation -ve .
-  =====================================================================
-  You may optionally add -Ceditable.rebuild=true to auto-rebuild when
-  the package is imported. Otherwise, you need to re-run the above
-  after editing C++ files.")
+  it directly will almost certainly not produce the desired result.")
 endif()
 
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 endif()
-
 
 # Try to import all Python components potentially needed by nanobind
 find_package(Python 3.8
@@ -56,7 +44,6 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 include_directories(${CMAKE_SOURCE_DIR}/src/llvm)
-include_directories(${CMAKE_SOURCE_DIR}/vender)
 
 include_directories(${LLVM_INCLUDE_DIRS})
 separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
@@ -70,12 +57,6 @@ nanobind_add_module(
   # does nothing on older Python versions
   STABLE_ABI
 
-  # Build libnanobind statically and merge it into the
-  # extension (which itself remains a shared library)
-  #
-  # If your project builds multiple extensions, you can
-  # replace this flag by NB_SHARED to conserve space by
-  # reusing a shared libnanobind across libraries
   NB_STATIC
 
   # Source code goes here
@@ -91,8 +72,14 @@ llvm_map_components_to_libnames(llvm_libs core transformutils)
 target_link_libraries(llvmpym_ext PRIVATE ${llvm_libs} fmt::fmt)
 # -flto and --exclude-libs allow us to remove those parts of LLVM we don't use
 # although we are going build a full llvm python binding :-
-set_property(TARGET llvmpym_ext APPEND_STRING PROPERTY LINK_FLAGS "-flto -Wl,--exclude-libs,ALL") # taken from llvmite
-
+# TODO for MacOS immitate llvmlite only expose certain symbols. Can it work?
+# https://github.com/numba/llvmlite/blob/78ebf9bf188379b2642112aff388480384306c6b/ffi/CMakeLists.txt#L76C53-L76C61
+if(UNIX)
+  set_property(TARGET llvmpym_ext APPEND_STRING PROPERTY LINK_FLAGS "-flto")
+  if(NOT APPLE)
+    set_property(TARGET llvmpym_ext APPEND_STRING PROPERTY LINK_FLAGS " -Wl,--exclude-libs,ALL")
+  endif()
+endif()
 
 # Stub Files
 nanobind_add_stub(

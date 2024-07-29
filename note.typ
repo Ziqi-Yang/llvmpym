@@ -11,9 +11,9 @@
 - https://github.com/vovkos/llvm-package-windows
 - https://github.com/c3lang/win-llvm?tab=readme-ov-file
 == ci reference
+- https://github.com/makslevental/mlir-wheels
 - https://github.com/c3lang/c3c/blob/master/.github/workflows/main.yml
 - https://github.com/revng/llvmcpy/blob/master/.github/workflows/ci.yml
-- https://github.com/leapmotion/pyopticam/blob/main/src/pyopticam_ext.cpp
 
 
 = Misc

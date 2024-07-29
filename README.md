@@ -2,13 +2,54 @@
 
 Note this project is still in the very early stage, not even half completed.   
 
+## Installation
+
+``` shell
+pip install llvmpym
+```
+
+### Additional notes for NixOS User
+
+If you encounter issues like `ImportError: libz.so.1: cannot open shared object file: No such file or directory` when using this library  
+You can use the following command to inspect those shared libraries that are not founded.  
+
+``` shell
+ldd ./.venv/lib/python3.12/site-packages/llvmpym/llvmpym_ext.abi3.so
+```
+
+You can use the following command to give this library a quick run (if you miss `libz.so.1`
+and `libstdc++.so.6`):
+
+``` shell
+env LD_LIBRARY_PATH="$(nix path-info nixpkgs#zlib)/lib:$(nix path-info nixpkgs#stdenv.cc.cc.lib)/lib:$LD_LIBRARY_PATH" python ./main.py
+```
+
+Or using a `shellHook` in your `devShell`:
+``` nix
+devShells = forAllSystems ({ pkgs }: {
+  default = pkgs.mkShell {
+      packages = with pkgs; [
+        (python312.withPackages (ppkgs: with ppkgs; [
+          pip
+        ]))
+      ];
+      shellHook = ''
+        export LD_LIBRARY_PATH="${pkgs.zlib}/lib:${pkgs.stdenv.cc.cc.lib.outPath}/lib:$LD_LIBRARY_PATH"
+      '';
+    };
+});
+```
+
+Currently I haven't invested into how to solve the problem from its root. If you 
+know how to solve it, please give it a hand. It would really be appreciated.
+
 ## Build
 
 ### Requirements
 + A C++17 compiler
 + CMake 3.20.0+
 + ninja (optional, if you want to follow the guide)
-+ Python at least 3.8 (not tested. Try 3.12 if failed)
++ Python at least 3.12
 
 ### Manual Build of LLVM
 

@@ -7,10 +7,13 @@
 #include <memory>
 #include <optional>
 #include <llvm-c/Core.h>
+#include <llvm-c/IRReader.h>
 #include <fmt/core.h>
 #include "Core.h"
 #include "Types.h"
 #include "Utils.h"
+
+#include <iostream>
 
 namespace nb = nanobind;
 using namespace nb::literals;
@@ -3150,8 +3153,6 @@ void bindValueClasses(nb::module_ &m) {
 
 
 
-
-
 void bindOtherClasses(nb::module_ &m) {
   auto ContextClass =
     nb::class_<PyContext>
@@ -3341,19 +3342,19 @@ void bindOtherClasses(nb::module_ &m) {
            })
       .def_static("create_with_contents_of_file",
                   [](const char *Path) {
-                    LLVMMemoryBufferRef *OutMemBuf;
-                    char **OutMessage;
+                    LLVMMemoryBufferRef OutMemBuf;
+                    char *OutMessage;
                     auto success = LLVMCreateMemoryBufferWithContentsOfFile
-                                     (Path, OutMemBuf, OutMessage);
-                    return std::make_tuple(success, PyMemoryBuffer(*OutMemBuf), *OutMessage);
+                                     (Path, &OutMemBuf, &OutMessage);
+                    return std::make_tuple(success, PyMemoryBuffer(OutMemBuf), OutMessage);
                   },
                   "path"_a)
       .def_static("create_with_stdin",
                   []() {
-                    LLVMMemoryBufferRef *OutMemBuf;
-                    char **OutMessage;
-                    auto success = LLVMCreateMemoryBufferWithSTDIN(OutMemBuf, OutMessage);
-                    return std::make_tuple(success, PyMemoryBuffer(*OutMemBuf), *OutMessage);
+                    LLVMMemoryBufferRef OutMemBuf;
+                    char *OutMessage;
+                    auto success = LLVMCreateMemoryBufferWithSTDIN(&OutMemBuf, &OutMessage);
+                    return std::make_tuple(success, PyMemoryBuffer(OutMemBuf), OutMessage);
                   })
       .def_static("create_with_memory_range",
                   [](std::string &inputData, const char *BufferName, bool RequiresNullTerminator) {
@@ -3362,11 +3363,12 @@ void bindOtherClasses(nb::module_ &m) {
                                              BufferName, RequiresNullTerminator));
                   },
                   "input_data"_a, "buffer_name"_a, "requires_null_terminator"_a)
-      .def_static("with_memory_range_copy",
-                  [](std::string &inputData, const char *BufferName) {
-                    return PyMemoryBuffer
-                             (LLVMCreateMemoryBufferWithMemoryRangeCopy
-                                (inputData.c_str(), inputData.size(), BufferName));
+      .def_static("create_with_memory_range_copy",
+                  [](const std::string &inputData, const char *BufferName) ->
+                   optional<PyMemoryBuffer>{
+                    auto res = LLVMCreateMemoryBufferWithMemoryRangeCopy
+                                 (inputData.c_str(), inputData.size(), BufferName);
+                    WRAP_OPTIONAL_RETURN(res, PyMemoryBuffer);
                   },
                   "input_data"_a, "buffer_name"_a)
       .def_prop_ro("buffer_start",
@@ -4370,6 +4372,34 @@ void bindOtherClasses(nb::module_ &m) {
            },
            "callback"_a, "opaque_handle"_a,
            "Set the yield callback function for this context.")
+      .def("parse_ir",
+           [](PyContext &self, PyMemoryBuffer &memBuf) {
+             LLVMModuleRef m = nullptr;
+             char *errMsg = nullptr;
+             bool success = LLVMParseIRInContext(self.get(), memBuf.get(), &m, &errMsg) == 0;
+             memBuf.resetNoClean(); // We Cannot reuse the memory buffer again
+             std::string errorMessage;
+
+             if (!success && errMsg) {
+               errorMessage = std::string(errMsg);
+               LLVMDisposeMessage(errMsg);
+             }
+
+             if (!success && m) {
+               LLVMDisposeModule(m);
+             }
+
+             return std::make_tuple(success, PyModule(m), errorMessage);
+           },
+           "memory_buffer"_a,
+           "Read LLVM IR from a memory buffer and convert it into an in-memory Module"
+           "object.\n\n"
+           "Returns a tuple: (success, output module, error message).\n"
+           "NOTE that you cannot use passed-in memory_buffer after this operation.")
+      // .def("parse_assemly",
+      //      [](PyContext &self) {
+             
+      //      })
       .def("create_builder",
            [](PyContext &self) {
              return PyBuilder(LLVMCreateBuilderInContext(self.get()));
