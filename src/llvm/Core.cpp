@@ -4450,10 +4450,6 @@ void bindOtherClasses(nb::module_ &m) {
   
 
   ModuleClass
-      .def("__repr__",
-           [](PyModule &self) {
-             return "<Module>";
-           })
       .def(nb::init<const std::string &>(), "id"_a)
       .def("__repr__",
            [](PyModule &self) {
@@ -4463,11 +4459,13 @@ void bindOtherClasses(nb::module_ &m) {
              return fmt::format("<Module id={}>", id);
            })
       .def("__str__",
-           [](PyModule &self) {
-             size_t len;
-             const char *iasm = LLVMGetModuleInlineAsm(self.get(), &len);
-             return std::string(iasm, len);
-           })
+           [](PyModule &m) {
+             char *str = LLVMPrintModuleToString(m.get());
+             std::string strCopy(str);
+             LLVMDisposeMessage(str);
+             return strCopy;
+           },
+           "Return a string representation of the module")
       .def("__enter__",
            [](PyModule &self) {
              return &self;
@@ -4585,14 +4583,6 @@ void bindOtherClasses(nb::module_ &m) {
                      return PyFunction(LLVMGetLastFunction(m.get()));
                    },
                    "Obtain an iterator to the last Function in a Module.")
-      .def("__str__",
-           [](PyModule &m) {
-             char *str = LLVMPrintModuleToString(m.get());
-             std::string strCopy(str);
-             LLVMDisposeMessage(str);
-             return strCopy;
-           },
-           "Return a string representation of the module")
       .def("create_function_pass_manager",
            [](PyModule &self) {
              return PyFunctionPassManager(LLVMCreateFunctionPassManagerForModule(self.get()));
