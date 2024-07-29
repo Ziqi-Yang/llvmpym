@@ -46,11 +46,13 @@ directory(e.g. `.venv/lib/python3.12/site-packages/llvmpym/llvmpym_ext`) to corr
 - Doc: if document has `@see LLVMContext::setYieldCallback()`, then we need to also include documents for that function (in C++ header)
 - TODO change all possible unsigned return value into corresponding enum type
     - also parameter (like `kindID`?)
+- Add cache to object properties
 
 == More Python Style
 1. iterator: next, prev ?
 2. `with` clause
 3. More see mlir python binding (doc & c++ code )
+4. default value for function parameters (like name default to empty string)
 
 === Python methods:
 + `__eq__`

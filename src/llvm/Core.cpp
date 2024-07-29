@@ -706,8 +706,8 @@ void bindTypeClasses(nb::module_ &m) {
       .def_prop_ro("sub_types",
                    [](PyType &t) {
                      unsigned num = LLVMGetNumContainedTypes(t.get());
-                     LLVMTypeRef *arr;
-                     LLVMGetSubtypes(t.get(), arr);
+                     std::vector<LLVMTypeRef> arr(num);
+                     LLVMGetSubtypes(t.get(), arr.data());
                      WRAP_VECTOR_FROM_DEST(PyTypeSequence, num, res, arr);
                      return res;
                    })
@@ -888,8 +888,8 @@ void bindTypeClasses(nb::module_ &m) {
       .def_prop_ro("param_types",
                    [](PyTypeFunction &t) {
                      unsigned param_number = LLVMCountParamTypes(t.get());
-                     LLVMTypeRef *dest;
-                     LLVMGetParamTypes(t.get(), dest);
+                     std::vector<LLVMTypeRef> dest(param_number);
+                     LLVMGetParamTypes(t.get(), dest.data());
                      WRAP_VECTOR_FROM_DEST(PyTypeFunction, param_number, res, dest);
                      return res;
                    },
@@ -931,8 +931,8 @@ void bindTypeClasses(nb::module_ &m) {
       .def_prop_ro("elem_types",
                    [](PyTypeStruct &t) {
                      unsigned num = LLVMCountStructElementTypes(t.get());
-                     LLVMTypeRef *dest;
-                     LLVMGetStructElementTypes(t.get(), dest);
+                     std::vector<LLVMTypeRef> dest(num);
+                     LLVMGetStructElementTypes(t.get(), dest.data());
                      WRAP_VECTOR_FROM_DEST(PyTypeStruct, num, res, dest);
                      return res;
                    })
@@ -1228,8 +1228,8 @@ void bindValueClasses(nb::module_ &m) {
       .def_prop_ro("operands",
                    [](PyMDNodeValue &self) {
                      unsigned num = LLVMGetMDNodeNumOperands(self.get());
-                     LLVMValueRef *dest;
-                     LLVMGetMDNodeOperands(self.get(), dest);
+                     std::vector<LLVMValueRef> dest(num);
+                     LLVMGetMDNodeOperands(self.get(), dest.data());
                      WRAP_VECTOR_FROM_DEST_AUTO(PyValue, num, res, dest);
                      return res;
                    },
@@ -1830,8 +1830,8 @@ void bindValueClasses(nb::module_ &m) {
       .def("get_call_site_attributes",
            [](PyCallBase &self, LLVMAttributeIndex idx) {
              unsigned num = LLVMGetCallSiteAttributeCount(self.get(), idx);
-             LLVMAttributeRef *attrs;
-             LLVMGetCallSiteAttributes(self.get(), idx, attrs);
+             std::vector<LLVMAttributeRef> attrs(num);
+             LLVMGetCallSiteAttributes(self.get(), idx, attrs.data());
              WRAP_VECTOR_FROM_DEST_AUTO(PyAttribute, num, res, attrs);
              return res;
            })
@@ -1907,8 +1907,8 @@ void bindValueClasses(nb::module_ &m) {
       .def_prop_ro("handlers",
                    [](PyCatchSwitchInst &self) {
                      unsigned num = LLVMGetNumHandlers(self.get());
-                     LLVMBasicBlockRef *handlers;
-                     LLVMGetHandlers(self.get(), handlers);
+                     std::vector<LLVMBasicBlockRef> handlers;
+                     LLVMGetHandlers(self.get(), handlers.data());
                      WRAP_VECTOR_FROM_DEST(PyBasicBlock, num, res, handlers);
                      return res;
                    },
@@ -2134,8 +2134,8 @@ void bindValueClasses(nb::module_ &m) {
       .def_prop_ro("basic_blocks",
                    [](PyFunction &self) {
                      unsigned num = LLVMCountBasicBlocks(self.get());
-                     LLVMBasicBlockRef *BasicBlocks;
-                     LLVMGetBasicBlocks(self.get(), BasicBlocks);
+                     std::vector<LLVMBasicBlockRef> BasicBlocks(num);
+                     LLVMGetBasicBlocks(self.get(), BasicBlocks.data());
                      WRAP_VECTOR_FROM_DEST(PyBasicBlock, num,
                                            res, BasicBlocks);
                      return res;
@@ -2209,8 +2209,8 @@ void bindValueClasses(nb::module_ &m) {
       .def_prop_ro("params",
                    [](PyFunction &self) {
                      unsigned param_num = LLVMCountParams(self.get());
-                     LLVMValueRef *params;
-                     LLVMGetParams(self.get(), params);
+                     std::vector<LLVMValueRef> params(param_num);
+                     LLVMGetParams(self.get(), params.data());
                      WRAP_VECTOR_FROM_DEST(PyArgument, param_num, res, params);
                      return res;
                    })
@@ -2262,8 +2262,8 @@ void bindValueClasses(nb::module_ &m) {
       .def("get_attributes_at_index",
            [](PyFunction &self, LLVMAttributeIndex idx) {
              unsigned cnt = LLVMGetAttributeCountAtIndex(self.get(), idx);
-             LLVMAttributeRef *attrs;
-             LLVMGetAttributesAtIndex(self.get(), idx, attrs);
+             std::vector<LLVMAttributeRef> attrs(cnt);
+             LLVMGetAttributesAtIndex(self.get(), idx, attrs.data());
              WRAP_VECTOR_FROM_DEST_AUTO(PyAttribute, cnt, res, attrs);
              return res;
            },
@@ -4695,8 +4695,8 @@ void bindOtherClasses(nb::module_ &m) {
       .def("get_named_metadata_operands",
            [](PyModule &m, std::string &name) {
              int num = LLVMGetNamedMetadataNumOperands(m.get(), name.c_str());
-             LLVMValueRef *dest;
-             LLVMGetNamedMetadataOperands(m.get(), name.c_str(), dest);
+             std::vector<LLVMValueRef> dest(num);
+             LLVMGetNamedMetadataOperands(m.get(), name.c_str(), dest.data());
              WRAP_VECTOR_FROM_DEST_AUTO(PyValue, num, res, dest);
              return res;
            },
