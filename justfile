@@ -18,8 +18,7 @@ install-normal:
     pip install .
     
 install-dev-requirements:
-    pip install nanobind scikit-build-core[pyproject] pytest build cibuildwheel \
-      sphinx furo sphinx-autoapi
+    pip install -r ./requirements.txt
 
 build-docs:
     cd ./docs && make html

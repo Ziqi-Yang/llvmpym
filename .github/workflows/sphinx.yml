@@ -1,0 +1,65 @@
+name: "Deploy docs to Pages"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run
+# in-progress and latest queued. However, do NOT cancel in-progress runs as we
+# want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+
+    - name: setup virtual env
+      run: |
+        python -m venv .venv
+        pip install -r requirements.txt
+
+    - name: Install dependencies
+      run: |
+        bash ./scripts/action/install_llvm.sh
+
+    # this will generate stub files(.phi), which is what we need
+    - name: Build
+      run: |
+        . ./.venv/bin/activate
+        pip install .
+    
+    - name: Build HTML Doc
+      uses: ammaraskar/sphinx-action@master
+      
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: docs/build/html/
+        
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
