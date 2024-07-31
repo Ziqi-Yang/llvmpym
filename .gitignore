@@ -1,12 +1,13 @@
 /.venv
 /dist
-/build
 /llvm-build
 /wheelhouse
 
 /pyrightconfig.json
 
 .env
+
+build
 
 __pycache__
 

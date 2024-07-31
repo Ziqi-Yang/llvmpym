@@ -18,7 +18,14 @@ install-normal:
     pip install .
     
 install-dev-requirements:
-    pip install nanobind scikit-build-core[pyproject] pytest build cibuildwheel
+    pip install nanobind scikit-build-core[pyproject] pytest build cibuildwheel \
+      sphinx furo sphinx-autoapi
+
+build-docs:
+    cd ./docs && make html
+
+opendoc:
+    open ./docs/build/html/index.html
 
 # Example: just find-components ./build/cp312-abi3-linux_x86_64/ LLVMCloneModule
 # Find which llvm archive file contains the desired symbol

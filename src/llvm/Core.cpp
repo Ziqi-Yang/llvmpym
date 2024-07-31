@@ -482,7 +482,7 @@ void bindEnums(nb::module_ &m) {
   
 
   nb::enum_<LLVMRealPredicate>(m, "RealPredicate", "RealPredicate")
-      .value("False", LLVMRealPredicate::LLVMRealPredicateFalse, "Always false (always folded)")
+      .value("False_", LLVMRealPredicate::LLVMRealPredicateFalse, "Always false (always folded)")
       .value("OEQ", LLVMRealPredicate::LLVMRealOEQ, "True if ordered and equal")
       .value("OGT", LLVMRealPredicate::LLVMRealOGT, "True if ordered and greater than")
       .value("OGE", LLVMRealPredicate::LLVMRealOGE, "True if ordered and greater than or equal")
@@ -497,7 +497,7 @@ void bindEnums(nb::module_ &m) {
       .value("ULT", LLVMRealPredicate::LLVMRealULT, "True if unordered or less than")
       .value("ULE", LLVMRealPredicate::LLVMRealULE, "True if unordered, less than, or equal")
       .value("UNE", LLVMRealPredicate::LLVMRealUNE, "True if unordered or not equal")
-      .value("True", LLVMRealPredicate::LLVMRealPredicateTrue, "Always true (always folded)");
+      .value("True_", LLVMRealPredicate::LLVMRealPredicateTrue, "Always true (always folded)");
   
 
   nb::enum_<LLVMLandingPadClauseTy>(m, "LandingPadClauseTy", "LandingPadClauseTy")
@@ -640,7 +640,7 @@ void bindEnums(nb::module_ &m) {
        .value("AllowReciprocal", PyLLVMFastMathFlags::AllowReciprocal)
        .value("AllowContract", PyLLVMFastMathFlags::AllowContract)
        .value("ApproxFunc", PyLLVMFastMathFlags::ApproxFunc)
-       .value("None", PyLLVMFastMathFlags::None)
+       .value("None_", PyLLVMFastMathFlags::None)
        .value("All", PyLLVMFastMathFlags::All);
 
   // TODO LLVMFastMathFlags
@@ -803,7 +803,7 @@ void bindTypeClasses(nb::module_ &m) {
       .def_prop_ro_static("GlobalInt128",
                           [](nb::handle) { return PyTypeInt(LLVMInt128Type()); },
                           "Get type from global context.")
-      .def_static("global",
+      .def_static("Global",
                   [](unsigned numBits) { return PyTypeInt(LLVMIntType(numBits)); },
                   "Get type from global context.")
       .def_prop_ro("width",
@@ -2648,7 +2648,7 @@ void bindValueClasses(nb::module_ &m) {
                    },
                    "value"_a,
                    "LLVMConstNUWNeg")
-      .def_static("not",
+      .def_static("not_",
                   [](PyConstant &c) {
                     return PyValueAuto(LLVMConstNot(c.get()));
                   },
@@ -2799,10 +2799,7 @@ void bindValueClasses(nb::module_ &m) {
                    },
                    [](PyGlobalValue &v, LLVMDLLStorageClass cls) {
                      return LLVMSetDLLStorageClass(v.get(), cls);
-                   },
-                   nb::for_setter
-                     (nb::sig
-                        ("def dll_storage_class(self, class: DLLStorageClass, /) -> None")))
+                   })
       // LLVMHasUnnamedAddr is deprecated in favor of LLVMGetUnnamedAddress
       // LLVMSetUnnamedAddr is deprecated in favor of LLVMSetUnnamedAddress
       .def_prop_rw("unnamed_address",
@@ -3630,7 +3627,7 @@ void bindOtherClasses(nb::module_ &m) {
            [](PyBuilder &self, PyValue &v, const char *name) {
              return PyValueAuto(LLVMBuildFNeg(self.get(), v.get(), name));
            })
-      .def("not",
+      .def("not_",
            [](PyBuilder &self, PyValue &v, const char *name) {
              return PyValueAuto(LLVMBuildNot(self.get(), v.get(), name));
            })
