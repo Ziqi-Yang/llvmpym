@@ -53,7 +53,9 @@ jobs:
         env SKBUILD_CMAKE_ARGS="-DLLVM_DIR=$(pwd)/llvm-build/lib/cmake/llvm" pip install .
     
     - name: Build HTML Doc
-      uses: ammaraskar/sphinx-action@master
+      run: |
+        . ./.venv/bin/activate
+        cd ./docs && make html
       
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
