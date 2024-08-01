@@ -114,29 +114,43 @@ namespace nb = nanobind;
 void populateCore(nb::module_ &m);
 PyModule parseIR(LLVMContextRef ctx, LLVMMemoryBufferRef memBuf);
 
+#define DEFINE_ITERATOR_CLASS(TypeName, UnderlyingType, GetNextFn) \
+  class TypeName { \
+  public: \
+    explicit TypeName(UnderlyingType val): val(val) {} \
+  \
+  UnderlyingType get() { \
+    return val; \
+  } \
+  \
+  UnderlyingType next() { \
+    auto res = GetNextFn(val.get()); \
+    if (!res) \
+      throw nb::stop_iteration(); \
+    auto prev = val; \
+    val = UnderlyingType(res); \
+    return prev; \
+  } \
+  \
+  private: \
+    UnderlyingType val; \
+  };
 
-class PyFunctionIterator {
-public:
-  explicit PyFunctionIterator(PyFunction fn): fn(fn) {}
-  explicit PyFunctionIterator(LLVMValueRef fn): fn(PyFunction(fn)) {}
+#define BIND_ITERATOR_CLASS(ClassName, PythonClassName) \
+  nb::class_<ClassName>(m, #PythonClassName, #PythonClassName) \
+      .def("__iter__", [](ClassName &self) { return self; }) \
+      .def("__next__", &ClassName::next);
 
-  PyFunction get() {
-    return fn;
-  }
 
-  PyFunction next() {
-    auto res = LLVMGetNextFunction(fn.get());
-    if (!res)
-      throw nb::stop_iteration();
-    auto prev = fn;
-    fn = PyFunction(res);
-    return prev;
-  }
-  
-private:
-  PyFunction fn;
-};
-
+DEFINE_ITERATOR_CLASS(PyUseIterator, PyUse, LLVMGetNextUse)
+DEFINE_ITERATOR_CLASS(PyBasicBlockIterator, PyBasicBlock, LLVMGetNextBasicBlock)
+DEFINE_ITERATOR_CLASS(PyArgumentIterator, PyArgument, LLVMGetNextParam)
+DEFINE_ITERATOR_CLASS(PyInstructionIterator, PyInstruction, LLVMGetNextInstruction)
+DEFINE_ITERATOR_CLASS(PyGlobalVariableIterator, PyGlobalVariable, LLVMGetNextGlobal)
+DEFINE_ITERATOR_CLASS(PyGlobalIFuncIterator, PyGlobalIFunc, LLVMGetNextGlobalIFunc)
+DEFINE_ITERATOR_CLASS(PyGlobalAliasIterator, PyGlobalAlias, LLVMGetNextGlobalAlias)
+DEFINE_ITERATOR_CLASS(PyNamedMDNodeIterator, PyNamedMDNode, LLVMGetNextNamedMetadata)
+DEFINE_ITERATOR_CLASS(PyFunctionIterator, PyFunction, LLVMGetNextFunction)
 
 
 #endif

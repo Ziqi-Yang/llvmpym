@@ -1301,6 +1301,10 @@ void bindValueClasses(nb::module_ &m) {
                      auto res = LLVMGetFirstUse(v.get());
                      WRAP_OPTIONAL_RETURN(res, PyUse);
                    })
+      .def_prop_ro("uses",
+                   [](PyValue &self) {
+                     return PyUseIterator(PyUse(LLVMGetFirstUse(self.get())));
+                   })
       .def("as_metadata",
            [](PyValue &self) {
              return PyValueAsMetadata(LLVMValueAsMetadata(self.get()));
@@ -2153,6 +2157,11 @@ void bindValueClasses(nb::module_ &m) {
                      auto res = LLVMGetLastBasicBlock(self.get());
                      WRAP_OPTIONAL_RETURN(res, PyBasicBlock);
                    })
+      .def_prop_ro("basic_blocks",
+                   [](PyFunction &self) {
+                     auto res =  LLVMGetFirstBasicBlock(self.get());
+                     return PyBasicBlockIterator(PyBasicBlock(res));
+                   })
       .def_prop_ro("entry_basic_block",
                    [](PyFunction &self) {
                      return PyBasicBlock(LLVMGetEntryBasicBlock(self.get()));
@@ -2226,6 +2235,11 @@ void bindValueClasses(nb::module_ &m) {
                    [](PyFunction &self) -> optional<PyArgument> {
                      auto res = LLVMGetLastParam(self.get());
                      WRAP_OPTIONAL_RETURN(res, PyArgument);
+                   })
+      .def_prop_ro("params",
+                   [](PyFunction &self) {
+                     auto res = LLVMGetFirstParam(self.get());
+                     return PyArgumentIterator(PyArgument(res));
                    })
       .def("get_param",
            [](PyFunction &self, unsigned index) {
@@ -3974,6 +3988,11 @@ void bindOtherClasses(nb::module_ &m) {
                      auto res = LLVMGetLastInstruction(self.get());
                      WRAP_OPTIONAL_RETURN(res, PyInstruction);
                    })
+      .def_prop_ro("instructions",
+                   [](PyBasicBlock &self) {
+                     auto res = LLVMGetFirstInstruction(self.get());
+                     return PyInstructionIterator(PyInstruction(res));
+                   })
       .def("create_and_insert_before",
            [](PyBasicBlock &self, const char *name) {
              return PyBasicBlock(LLVMInsertBasicBlock(self.get(), name));
@@ -4501,15 +4520,20 @@ void bindOtherClasses(nb::module_ &m) {
              // NOTE `delete &self` doesn't work properly
              self.cleanup();
            })
-      .def_prop_ro("first_global",
+      .def_prop_ro("first_global_variable",
                    [](PyModule &m) -> optional<PyGlobalVariable> {
                      auto res = LLVMGetFirstGlobal(m.get());
                      WRAP_OPTIONAL_RETURN(res, PyGlobalVariable);
                    })
-      .def_prop_ro("last_global",
+      .def_prop_ro("last_global_variable",
                    [](PyModule &self) -> optional<PyGlobalVariable> {
                      auto res = LLVMGetLastGlobal(self.get());
                      WRAP_OPTIONAL_RETURN(res, PyGlobalVariable);
+                   })
+      .def_prop_ro("global_variables",
+                   [](PyModule &m) {
+                     auto res = LLVMGetFirstGlobal(m.get());
+                     return PyGlobalVariableIterator(PyGlobalVariable(res));
                    })
       .def_prop_ro("first_global_ifunc",
                    [](PyModule &self) -> optional<PyGlobalIFunc> {
@@ -4521,6 +4545,11 @@ void bindOtherClasses(nb::module_ &m) {
                      auto res = LLVMGetLastGlobalIFunc(self.get());
                      WRAP_OPTIONAL_RETURN(res, PyGlobalIFunc);
                    })
+      .def_prop_ro("global_ifuncs",
+                   [](PyModule &self) {
+                     auto res = LLVMGetFirstGlobalIFunc(self.get());
+                     return PyGlobalIFuncIterator(PyGlobalIFunc(res));
+                   })
       .def_prop_ro("first_global_alias",
                    [](PyModule &self) -> optional<PyGlobalAlias> {
                      auto res = LLVMGetFirstGlobalAlias(self.get());
@@ -4530,6 +4559,11 @@ void bindOtherClasses(nb::module_ &m) {
                    [](PyModule &self) -> optional<PyGlobalAlias> {
                      auto res = LLVMGetLastGlobalAlias(self.get());
                      WRAP_OPTIONAL_RETURN(res, PyGlobalAlias);
+                   })
+      .def_prop_ro("global_aliases",
+                   [](PyModule &self) {
+                     auto res = LLVMGetFirstGlobalAlias(self.get());
+                     return PyGlobalAliasIterator(PyGlobalAlias(res));
                    })
       .def_prop_ro("first_named_metadata",
                    [](PyModule &m) -> optional<PyNamedMDNode> {
@@ -4543,6 +4577,12 @@ void bindOtherClasses(nb::module_ &m) {
                      WRAP_OPTIONAL_RETURN(res, PyNamedMDNode);
                    },
                    "Obtain an iterator to the last NamedMDNode in a Module.")
+      .def_prop_ro("named_metadatas",
+                   [](PyModule &m) {
+                     auto res = LLVMGetFirstNamedMetadata(m.get());
+                     return PyNamedMDNodeIterator(PyNamedMDNode(res));
+                   },
+                   "Obtain an iterator to the first NamedMDNode in a Module.")
       .def_prop_ro("context",
                    [](PyModule &m) {
                      return PyContext(LLVMGetModuleContext(m.get()));
@@ -4612,7 +4652,7 @@ void bindOtherClasses(nb::module_ &m) {
                    "Obtain an iterator to the last Function in a Module.")
       .def_prop_ro("functions",
                    [](PyModule &m) {
-                     return PyFunctionIterator(LLVMGetFirstFunction(m.get()));
+                     return PyFunctionIterator(PyFunction(LLVMGetFirstFunction(m.get())));
                    })
       .def("create_function_pass_manager",
            [](PyModule &self) {
@@ -4824,12 +4864,15 @@ void bindOtherClasses(nb::module_ &m) {
 }
 
 void bindIterators(nb::module_ &m) {
-  nb::class_<PyFunctionIterator>(m, "FunctionIterator", "Function Iterator")
-      .def("__iter__",
-           [](PyFunctionIterator &self) {
-             return self;
-           })
-      .def("__next__", &PyFunctionIterator::next);
+  BIND_ITERATOR_CLASS(PyUseIterator, "UseIterator")
+  BIND_ITERATOR_CLASS(PyBasicBlockIterator, "BasicBlockIterator")
+  BIND_ITERATOR_CLASS(PyArgumentIterator, "ArgumentIterator")
+  BIND_ITERATOR_CLASS(PyInstructionIterator, "InstructionIterator")
+  BIND_ITERATOR_CLASS(PyGlobalVariableIterator, "GlobalVariableIterator")
+  BIND_ITERATOR_CLASS(PyGlobalIFuncIterator, "GlobalIFuncIterator")
+  BIND_ITERATOR_CLASS(PyGlobalAliasIterator, "GlobalAliasIterator")
+  BIND_ITERATOR_CLASS(PyNamedMDNodeIterator, "NamedMDNodeIterator")
+  BIND_ITERATOR_CLASS(PyFunctionIterator, "FunctionIterator")
 }
 
 
