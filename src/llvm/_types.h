@@ -4,6 +4,7 @@
 #include <llvm-c/Core.h>
 #include <utility>
 #include <iostream>
+#include <memory>
 
 /*
   We don't define MoveOnly class to also give `Move` operation a default method

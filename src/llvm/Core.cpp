@@ -4,7 +4,6 @@
 #include <nanobind/stl/vector.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/shared_ptr.h>
-#include <memory>
 #include <optional>
 #include <exception>
 #include <llvm-c/Core.h>
@@ -4382,31 +4381,21 @@ void bindOtherClasses(nb::module_ &m) {
            "Set the yield callback function for this context.")
       .def("parse_ir",
            [](PyContext &self, PyMemoryBuffer &memBuf) {
-             LLVMModuleRef m = nullptr;
-             char *errMsg = nullptr;
-             bool success = LLVMParseIRInContext(self.get(), memBuf.get(), &m, &errMsg) == 0;
-             // TODO test whether it is still available after a filed operation.
-             memBuf.resetNoClean(); // We Cannot reuse the memory buffer again
-             
-             if (!success) {
-               std::string errorMessage;
-               if (m) LLVMDisposeModule(m);
-               if (errMsg) errorMessage = std::string(errMsg);
-               LLVMDisposeMessage(errMsg);
-               throw std::runtime_error(errorMessage);
+             try {
+               auto res = parseIR(self.get(), memBuf.get());
+               memBuf.resetNoClean(); // We Cannot reuse the memory buffer again
+               return res;
+             } catch (const std::exception& ex) {
+               // TODO test whether it is still available after a filed operation.
+               memBuf.resetNoClean();
+               throw ex;
              }
-
-             return PyModule(m);
            },
            "memory_buffer"_a,
            "Read LLVM IR from a memory buffer and convert it into an in-memory Module"
            "object.\n\n"
            ":raises RuntimeError\n"
            "NOTE that you cannot use passed-in memory_buffer after this operation.")
-      // .def("parse_assemly",
-      //      [](PyContext &self) {
-             
-      //      })
       .def("create_builder",
            [](PyContext &self) {
              return PyBuilder(LLVMCreateBuilderInContext(self.get()));
@@ -4838,4 +4827,21 @@ void populateCore(nb::module_ &m) {
   bindTypeClasses(m);
   bindValueClasses(m);
   bindOtherClasses(m);
+}
+
+
+PyModule parseIR(LLVMContextRef ctx, LLVMMemoryBufferRef memBuf) {
+  LLVMModuleRef m = nullptr;
+  char *errMsg = nullptr;
+  bool success = LLVMParseIRInContext(ctx, memBuf, &m, &errMsg) == 0;
+             
+  if (!success) {
+    std::string errorMessage;
+    if (m) LLVMDisposeModule(m);
+    if (errMsg) errorMessage = std::string(errMsg);
+    LLVMDisposeMessage(errMsg);
+    throw std::runtime_error(errorMessage);
+  }
+
+  return PyModule(m);
 }

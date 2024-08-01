@@ -2,6 +2,8 @@
 #define LLVMPYM_CORE_H
 
 #include <nanobind/nanobind.h>
+#include "_types.h"
+
 namespace nb = nanobind;
 
 
@@ -110,5 +112,6 @@ namespace nb = nanobind;
 
 
 void populateCore(nb::module_ &m);
+PyModule parseIR(LLVMContextRef ctx, LLVMMemoryBufferRef memBuf);
 
 #endif

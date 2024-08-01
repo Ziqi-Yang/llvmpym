@@ -1,6 +1,6 @@
-from llvmpym import core
+from llvmpym import core, utils
 
-ir = r'''
+asm_str = r'''
     ; ModuleID = '<string>'
     target triple = "unknown-unknown-unknown"
     %struct.glob_type = type { i64, [2 x i64] }
@@ -24,6 +24,8 @@ ir = r'''
     declare void @a_readonly_func(i8 *) readonly
 '''
 
+utils.parse_assembly(asm_str)
+print(asm_str)
 
 
 
