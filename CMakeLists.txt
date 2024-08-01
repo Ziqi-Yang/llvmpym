@@ -63,6 +63,7 @@ nanobind_add_module(
   src/llvmpym_ext.cpp
   src/llvm/Core.cpp
   src/llvm/ErrorHandling.cpp
+  src/llvm/Utils.cpp
   ${LLVM_INCLUDE_DIRS}
 )
 

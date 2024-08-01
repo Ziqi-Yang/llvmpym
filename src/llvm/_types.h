@@ -1,5 +1,5 @@
-#ifndef LLVMPYM_TYPES_H
-#define LLVMPYM_TYPES_H
+#ifndef LLVMPYM__TYPES_H
+#define LLVMPYM__TYPES_H
 
 #include <llvm-c/Core.h>
 #include <utility>

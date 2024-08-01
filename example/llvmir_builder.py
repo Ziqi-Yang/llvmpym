@@ -20,7 +20,7 @@ myint = builder.load2(stackint.type, stackint)
 # Currently, every property goes through an function call through LLVM
 # involving WRAP and UNWRAP multiple many times through both python - LLVM-C
 # layer and LLVM-C - LLVM-C++ layer. There may be some performance loss.
-# In the future, we may add cache to object properties.
+# In the future, we may add cache to some object properties.
 add_inst = builder.add(fn.params[0], fn.params[1])
 mul_inst = builder.mul(add_inst, core.ConstantInt(IntType.GlobalInt32, 123, True))
 pred = builder.icmp(IntPredicate.SLE, add_inst, mul_inst)

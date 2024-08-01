@@ -1,6 +1,7 @@
 #include <nanobind/nanobind.h>
 #include "llvm/Core.h"
 #include "llvm/ErrorHandling.h"
+#include "llvm/Utils.h"
 
 namespace nb = nanobind;
 using namespace nb::literals;
@@ -14,4 +15,7 @@ NB_MODULE(llvmpym_ext, m) {
 
   auto errorHandlingModule = m.def_submodule("error_handling", "Error Handling");
   populateErrorHandling(errorHandlingModule);
+
+  auto utilsModule = m.def_submodule("utils", "Utilities");
+  populateUtils(utilsModule);
 }

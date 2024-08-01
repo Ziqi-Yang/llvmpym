@@ -10,7 +10,7 @@ Status
    "Core.h", "llvmpym.core", "☑"
    "ErrorHandling.h", "llvmpym.error_handling", "☑"
    "IRReader.h", "llvmpym.core", "☑"
-   "Types.h", "llvmpym.core", "☑"
+   "_Types.h", "llvmpym.core", "☑"
    "lto.h", "", "☐"
    
 
