@@ -16,7 +16,8 @@ release = '0.0.2'
 
 extensions = [
     'sphinx.ext.duration',
-    'autoapi.extension'
+    'autoapi.extension',
+    'sphinx_copybutton'
 ]
 
 templates_path = ['_templates']

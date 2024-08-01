@@ -13,6 +13,7 @@ pytest==8.3.2
 sphinx==7.4.7
 furo==2024.7.18
 sphinx-autoapi==3.2.1
+sphinx-copybutton==0.5.2
 
 # Misc
 twine==5.1.1
