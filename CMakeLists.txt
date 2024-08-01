@@ -107,6 +107,13 @@ nanobind_add_stub(
   DEPENDS llvmpym_ext
 )
 
+nanobind_add_stub(
+  llvmpym_ext_stub_utils
+  MODULE llvmpym_ext.utils
+  OUTPUT utils.pyi
+  PYTHON_PATH $<TARGET_FILE_DIR:llvmpym_ext>
+  DEPENDS llvmpym_ext
+)
 
 # Install directive for scikit-build-core
 install(TARGETS llvmpym_ext LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME})
@@ -116,5 +123,6 @@ install(FILES
   ${CMAKE_BINARY_DIR}/__init__.pyi
   ${CMAKE_BINARY_DIR}/core.pyi
   ${CMAKE_BINARY_DIR}/error_handling.pyi
+  ${CMAKE_BINARY_DIR}/utils.pyi
   
   DESTINATION ${SKBUILD_PROJECT_NAME}/llvmpym_ext)

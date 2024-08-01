@@ -26,7 +26,7 @@ asm_str = r'''
 
 m = utils.parse_assembly(asm_str)
 for f in m.functions:
-    print(f)
+    print(f'Function: {f.name}/`{f.type}`')
 
 
 

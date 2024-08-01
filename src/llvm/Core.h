@@ -137,7 +137,7 @@ PyModule parseIR(LLVMContextRef ctx, LLVMMemoryBufferRef memBuf);
   };
 
 #define BIND_ITERATOR_CLASS(ClassName, PythonClassName) \
-  nb::class_<ClassName>(m, #PythonClassName, #PythonClassName) \
+  nb::class_<ClassName>(m, PythonClassName, PythonClassName) \
       .def("__iter__", [](ClassName &self) { return self; }) \
       .def("__next__", &ClassName::next);
 
