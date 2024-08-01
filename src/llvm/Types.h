@@ -21,16 +21,39 @@ protected:
 };
 
 
-#define DEFINE_MOVE_SEMANTICS(ClassName) \
-  ClassName(ClassName&& other) noexcept { \
-    move(std::move(other)); \
-  } \
-  ClassName& operator=(ClassName&& other) noexcept { \
-    if (this != &other) { \
-      move(std::move(other)); \
+#define DEFINE_MOVE_SEMANTICS_CLEANUP(ClassName, ValueName) \
+    ClassName(ClassName&& other) noexcept : ValueName(other.ValueName) { \
+      other.ValueName = nullptr; \
     } \
-    return *this; \
-  }
+\
+    ClassName& operator=(ClassName&& other) noexcept { \
+      if (this != &other) { \
+        cleanup(); \
+        ValueName = other.ValueName; \
+        other.ValueName = nullptr; \
+      } \
+      return *this; \
+    }
+
+#define DEFINE_MOVE_SEMANTICS_CLEANUP_2(ClassName, Value0Name, Value1Name, Value1Default) \
+    ClassName(ClassName&& other) noexcept \
+    : Value0Name(other.Value0Name), Value1Name(other.Value1Name) { \
+      other.Value0Name = nullptr; \
+      other.Value1Name = Value1Default; \
+    } \
+\
+    ClassName& operator=(ClassName&& other) noexcept { \
+      if (this != &other) { \
+        cleanup(); \
+        Value0Name = other.Value0Name; \
+        other.Value0Name = nullptr; \
+\
+        Value1Name = other.Value1Name; \
+        other.Value1Name = Value1Default; \
+      } \
+      return *this; \
+    }
+
 
 // note the underlying type must be a pointer type
 #define DEFINE_PY_WRAPPER_CLASS_SELF_DISPOSABLE_NONCOPYABLE(ClassName, UnderlyingType, DISPOSE_FUNC) \
@@ -361,13 +384,7 @@ public:
     return bundle;
   }
 
-  DEFINE_MOVE_SEMANTICS(PyOperandBundle)
-
-  void move(PyOperandBundle &&other) noexcept {
-    cleanup();
-    bundle = std::exchange(other.bundle, nullptr);
-  }
-  
+  DEFINE_MOVE_SEMANTICS_CLEANUP(PyOperandBundle, bundle)
 
 private:
   LLVMOperandBundleRef bundle;
@@ -402,13 +419,7 @@ public:
     return len;
   }
 
-  DEFINE_MOVE_SEMANTICS(PyModuleFlagEntries)
-
-  void move(PyModuleFlagEntries &&other) noexcept {
-    cleanup();
-    entries = std::exchange(other.entries, nullptr);
-    len = std::exchange(other.len, 0);
-  }
+  DEFINE_MOVE_SEMANTICS_CLEANUP_2(PyModuleFlagEntries, entries, len, 0)
   
 
 private:
@@ -443,13 +454,7 @@ public:
     return len;
   }
 
-  DEFINE_MOVE_SEMANTICS(PyMetadataEntries)
-
-  void move(PyMetadataEntries &&other) noexcept {
-    cleanup();
-    entries = std::exchange(other.entries, nullptr);
-    len = std::exchange(other.len, 0);
-  }
+  DEFINE_MOVE_SEMANTICS_CLEANUP_2(PyMetadataEntries, entries, len, 0)
   
 
 private:
@@ -491,14 +496,7 @@ public:
     return context;
   }
 
-  DEFINE_MOVE_SEMANTICS(PyContext)
-
-  void move(PyContext &&other) noexcept {
-    cleanup();
-    context = std::exchange(other.context, nullptr);
-    is_global_context = other.is_global_context;
-    other.is_global_context = false;
-  }
+  DEFINE_MOVE_SEMANTICS_CLEANUP_2(PyContext, context, is_global_context, false)
 
   void cleanup() {
     // don't clean global context, which is managed by LLVM
@@ -545,12 +543,7 @@ public:
     return module;
   }
 
-  DEFINE_MOVE_SEMANTICS(PyModule)
-
-  void move(PyModule &&other) noexcept {
-    cleanup();
-    module = std::exchange(other.module, nullptr);
-  }
+  DEFINE_MOVE_SEMANTICS_CLEANUP(PyModule, module)
 
   void cleanup() {
     if (module) {
