@@ -4610,6 +4610,10 @@ void bindOtherClasses(nb::module_ &m) {
                      return PyFunction(LLVMGetLastFunction(m.get()));
                    },
                    "Obtain an iterator to the last Function in a Module.")
+      .def_prop_ro("functions",
+                   [](PyModule &m) {
+                     return PyFunctionIterator(LLVMGetFirstFunction(m.get()));
+                   })
       .def("create_function_pass_manager",
            [](PyModule &self) {
              return PyFunctionPassManager(LLVMCreateFunctionPassManagerForModule(self.get()));
@@ -4819,6 +4823,15 @@ void bindOtherClasses(nb::module_ &m) {
            "Returns the metadata for a module flag entry at a specific index.");
 }
 
+void bindIterators(nb::module_ &m) {
+  nb::class_<PyFunctionIterator>(m, "FunctionIterator", "Function Iterator")
+      .def("__iter__",
+           [](PyFunctionIterator &self) {
+             return self;
+           })
+      .def("__next__", &PyFunctionIterator::next);
+}
+
 
 
 void populateCore(nb::module_ &m) {
@@ -4827,6 +4840,7 @@ void populateCore(nb::module_ &m) {
   bindTypeClasses(m);
   bindValueClasses(m);
   bindOtherClasses(m);
+  bindIterators(m);
 }
 
 

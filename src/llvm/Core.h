@@ -114,4 +114,29 @@ namespace nb = nanobind;
 void populateCore(nb::module_ &m);
 PyModule parseIR(LLVMContextRef ctx, LLVMMemoryBufferRef memBuf);
 
+
+class PyFunctionIterator {
+public:
+  explicit PyFunctionIterator(PyFunction fn): fn(fn) {}
+  explicit PyFunctionIterator(LLVMValueRef fn): fn(PyFunction(fn)) {}
+
+  PyFunction get() {
+    return fn;
+  }
+
+  PyFunction next() {
+    auto res = LLVMGetNextFunction(fn.get());
+    if (!res)
+      throw nb::stop_iteration();
+    auto prev = fn;
+    fn = PyFunction(res);
+    return prev;
+  }
+  
+private:
+  PyFunction fn;
+};
+
+
+
 #endif

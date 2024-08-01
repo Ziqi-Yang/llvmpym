@@ -24,8 +24,9 @@ asm_str = r'''
     declare void @a_readonly_func(i8 *) readonly
 '''
 
-utils.parse_assembly(asm_str)
-print(asm_str)
+m = utils.parse_assembly(asm_str)
+for f in m.functions:
+    print(f)
 
 
 
