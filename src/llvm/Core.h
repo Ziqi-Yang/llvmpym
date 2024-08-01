@@ -48,7 +48,7 @@ namespace nb = nanobind;
       [](PyBuilder &self, PyValue &lhs, PyValue &rhs, const char *name) { \
         return PyValueAuto(FUNCTION(self.get(), lhs.get(), rhs.get(), name)); \
       }, \
-      "lhs"_a, "rhs"_a, "name"_a) 
+      "lhs"_a, "rhs"_a, "name"_a = "") 
 
 
 
@@ -85,7 +85,7 @@ namespace nb = nanobind;
       [](PyBuilder &self, PyValue &val, PyType &destType, const char *name) { \
         return PyValueAuto(FUNCTION(self.get(), val.get(), destType.get(), name)); \
       }, \
-      "val"_a, "dest_type"_a, "name"_a) 
+      "val"_a, "dest_type"_a, "name"_a = "") 
 
 #define BUILDER_BIND_CAST_OPS \
   BUILDER_BIND_CAST_OP(trunc, LLVMBuildTrunc) \

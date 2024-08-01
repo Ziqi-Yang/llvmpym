@@ -916,7 +916,7 @@ void bindTypeClasses(nb::module_ &m) {
            [](PyTypeStruct *t, PyContext &c, std::string name) {
              new (t) PyTypeStruct(LLVMStructCreateNamed(c.get(), name.c_str()));
            },
-           "context"_a, "name"_a,
+           "context"_a, "name"_a = "",
            "Create an empty structure in the context having a specified name.")
       .def_static("Global",
         [](std::vector<PyType> elementTypes, bool packed) {
@@ -1974,7 +1974,7 @@ void bindValueClasses(nb::module_ &m) {
            [](PyGlobalVariable *g, PyModule &m, PyType &type, const char *name) {
              new (g) PyGlobalVariable(LLVMAddGlobal(m.get(), type.get(), name));
            },
-           "module"_a, "type"_a, "name"_a)
+           "module"_a, "type"_a, "name"_a = "")
       .def_prop_rw("initializer",
                    [](PyGlobalVariable &self) {
                      return PyValueAuto(LLVMGetInitializer(self.get()));
@@ -2070,7 +2070,7 @@ void bindValueClasses(nb::module_ &m) {
                                      (self.get(), valueType.get(), addrSpace,
                                       aliasee.get(), name));
            },
-           "module"_a, "value_type"_a, "addr_space"_a, "aliasee"_a, "name"_a,
+           "module"_a, "value_type"_a, "addr_space"_a, "aliasee"_a, "name"_a = "",
            "Add a GlobalAlias with the given value type, address space and aliasee.")
       .def_prop_ro("next",
            [](PyGlobalAlias &self) -> std::optional<PyGlobalAlias> {
@@ -2103,10 +2103,10 @@ void bindValueClasses(nb::module_ &m) {
              return gen_value_repr("Function", self);
            })
       .def("__init__",
-           [](PyFunction *f, PyModule &m, std::string &name, PyTypeFunction &functionTy) {
+           [](PyFunction *f, PyModule &m, PyTypeFunction &functionTy, std::string &name) {
              new (f) PyFunction(LLVMAddFunction(m.get(), name.c_str(), functionTy.get()));
            },
-           "module"_a, "name"_a, "function_type"_a,
+           "module"_a, "function_type"_a, "name"_a = "",
            "Add a function to a module under a specified name.")
       .def("__repr__",
            [](PyFunction &self) {
@@ -2255,7 +2255,7 @@ void bindValueClasses(nb::module_ &m) {
            [](PyFunction &self, const char *name) {
              return PyBasicBlock(LLVMAppendBasicBlock(self.get(), name));
            },
-           "name"_a,
+           "name"_a = "",
            "Append a basic block to the end of a function using the global context.")
       .def("get_attribute_count_at_index",
            [](PyFunction &self, LLVMAttributeIndex idx) {
@@ -3219,7 +3219,7 @@ void bindOtherClasses(nb::module_ &m) {
                   [](const std::string &name) {
                     return LLVMGetMDKindID(name.c_str(), name.size());
                   },
-                  "name"_a)
+                  "name"_a = "")
       .def("as_value",
            [](PyMetadata &self, PyContext &c) {
              return PyMetadataAsValue(LLVMMetadataAsValue(c.get(), self.get()));
@@ -3237,7 +3237,7 @@ void bindOtherClasses(nb::module_ &m) {
              new (mds) PyMDString(LLVMMDStringInContext2
                                     (context.get(), name.c_str(), name.size()));
            },
-           "context"_a, "name"_a,
+           "context"_a, "name"_a = "",
            "Create an MDString value from a given string value.")
       .def("as_value",
            [](PyMDString &self, PyContext &c) {
@@ -3450,7 +3450,7 @@ void bindOtherClasses(nb::module_ &m) {
            [](PyBuilder &self, PyInstruction &inst, const char *name) {
              return LLVMInsertIntoBuilderWithName(self.get(), inst.get(), name);
            },
-           "instruction"_a, "name"_a)
+           "instruction"_a, "name"_a = "")
       .def("destory",
            [](PyBuilder &self) {
              return LLVMDisposeBuilder(self.get());
@@ -3526,7 +3526,7 @@ void bindOtherClasses(nb::module_ &m) {
                                          Catch.get(), name);
              return PyInvokeInst(res);
            },
-           "type"_a, "fn"_a, "args"_a, "Then"_a, "Catch"_a, "name"_a,
+           "type"_a, "fn"_a, "args"_a, "Then"_a, "Catch"_a, "name"_a = "",
            "Original Function: LLVMBuildInvoke2.")
       .def("invoke_with_operand_bundles",
            [](PyBuilder &self, PyType &type, PyFunction &fn, std::vector<PyValue> args,
@@ -3547,7 +3547,7 @@ void bindOtherClasses(nb::module_ &m) {
              return PyInvokeInst(res);
            },
            "type"_a, "fn"_a, "args"_a, "Then"_a, "Catch"_a, "bundles"_a,
-           "name"_a)
+           "name"_a = "")
       .def("unreachable",
            [](PyBuilder &self) {
              return PyInstruction(LLVMBuildUnreachable(self.get()));
@@ -3564,7 +3564,7 @@ void bindOtherClasses(nb::module_ &m) {
                                     (self.get(), type.get(), PersFn.get(), numClauses,
                                      name));
            },
-           "type"_a, "pers_fn"_a, "num_clauses"_a, "name"_a)
+           "type"_a, "pers_fn"_a, "num_clauses"_a, "name"_a = "")
       .def("cleanup_ret",
            [](PyBuilder &self, PyValue &catchPad, PyBasicBlock bb) {
              return PyCleanupReturnInst(LLVMBuildCleanupRet(self.get(), catchPad.get(),
@@ -3581,7 +3581,7 @@ void bindOtherClasses(nb::module_ &m) {
                                           args_num, name);
              return PyCatchPadInst(res);
            },
-           "parent_pad"_a, "args"_a, "name"_a)
+           "parent_pad"_a, "args"_a, "name"_a = "")
       .def("cleanup_pad",
            [](PyBuilder &self, PyValue &parentPad, std::vector<PyValue> args,
               const char *name) {
@@ -3592,7 +3592,7 @@ void bindOtherClasses(nb::module_ &m) {
                                           args_num, name);
              return PyInstruction(res);
            },
-           "parent_pad"_a, "args"_a, "name"_a)
+           "parent_pad"_a, "args"_a, "name"_a = "")
       .def("catch_switch",
            [](PyBuilder &self, PyValue &parentPad, PyBasicBlock &unwindBB,
               unsigned numHandlers, const char *name) {
@@ -3601,7 +3601,7 @@ void bindOtherClasses(nb::module_ &m) {
                                              name);
              return PyCatchSwitchInst(res);
            },
-           "parent_pad"_a, "unwind_bb"_a, "num_handlers"_a, "name"_a)
+           "parent_pad"_a, "unwind_bb"_a, "num_handlers"_a, "name"_a = "")
        /*
          Arithmetic
         */
@@ -3635,12 +3635,12 @@ void bindOtherClasses(nb::module_ &m) {
            [](PyBuilder &self, PyType &type, const char *name) {
              return PyCallInst(LLVMBuildMalloc(self.get(), type.get(), name));
            },
-           "type"_a, "name"_a)
+           "type"_a, "name"_a = "")
       .def("array_malloc",
            [](PyBuilder &self, PyType &type, PyValue &val, const char *name) {
              return PyCallInst(LLVMBuildArrayAlloca(self.get(), type.get(), val.get(), name));
            },
-           "type"_a, "value"_a, "name"_a)
+           "type"_a, "value"_a, "name"_a = "")
       .def("memset",
            [](PyBuilder &self, PyValue &ptr, PyValue &val, PyValue &len, unsigned align) {
              auto res = LLVMBuildMemSet(self.get(), ptr.get(), val.get(), len.get(),
@@ -3670,13 +3670,13 @@ void bindOtherClasses(nb::module_ &m) {
            [](PyBuilder &self, PyType &type, const char *name) {
              return PyAllocaInst(LLVMBuildAlloca(self.get(), type.get(), name));
            },
-           "type"_a, "name"_a)
+           "type"_a, "name"_a = "")
       .def("array_alloca",
            [](PyBuilder &self, PyType &type, PyValue &val, const char *name) {
              return PyAllocaInst(LLVMBuildArrayAlloca(self.get(), type.get(),
                                                       val.get(), name));
            },
-           "type"_a, "value"_a, "name"_a)
+           "type"_a, "value"_a, "name"_a = "")
       .def("free",
            [](PyBuilder &self, PyValue pointer) {
              return PyCallInst(LLVMBuildFree(self.get(), pointer.get()));
@@ -3687,7 +3687,7 @@ void bindOtherClasses(nb::module_ &m) {
              return PyLoadInst(LLVMBuildLoad2(self.get(), type.get(), pointer.get(),
                                               name));
            },
-           "type"_a, "ptr"_a, "name"_a)
+           "type"_a, "ptr"_a, "name"_a = "")
       .def("store",
            [](PyBuilder &self, PyValue &val, PyValue &ptr) {
              return PyStoreInst(LLVMBuildStore(self.get(), val.get(), ptr.get()));
@@ -3701,7 +3701,7 @@ void bindOtherClasses(nb::module_ &m) {
              return PyValueAuto(LLVMBuildGEP2(self.get(), type.get(), ptr.get(),
                                 rawIndices.data(), num_indices, name));
            },
-           "type"_a,  "ptr"_a, "indices"_a, "name"_a)
+           "type"_a,  "ptr"_a, "indices"_a, "name"_a = "")
      .def("in_bounds_gep2",
           [](PyBuilder &self, PyType &type, PyValue &ptr, std::vector<PyValue> indices,
              const char *name) {
@@ -3710,14 +3710,14 @@ void bindOtherClasses(nb::module_ &m) {
             return PyValueAuto(LLVMBuildGEP2(self.get(), type.get(), ptr.get(),
                                              rawIndices.data(), num_indices, name));
           },
-          "type"_a,  "ptr"_a, "indices"_a, "name"_a)
+          "type"_a,  "ptr"_a, "indices"_a, "name"_a = "")
      .def("struct_gep2",
           [](PyBuilder &self, PyType &type, PyValue &ptr, unsigned index, const char *name) {
             auto res = LLVMBuildStructGEP2(self.get(), type.get(), ptr.get(),
                                            index, name);
             return PyValueAuto(res);
           },
-          "type"_a, "ptr"_a, "index"_a, "name"_a)
+          "type"_a, "ptr"_a, "index"_a, "name"_a = "")
      .def("global_string",
           [](PyBuilder &self, const char *str, const char *name) {
             return PyValueAuto(LLVMBuildGlobalString(self.get(), str, name));
@@ -3734,19 +3734,19 @@ void bindOtherClasses(nb::module_ &m) {
             return PyValueAuto(LLVMBuildCast(self.get(), opcode, value.get(),
                                              destType.get(), name));
           },
-          "opcode"_a, "value"_a, "dest_type"_a, "name"_a)
+          "opcode"_a, "value"_a, "dest_type"_a, "name"_a = "")
      .def("int_cast_2",
           [](PyBuilder &self, PyValue &value, PyType &destType, const char *name){
             return PyValueAuto(LLVMBuildFPCast
                                  (self.get(), value.get(), destType.get(), name));
           },
-          "value"_a, "dest_type"_a, "name"_a)
+          "value"_a, "dest_type"_a, "name"_a = "")
      .def("int_cast",
           [](PyBuilder &self, PyValue &value, PyType &destType, const char *name){
             return PyValueAuto(LLVMBuildIntCast
                                  (self.get(), value.get(), destType.get(), name));
           },
-          "value"_a, "dest_type"_a, "name"_a,
+          "value"_a, "dest_type"_a, "name"_a = "",
           "Deprecated: This cast is always signed. Use LLVMBuildIntCast2 instead.")
      .def_static("get_cast_opcode",
                  [](PyValue &src, bool srcIsSigned, PyType &destType, bool destIsSigned) {
@@ -3761,12 +3761,12 @@ void bindOtherClasses(nb::module_ &m) {
             return PyValueAuto(LLVMBuildICmp(self.get(), op, lhs.get(), rhs.get(),
                                              name));
           },
-          "op"_a, "lhs"_a, "rhs"_a, "name"_a)
+          "op"_a, "lhs"_a, "rhs"_a, "name"_a = "")
      .def("phi",
           [](PyBuilder &self, PyType &type, const char *name) {
             return PyPHINode(LLVMBuildPhi(self.get(), type.get(), name));
           },
-          "type"_a, "name"_a)
+          "type"_a, "name"_a = "")
      .def("call_2",
           [](PyBuilder &self, PyTypeFunction &type, PyFunction &fn, std::vector<PyValue> args,
              const char *name) {
@@ -3776,7 +3776,7 @@ void bindOtherClasses(nb::module_ &m) {
                                 (self.get(), type.get(), fn.get(), rawArgs.data(),
                                  args_num, name));
           },
-          "fn_type"_a, "fn"_a, "args"_a, "name"_a)
+          "fn_type"_a, "fn"_a, "args"_a, "name"_a = "")
      .def("call_with_operand_bundles",
           [](PyBuilder &self, PyTypeFunction type, PyFunction fn,
              std::vector<PyValue> args,
@@ -3800,19 +3800,19 @@ void bindOtherClasses(nb::module_ &m) {
                                 (self.get(), If.get(), Then.get(), Else.get(),
                                  name));
           },
-          "If"_a, "Then"_a, "Else"_a, "name"_a)
+          "If"_a, "Then"_a, "Else"_a, "name"_a = "")
      .def("vaarg",
           [](PyBuilder &self, PyValue &list, PyType &type, const char *name) {
             return PyValue(LLVMBuildVAArg(self.get(), list.get(), type.get(),
                                           name));
           },
-          "list"_a, "type"_a, "name"_a)
+          "list"_a, "type"_a, "name"_a = "")
      .def("extract_element",
           [](PyBuilder &self, PyValue &vecVal, PyValue &index, const char *name) {
             return PyValueAuto(LLVMBuildExtractElement
                                  (self.get(), vecVal.get(), index.get(), name));
           },
-          "vec"_a, "index"_a, "name"_a)
+          "vec"_a, "index"_a, "name"_a = "")
      .def("insert_element",
           [](PyBuilder &self, PyValue &vecVal, PyValue &eltVal,
              PyValue &index, const char *name) {
@@ -3820,19 +3820,19 @@ void bindOtherClasses(nb::module_ &m) {
                                  (self.get(), vecVal.get(), eltVal.get(),
                                   index.get(), name));
           },
-          "vec"_a, "element"_a, "index"_a, "name"_a)
+          "vec"_a, "element"_a, "index"_a, "name"_a = "")
     .def("shuffle_vector",
          [](PyBuilder &self, PyValue &v1, PyValue &v2, PyValue &mask, const char *name) {
            return PyShuffleVectorInst(LLVMBuildShuffleVector
                                 (self.get(), v1.get(), v2.get(), mask.get(), name));
          },
-         "v1"_a, "v2"_a, "mask"_a, "name"_a)
+         "v1"_a, "v2"_a, "mask"_a, "name"_a = "")
     .def("extract_value",
          [](PyBuilder &self, PyValue &aggVal, unsigned index, const char *name) {
            return PyValueAuto(LLVMBuildExtractValue
                                 (self.get(), aggVal.get(), index, name));
          },
-         "agg"_a, "index"_a, "name"_a)
+         "agg"_a, "index"_a, "name"_a = "")
     .def("insert_value",
          [](PyBuilder &self, PyValue &aggVal, PyValue &eltVal, unsigned index,
             const char *name) {
@@ -3840,22 +3840,22 @@ void bindOtherClasses(nb::module_ &m) {
                                 (self.get(), aggVal.get(), eltVal.get(), index,
                                  name));
          },
-         "agg"_a, "elt"_a, "index"_a, "name"_a)
+         "agg"_a, "elt"_a, "index"_a, "name"_a = "")
     .def("freeze",
          [](PyBuilder &self, PyValue &val, const char *name) {
            return PyValueAuto(LLVMBuildFreeze(self.get(), val.get(), name));
          },
-         "val"_a, "name"_a)
+         "val"_a, "name"_a = "")
     .def("is_null",
          [](PyBuilder &self, PyValue &val, const char *name) {
            return PyValueAuto(LLVMBuildIsNull(self.get(), val.get(), name));
          },
-         "value"_a, "name"_a)
+         "value"_a, "name"_a = "")
     .def("is_not_null",
          [](PyBuilder &self, PyValue &val, const char *name) {
            return PyValueAuto(LLVMBuildIsNotNull(self.get(), val.get(), name));
          },
-         "value"_a, "name"_a)
+         "value"_a, "name"_a = "")
     .def("ptr_diff_2",
          [](PyBuilder &self, PyType &elemType, PyValue &lhs, PyValue &rhs,
             const char *name) {
@@ -3863,13 +3863,13 @@ void bindOtherClasses(nb::module_ &m) {
                                 (self.get(), elemType.get(), lhs.get(),
                                  rhs.get(), name));
          },
-         "elem_type"_a, "lhs"_a, "rhs"_a, "name"_a)
+         "elem_type"_a, "lhs"_a, "rhs"_a, "name"_a = "")
     .def("fence",
          [](PyBuilder &self, LLVMAtomicOrdering ordering, bool singleThread,
             const char *name) {
            return PyFenceInst(LLVMBuildFence(self.get(), ordering, singleThread, name));
          },
-         "ordering"_a, "singleThread"_a, "name"_a)
+         "ordering"_a, "singleThread"_a, "name"_a = "")
     .def("atomic_rmw",
          [](PyBuilder &self, LLVMAtomicRMWBinOp op, PyValue &ptr, PyValue val,
             LLVMAtomicOrdering ordering, bool singleThread) {
@@ -3899,21 +3899,21 @@ void bindOtherClasses(nb::module_ &m) {
            [](PyBasicBlock *bb, PyContext &c, const char *name) {
              new (bb) PyBasicBlock(LLVMCreateBasicBlockInContext(c.get(), name));
            },
-           "context"_a, "name"_a,
+           "context"_a, "name"_a = "",
            "Create a new basic block without inserting it into a function.")
       .def("__init__",
            [](PyBasicBlock *bb, PyContext &c, PyFunction &f, const char *name) {
              new (bb) PyBasicBlock(LLVMAppendBasicBlockInContext
                                      (c.get(), f.get(), name));
            },
-           "context"_a, "function"_a, "name"_a,
+           "context"_a, "function"_a, "name"_a = "",
            "Create a new basic block without inserting it into a function.")
       .def("__init__",
            [](PyBasicBlock *bb, PyContext &c, PyBasicBlock &BB, const char *name) {
              new (bb) PyBasicBlock(LLVMInsertBasicBlockInContext
                                      (c.get(), BB.get(), name));
            },
-           "context"_a, "bb"_a, "name"_a,
+           "context"_a, "bb"_a, "name"_a = "",
            "Insert a basic block in a function before another basic block.\n\n"
            "The function to add to is determined by the function of the"
            "passed basic block.")
@@ -3921,7 +3921,7 @@ void bindOtherClasses(nb::module_ &m) {
            [](PyBasicBlock *bb, PyBasicBlock &BB, const char *name) {
              new (bb) PyBasicBlock(LLVMInsertBasicBlock(BB.get(), name));
            },
-           "insert_before_bb"_a, "name"_a,
+           "insert_before_bb"_a, "name"_a = "",
            "Insert a basic block in a function using the global context.")
       .def_prop_ro("name",
                    [](PyBasicBlock &self) {
@@ -4043,7 +4043,7 @@ void bindOtherClasses(nb::module_ &m) {
                     [](std::string &name) {
                       return PyIntrinsic(LLVMLookupIntrinsicID(name.c_str(), name.size()));
                     },
-                   "name"_a,
+                   "name"_a = "",
                     "Obtain the intrinsic ID number which matches the given function name.")
       .def("get_type",
                   [](PyIntrinsic &self, PyContext &context, std::vector<PyType> paramTypes) {
@@ -4189,7 +4189,7 @@ void bindOtherClasses(nb::module_ &m) {
               [](const std::string &name){
                 return LLVMGetEnumAttributeKindForName(name.c_str(), name.size());
               },
-              "name"_a,
+              "name"_a = "",
               "Return an unique id given the name of a enum attribute,"
               "or 0 if no attribute by that name exists.\n\n"
               "See http://llvm.org/docs/LangRef.html#parameter-attributes"
@@ -4406,21 +4406,21 @@ void bindOtherClasses(nb::module_ &m) {
              return PyBasicBlock(LLVMCreateBasicBlockInContext
                                           (self.get(), name));
            },
-           "name"_a,
+           "name"_a = "",
            "Create a new basic block without inserting it into a function.")
       .def("append_basic_block",
            [](PyContext &self, PyFunction fn, const char *name) {
              return PyBasicBlock(LLVMAppendBasicBlockInContext
                                           (self.get(), fn.get(), name));
            },
-           "fn"_a, "name"_a,
+           "fn"_a, "name"_a = "",
            "Append a basic block to the end of a function.")
       .def("insert_basic_block",
            [](PyContext &self, PyBasicBlock bb, const char *name) {
              return PyBasicBlock(LLVMInsertBasicBlockInContext
                                           (self.get(), bb.get(), name));
            },
-           "bb"_a, "name"_a,
+           "bb"_a, "name"_a = "",
            "Insert a basic block in a function before another basic block.\n\n"
            "The function to add to is determined by the function of the"
            "passed basic block.")
@@ -4428,7 +4428,7 @@ void bindOtherClasses(nb::module_ &m) {
            [](PyContext &c, const std::string &name) {
              return LLVMGetMDKindIDInContext(c.get(), name.c_str(), name.size());
            },
-           "name"_a)
+           "name"_a = "")
       .def("create_enum_attribute",
            [](PyContext &c, unsigned kindID, uint64_t val) {
              return PyEnumAttribute(LLVMCreateEnumAttribute(c.get(), kindID, val));
@@ -4454,12 +4454,12 @@ void bindOtherClasses(nb::module_ &m) {
              auto res = LLVMGetTypeByName2(c.get(), name);
              WRAP_OPTIONAL_RETURN(res, PyTypeAuto);
            },
-           "name"_a)
+           "name"_a = "")
       .def("create_md_string_2",
            [](PyContext &self, std::string &name) {
              return PyMDString(LLVMMDStringInContext2(self.get(), name.c_str(), name.size()));
            },
-           "name"_a,
+           "name"_a = "",
            "Create an MDString value from a given string value.")
       .def("create_md_node_2",
            [](PyContext &self, std::vector<PyMetadata> mds) {
@@ -4477,7 +4477,7 @@ void bindOtherClasses(nb::module_ &m) {
   
 
   ModuleClass
-      .def(nb::init<const std::string &>(), "id"_a)
+      .def(nb::init<const std::string &>(), "name"_a = "")
       .def("__repr__",
            [](PyModule &self) {
              size_t len;
@@ -4571,7 +4571,8 @@ void bindOtherClasses(nb::module_ &m) {
                    },
                    [](PyModule &m, const std::string &name) {
                      return LLVMSetSourceFileName(m.get(), name.c_str(), name.size());
-                   })
+                   },
+                   "name"_a = "")
       .def_prop_rw("data_layout",
                    [](PyModule &m) {
                      return LLVMGetDataLayoutStr(m.get());
@@ -4639,60 +4640,60 @@ void bindOtherClasses(nb::module_ &m) {
                                   (self.get(), valueType.get(), addrSpace,
                                    aliasee.get(), name));
            },
-           "value_type"_a, "addr_space"_a, "aliasee"_a, "name"_a,
+           "value_type"_a, "addr_space"_a, "aliasee"_a, "name"_a = "",
            "Add a GlobalAlias with the given value type, address space and aliasee.")
       .def("get_named_global_alias",
            [](PyModule &self, std::string &name) {
              return PyGlobalAlias(LLVMGetNamedGlobalAlias
                                   (self.get(), name.c_str(), name.size()));
            },
-           "name"_a,
+           "name"_a = "",
            "Obtain a GlobalAlias value from by its name.")
       .def("add_global",
            [](PyModule &self, PyType &type, const char *name) {
              return PyGlobalVariable(LLVMAddGlobal(self.get(), type.get(), name));
            },
-           "type"_a, "name"_a)
+           "type"_a, "name"_a = "")
       .def("add_global_in_address_space",
            [](PyModule &self, PyType &type, const char *name, unsigned addressSpace) {
              return PyGlobalVariable(LLVMAddGlobalInAddressSpace
                                   (self.get(), type.get(), name, addressSpace));
            },
-           "type"_a, "name"_a, "address_space"_a)
+           "type"_a, "name"_a = "", "address_space"_a = 0)
       .def("get_named_global",
            [](PyModule &self, const char *name) {
              return PyGlobalVariable(LLVMGetNamedGlobal(self.get(), name));
            })
       .def("add_global_indirect_func",
-           [](PyModule &self, std::string &name, PyType &type, unsigned addrSpace,
-              PyConstant resolver) {
+           [](PyModule &self, PyType &type, unsigned addrSpace, PyConstant resolver,
+              std::string &name) {
              return PyGlobalIFunc(LLVMAddGlobalIFunc
                                     (self.get(), name.c_str(), name.size(), type.get(),
                                      addrSpace, resolver.get()));
            },
-           "name"_a, "type"_a, "addr_space"_a, "resolver"_a)
+           "type"_a, "addr_space"_a, "resolver"_a, "name"_a = "")
       .def("get_named_global_ifunc",
            [](PyModule &self, std::string &name) -> std::optional<PyGlobalIFunc> {
              auto res = LLVMGetNamedGlobalIFunc(self.get(), name.c_str(), name.size());
              WRAP_OPTIONAL_RETURN(res, PyGlobalIFunc);
            })
       .def("add_function",
-           [](PyModule &m, std::string &name, PyTypeFunction &functionTy) {
+           [](PyModule &m, PyTypeFunction &functionTy, std::string &name) {
              return PyFunction(LLVMAddFunction(m.get(), name.c_str(), functionTy.get()));
            },
-           "name"_a, "function_type"_a,
+           "function_type"_a, "name"_a = "",
            "Add a function to a module under a specified name.")
       .def("get_named_function",
            [](PyModule &m, std::string &name) {
              return PyFunction(LLVMGetNamedFunction(m.get(), name.c_str()));
-           }, "name"_a,
+           }, "name"_a = "",
            "Obtain a Function value from a Module by its name.")
       .def("get_named_metadata",
            [](PyModule &m, std::string &name) -> optional<PyNamedMDNode> {
              auto res = LLVMGetNamedMetadata(m.get(), name.c_str(), name.size());
              WRAP_OPTIONAL_RETURN(res, PyNamedMDNode);
            },
-           "name"_a,
+           "name"_a = "",
            "Retrieve a NamedMDNode with the given name, returning NULL if no such"
            "node exists.")
       .def("get_or_insert_named_metadata",
@@ -4701,13 +4702,13 @@ void bindOtherClasses(nb::module_ &m) {
                       (LLVMGetOrInsertNamedMetadata
                          (m.get(), name.c_str(), name.size()));
            },
-           "name"_a,
+           "name"_a = "",
            "Retrieve a NamedMDNode with the given name, creating a new node if no such"
            "node exists.")
       .def("get_named_metadata_operands_num",
            [](PyModule &m, std::string &name) {
              return LLVMGetNamedMetadataNumOperands(m.get(), name.c_str());
-           }, "name"_a,
+           }, "name"_a = "",
            "Obtain the number of operands for named metadata in a module.")
       .def("get_named_metadata_operands",
            [](PyModule &m, std::string &name) {
@@ -4717,7 +4718,7 @@ void bindOtherClasses(nb::module_ &m) {
              WRAP_VECTOR_FROM_DEST_AUTO(PyValue, num, res, dest);
              return res;
            },
-           "name"_a,
+           "name"_a = "",
            "Obtain the named metadata operands for a module.\n\n"
            "The passed LLVMValueRef pointer should refer to an array of"
            "LLVMValueRef at least LLVMGetNamedMetadataNumOperands long. This"
@@ -4788,7 +4789,7 @@ void bindOtherClasses(nb::module_ &m) {
       .def("get_type_by_name",
            [](PyModule &m, std::string &name) {
              return PyTypeAuto(LLVMGetTypeByName(m.get(), name.c_str()));
-           }, "name"_a,
+           }, "name"_a = "",
            "Deprecated: Use LLVMGetTypeByName2 instead.");
 
   ModuleFlagEntriesClass
