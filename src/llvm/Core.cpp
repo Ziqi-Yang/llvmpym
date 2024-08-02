@@ -3375,12 +3375,12 @@ void bindOtherClasses(nb::module_ &m) {
                   },
                   ":raises RuntimeError")
       .def_static("from_str",
-                  [](std::string &inputData, const char *BufferName, bool RequiresNullTerminator) {
+                  [](std::string &inputData, bool RequiresNullTerminator, const char *BufferName) {
                     return PyMemoryBuffer(LLVMCreateMemoryBufferWithMemoryRange
                                             (inputData.c_str(), inputData.size(),
                                              BufferName, RequiresNullTerminator));
                   },
-                  "input_data"_a, "buffer_name"_a, "requires_null_terminator"_a)
+                  "input_data"_a, "requires_null_terminator"_a, "buffer_name"_a = "")
       .def_static("from_str",
                   [](const std::string &inputData, const char *BufferName) ->
                    optional<PyMemoryBuffer>{
@@ -3388,7 +3388,7 @@ void bindOtherClasses(nb::module_ &m) {
                                  (inputData.c_str(), inputData.size(), BufferName);
                     WRAP_OPTIONAL_RETURN(res, PyMemoryBuffer);
                   },
-                  "input_data"_a, "buffer_name"_a)
+                  "input_data"_a, "buffer_name"_a = "")
       .def_prop_ro("buffer_start",
                    [](PyMemoryBuffer &self) {
                      return LLVMGetBufferStart(self.get());
@@ -4393,23 +4393,22 @@ void bindOtherClasses(nb::module_ &m) {
            },
            "callback"_a, "opaque_handle"_a,
            "Set the yield callback function for this context.")
-      // .def("parse_ir",
-      //      [](PyContext &self, PyMemoryBuffer &memBuf) {
-      //        try {
-      //          auto res = parseIR(self.get(), memBuf.get());
-      //          memBuf.resetNoClean(); // We Cannot reuse the memory buffer again
-      //          return res;
-      //        } catch (const std::exception& ex) {
-      //          // TODO test whether it is still available after a filed operation.
-      //          memBuf.resetNoClean();
-      //          throw ex;
-      //        }
-      //      },
-      //      "memory_buffer"_a,
-      //      "Read LLVM IR from a memory buffer and convert it into an in-memory Module"
-      //      "object.\n\n"
-      //      ":raises RuntimeError\n"
-      //      "NOTE that you cannot use passed-in memory_buffer after this operation.")
+      .def("parse_ir",
+           [](PyContext &self, PyMemoryBuffer &memBuf) {
+             try {
+               auto res = parseIR(self.get(), memBuf.get());
+               memBuf.reset(); // We Cannot reuse the memory buffer again
+               return res;
+             } catch (const std::exception& ex) {
+               memBuf.reset();
+               throw ex;
+             }
+           },
+           "memory_buffer"_a,
+           "Read LLVM IR from a memory buffer and convert it into an in-memory Module"
+           "object.\n\n"
+           ":raises RuntimeError\n"
+           "NOTE that you cannot use passed-in memory_buffer after this operation.")
       .def("create_builder",
            [](PyContext &self) {
              return PyBuilder(LLVMCreateBuilderInContext(self.get()));

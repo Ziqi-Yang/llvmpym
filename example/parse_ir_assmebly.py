@@ -25,9 +25,9 @@ asm_str = r'''
 '''
 
 m = utils.parse_assembly(asm_str)
-print(m)
 
-# for f in m.functions:
-#     print(f'Function: {f.name}/`{f.type}`')
-#     m = f.parent
-#     # assert f.kind == core.ValueKind.Function
+for f in m.functions:
+    print(f'Function: {f.name}/`{f.type}`')
+    m = f.parent
+    assert f.kind == core.ValueKind.Function
+    print(f"Functoin attributes: {}")

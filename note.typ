@@ -46,7 +46,8 @@ directory(e.g. `.venv/lib/python3.12/site-packages/llvmpym/llvmpym_ext`) to corr
 - Doc: if document has `@see LLVMContext::setYieldCallback()`, then we need to also include documents for that function (in C++ header)
 - TODO change all possible unsigned return value into corresponding enum type
     - also parameter (like `kindID`?)
-- Add cache to object properties
+- LATER Add cache to object properties
+- TODO delete all `destory` function
 
 == More Python Style
 1. iterator: next, prev ?

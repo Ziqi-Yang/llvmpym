@@ -59,10 +59,9 @@ The ``PyContext::getGlobalContext()`` function here will cause problems. Accordi
 to observation, the an PyContext object will be generated and managed by NanoBind
 as long as you imported the library. When encountering memory bugs, you cannot see
 concrete symbol name in the stacktrace in Debug mode. For commit
-`285d53db92264e55a705195df9d1a6c7a024d3b6 <https://github.com/Ziqi-Yang/llvmpym/commit/285d53db92264e55a705195df9d1a6c7a024d3b6>`_, the code above and `example/llvmir_builder.py line 25 <https://github.com/Ziqi-Yang/llvmpym/blob/285d53db92264e55a705195df9d1a6c7a024d3b6/example/llvmir_builder.py#L25>`_ will cause
-an memory bug (``free(): invalid pointer``) at the end of finishing the program, which
-is seemingly irrelevant of the execution and may relate to underlying operating
-principles of LLVM and NanoBind.
+`285d53db92264e55a705195df9d1a6c7a024d3b6 <https://github.com/Ziqi-Yang/llvmpym/commit/285d53db92264e55a705195df9d1a6c7a024d3b6>`_, the code above, `example/llvmir_builder.py line 25 <https://github.com/Ziqi-Yang/llvmpym/blob/285d53db92264e55a705195df9d1a6c7a024d3b6/example/llvmir_builder.py#L25>`_ and the ``print(m)`` at the end of file will cause an memory bug (``free(): invalid pointer``)
+when program is finishing, which is seemingly irrelevant of the execution
+and may relate to underlying operating principles of LLVM and NanoBind.
 
 As a contrast, the following went smooth.
    

@@ -10,6 +10,12 @@ class PyMemoryBuffer {
 public:
   explicit PyMemoryBuffer(LLVMMemoryBufferRef mb);
   LLVMMemoryBufferRef get() const;
+
+  /*
+   * This function reset the PyMemoryBuffer object, preventing it from 
+   * being automatically disposed
+   */
+  void reset();
   
 private:
   std::shared_ptr<LLVMOpaqueMemoryBuffer> mb;

@@ -42,6 +42,9 @@ LLVMContextRef PyContext::get() const {
 
 
 void PyContext::LLVMContextDeleter::operator()(LLVMContextRef context) const {
+  // NOTE the parent object is actually I think, since
+  // all the state in the `parent` object is the state when we created
+  // LLVMContextDeleter object
   if (context && parent && !parent->is_global_context) {
     LLVMContextDispose(context);
 
