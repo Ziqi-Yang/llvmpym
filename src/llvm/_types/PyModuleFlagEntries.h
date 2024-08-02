@@ -2,7 +2,6 @@
 #define LLVMPYM__TYPES_PYMODULEFLAGENTRIES_H
 
 #include <llvm-c/Core.h>
-#include <stdexcept>
 #include <memory>
 #include <unordered_map>
 #include <mutex>

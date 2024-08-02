@@ -16,6 +16,7 @@
 #include "_types/PyOperandBundle.h"
 #include "_types/PyPassManagerBase.h"
 #include "_types/PyMemoryBuffer.h"
+#include "_types/PyModuleProvider.h"
 
 /*
   We don't define MoveOnly class to also give `Move` operation a default method
@@ -362,8 +363,9 @@ PY_FOR_EACH_TYPE_CLASS_RELASIONSHIP(DEFINE_DIRECT_SUB_CLASS)
 
 DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyIntrinsic, unsigned)
 
-DEFINE_PY_WRAPPER_CLASS_SELF_DISPOSABLE_NONCOPYABLE
-  (PyModuleProvider, LLVMModuleProviderRef, LLVMDisposeModuleProvider)
+
+
+
 
 DEFINE_DIRECT_SUB_CLASS(PyPassManagerBase, PyPassManager);
 DEFINE_DIRECT_SUB_CLASS(PyPassManagerBase, PyFunctionPassManager);
