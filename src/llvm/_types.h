@@ -11,6 +11,7 @@
 
 #include "_types/PyModule.h"
 #include "_types/PyContext.h"
+#include "_types/PyMetadataEntries.h"
 
 /*
   We don't define MoveOnly class to also give `Move` operation a default method
@@ -348,7 +349,6 @@ DEFINE_DIRECT_SUB_CLASS(PyMetadata, PyValueAsMetadata)
 DEFINE_DIRECT_SUB_CLASS(PyMetadata, PyMDString)
 
 
-
 DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyEnumAttribute);
 DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyTypeAttribute);
 DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyStringAttribute);
@@ -439,44 +439,6 @@ private:
     }
   }
 };
-
-
-typedef LLVMValueMetadataEntry *LLVMValueMetadataEntries;
-
-class PyMetadataEntries : public NonCopyable {
-public:
-  explicit PyMetadataEntries(LLVMValueMetadataEntries entries, size_t len)
-  : entries(entries), len(len) {}
-  
-  ~PyMetadataEntries() {
-    cleanup();
-  }
-
-  LLVMValueMetadataEntries get() const {
-    return entries;
-  }
-
-  size_t getLen() const {
-    return len;
-  }
-
-  DEFINE_MOVE_SEMANTICS_CLEANUP_2(PyMetadataEntries, entries, len, 0)
-  
-
-private:
-  LLVMValueMetadataEntries entries;
-  size_t len;
-
-  void cleanup() {
-    if (entries) {
-      LLVMDisposeValueMetadataEntries(entries);
-      entries = nullptr;
-    }
-  }
-};
-
-
-
 
 
 #endif

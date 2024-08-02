@@ -12,7 +12,6 @@ public:
   explicit PyContext();
   explicit PyContext(LLVMContextRef context, bool is_global_context);
   explicit PyContext(LLVMContextRef context);
-  
   static PyContext getGlobalContext();
   
   LLVMContextRef get() const;
@@ -23,7 +22,7 @@ private:
 
   struct LLVMContextDeleter {
     LLVMContextDeleter(const PyContext* parent) : parent(parent) {}
-    void operator()(LLVMOpaqueContext* context) const;
+    void operator()(LLVMContextRef context) const;
     
     const PyContext* parent;
   };
@@ -31,7 +30,7 @@ private:
   static std::shared_ptr<LLVMOpaqueContext> get_shared_context(LLVMContextRef context,
    const PyContext* py_context);
 
-  static std::unordered_map<LLVMOpaqueContext*, std::weak_ptr<LLVMOpaqueContext>> context_map;
+  static std::unordered_map<LLVMContextRef, std::weak_ptr<LLVMOpaqueContext>> context_map;
   static std::mutex map_mutex;
 };
 

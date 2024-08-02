@@ -18,3 +18,66 @@ Use ``gdb``. For example:
    gdb --args python ./example/parse_ir_assmebly.py
 
 Inside ``gdb``, do ``run`` and ``bt``.
+
+In some cases, the backtrace doesn't show you all the symbols, you need to use `valgrind`,
+for example:
+
+.. code-block:: bash
+
+   valgrind --leak-check=full python ./example/llvmir_builder.py
+
+
+Check the generated stub file
+------------------------------
+
+The generated stub file is possible to contain errors like you use a Python keyword
+as an parameter name of a function. Run ``cd ./docs && make html`` to check it, which
+is handled by *sphinx-autoapi*.
+
+
+NanoBind Pitfalls
+-----------------
+
+Default Argument
+^^^^^^^^^^^^^^^^^^
+
+For example
+
+.. code-block:: cpp
+
+   PyModule parseAssembly(std::string &iasm, PyContext &ctx) {
+     auto memBuf = LLVMCreateMemoryBufferWithMemoryRangeCopy(iasm.c_str(), iasm.size(), "");
+     return parseIR(ctx.get(), memBuf);
+   }
+
+   void populateUtils(nb::module_ &m) {
+     m.def("parse_assembly", &parseAssembly,
+     "isam"_a, "context"_a = PyContext::getGlobalContext());
+   }
+
+The ``PyContext::getGlobalContext()`` function here will cause problems. According
+to observation, the an PyContext object will be generated and managed by NanoBind
+as long as you imported the library. When encountering memory bugs, you cannot see
+concrete symbol name in the stacktrace in Debug mode. For commit
+`285d53db92264e55a705195df9d1a6c7a024d3b6 <https://github.com/Ziqi-Yang/llvmpym/commit/285d53db92264e55a705195df9d1a6c7a024d3b6>`_, the code above and `example/llvmir_builder.py line 25 <https://github.com/Ziqi-Yang/llvmpym/blob/285d53db92264e55a705195df9d1a6c7a024d3b6/example/llvmir_builder.py#L25>`_ will cause
+an memory bug (``free(): invalid pointer``) at the end of finishing the program, which
+is seemingly irrelevant of the execution and may relate to underlying operating
+principles of LLVM and NanoBind.
+
+As a contrast, the following went smooth.
+   
+.. code-block:: cpp
+
+   PyModule parseAssembly(std::string &iasm) {
+     auto context = PyContext::getGlobalContext();
+     auto memBuf = LLVMCreateMemoryBufferWithMemoryRangeCopy(iasm.c_str(), iasm.size(), "");
+     return parseIR(context.get(), memBuf);
+   }
+
+
+   void populateUtils(nb::module_ &m) {
+     m.def("parse_assembly", &parseAssembly, "isam"_a);
+   }
+
+In conclusion, it is suggested that classes which do self memory control shouldn't be
+appeared as a default argument of some functions.

@@ -1,6 +1,6 @@
 #include "PyContext.h"
 
-std::unordered_map<LLVMOpaqueContext*, std::weak_ptr<LLVMOpaqueContext>> PyContext::context_map;
+std::unordered_map<LLVMContextRef, std::weak_ptr<LLVMOpaqueContext>> PyContext::context_map;
 std::mutex PyContext::map_mutex;
 
 PyContext::PyContext() {

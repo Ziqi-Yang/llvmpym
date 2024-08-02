@@ -24,13 +24,13 @@ private:
   std::shared_ptr<LLVMOpaqueModule> module;
 
   struct LLVMModuleDeleter {
-    void operator()(LLVMOpaqueModule* module) const;
+    void operator()(LLVMModuleRef module) const;
   };
 
   static std::shared_ptr<LLVMOpaqueModule> get_shared_module(LLVMModuleRef module);
 
   // Static members for shared ownership management
-  static std::unordered_map<LLVMOpaqueModule*, std::weak_ptr<LLVMOpaqueModule>> module_map;
+  static std::unordered_map<LLVMModuleRef, std::weak_ptr<LLVMOpaqueModule>> module_map;
   static std::mutex map_mutex;
 };
 

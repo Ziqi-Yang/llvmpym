@@ -1,7 +1,9 @@
 # the logic is taken from llvmlite
 import llvmpym.core as core
+import llvmpym.error_handling
 from llvmpym.core import IntType, IntPredicate
 
+c = core.Context.get_global_context();
 fn_type = core.FunctionType(IntType.GlobalInt32,
                             [IntType.GlobalInt32, IntType.GlobalInt32],
                             False)
@@ -22,7 +24,7 @@ myint = builder.load2(stackint.type, stackint)
 # In the future, we may add cache to some unchanging object properties.
 add_inst = builder.add(fn.params[0], fn.params[1])
 mul_inst = builder.mul(add_inst, core.ConstantInt(IntType.GlobalInt32, 123, True))
-pred = builder.icmp(IntPredicate.SLE, add_inst, mul_inst)
+pred = builder.icmp(IntPredicate.SLT, add_inst, mul_inst)
 builder.ret(mul_inst)
 
 bb_block = fn.append_basic_block()
@@ -36,5 +38,5 @@ builder.cond_br(pred, bb_block, bb_exit)
 builder.position_at_end(bb_exit)
 builder.ret(myint)
 
-print(m)
 
+print(m)

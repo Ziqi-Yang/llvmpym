@@ -67,6 +67,7 @@ nanobind_add_module(
   
   src/llvm/_types/PyModule.cpp
   src/llvm/_types/PyContext.cpp
+  src/llvm/_types/PyMetadataEntries.cpp
   
   ${LLVM_INCLUDE_DIRS}
 )

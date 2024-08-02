@@ -1,6 +1,6 @@
 #include "PyModule.h"
 
-std::unordered_map<LLVMOpaqueModule*, std::weak_ptr<LLVMOpaqueModule>> PyModule::module_map;
+std::unordered_map<LLVMModuleRef, std::weak_ptr<LLVMOpaqueModule>> PyModule::module_map;
 std::mutex PyModule::map_mutex;
 
 
@@ -19,14 +19,14 @@ PyModule::PyModule(const std::string &id, LLVMContextRef context) {
 }
 
 PyModule::PyModule(LLVMModuleRef module)
-: module(get_shared_module(module)) {}
+: module(get_shared_module(module)) { }
 
 LLVMModuleRef PyModule::get() const {
   return module.get();
 }
 
 
-void PyModule::LLVMModuleDeleter::operator()(LLVMOpaqueModule* module) const {
+void PyModule::LLVMModuleDeleter::operator()(LLVMModuleRef module) const {
   if (module) {
     LLVMDisposeModule(module);
     

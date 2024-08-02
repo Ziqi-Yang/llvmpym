@@ -8,12 +8,13 @@
 namespace nb = nanobind;
 using namespace nb::literals;
 
-PyModule parseAssembly(std::string &iasm, PyContext &ctx) {
+PyModule parseAssembly(std::string &iasm) {
+  auto context = PyContext::getGlobalContext();
   auto memBuf = LLVMCreateMemoryBufferWithMemoryRangeCopy(iasm.c_str(), iasm.size(), "");
-  return parseIR(ctx.get(), memBuf);
+  return parseIR(context.get(), memBuf);
 }
 
+
 void populateUtils(nb::module_ &m) {
-  m.def("parse_assembly", &parseAssembly,
-        "isam"_a, "context"_a = PyContext::getGlobalContext());
+  m.def("parse_assembly", &parseAssembly, "isam"_a);
 }

@@ -45,8 +45,11 @@ inline std::string get_type_str(PyType &t) {
   return res;
 }
 
-inline char *get_value_str(LLVMValueRef v) {
-  return LLVMPrintValueToString(v);
+inline std::string get_value_str(LLVMValueRef v) {
+  auto rawStr = LLVMPrintValueToString(v);
+  std::string str(rawStr);
+  LLVMDisposeMessage(rawStr);
+  return str;
 }
 
 inline std::string get_value_name(LLVMValueRef v) {
@@ -2404,8 +2407,7 @@ void bindValueClasses(nb::module_ &m) {
            })
       .def("__init__",
            [](PyConstantInt *c, PyTypeInt &t, unsigned long long N, bool SignExtend) {
-             new (c) PyConstantInt(LLVMConstInt
-                                            (t.get(), N, SignExtend));
+             new (c) PyConstantInt(LLVMConstInt(t.get(), N, SignExtend));
            },
            "int_type"_a, "value"_a, "sign_extend"_a,
            "Original Function: LLVMConstInt.\n"
