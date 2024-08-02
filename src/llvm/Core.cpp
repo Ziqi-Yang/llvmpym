@@ -12,7 +12,6 @@
 #include "Core.h"
 #include "_types.h"
 #include "_utils.h"
-
 #include <iostream>
 
 namespace nb = nanobind;
@@ -20,6 +19,7 @@ using namespace nb::literals;
 
 template <typename T>
 using optional = std::optional<T>;
+
 
 /**
  * Get a python side repr string for obj
@@ -58,8 +58,7 @@ inline std::string get_value_name(LLVMValueRef v) {
 inline std::string gen_value_repr(const char *typeName, PyValue &v) {
   LLVMValueRef raw = v.get();
   auto name = get_value_name(raw);
-  auto str = get_value_str(raw);
-  return fmt::format("<{} name='{}' str='{}'>", typeName, name, str);
+  return fmt::format("<{} name='{}'>", typeName, name);
 }
 
 
@@ -1278,7 +1277,6 @@ void bindValueClasses(nb::module_ &m) {
              return get_value_str(self.get());
            })
       .def_prop_ro("type",
-                   // TODO PyType convertion to more specific type according to kind
                    [](PyValue &v) { return PyTypeAuto(LLVMTypeOf(v.get())); })
       .def_prop_ro("kind",
                    [](PyValue &v) { return LLVMGetValueKind(v.get()); })
@@ -2112,10 +2110,6 @@ void bindValueClasses(nb::module_ &m) {
            },
            "module"_a, "function_type"_a, "name"_a = "",
            "Add a function to a module under a specified name.")
-      .def("__repr__",
-           [](PyFunction &self) {
-             return gen_value_repr("Function", self);
-           })
       .def_prop_rw("call_conv",
                    [](PyFunction &self){
                      auto res = LLVMGetFunctionCallConv(self.get());
@@ -2236,11 +2230,11 @@ void bindValueClasses(nb::module_ &m) {
                      auto res = LLVMGetLastParam(self.get());
                      WRAP_OPTIONAL_RETURN(res, PyArgument);
                    })
-      .def_prop_ro("params",
-                   [](PyFunction &self) {
-                     auto res = LLVMGetFirstParam(self.get());
-                     return PyArgumentIterator(PyArgument(res));
-                   })
+      // .def_prop_ro("params", // also have the same name method
+      //              [](PyFunction &self) {
+      //                auto res = LLVMGetFirstParam(self.get());
+      //                return PyArgumentIterator(PyArgument(res));
+      //              })
       .def("get_param",
            [](PyFunction &self, unsigned index) {
              return PyArgument(LLVMGetParam(self.get(), index));
@@ -2773,7 +2767,8 @@ void bindValueClasses(nb::module_ &m) {
                      (nb::sig("def alignment(self, bytes: int, /) -> None")))
       .def_prop_ro("parent",
                    [](PyGlobalValue &v) {
-                     return PyModule(LLVMGetGlobalParent(v.get()));
+                     auto res = LLVMGetGlobalParent(v.get());
+                     return PyModule(res);
                    })
       .def_prop_ro("is_declaration",
                    [](PyGlobalValue &v) {
@@ -4353,9 +4348,7 @@ void bindOtherClasses(nb::module_ &m) {
              return &self;
            })
       .def("__exit__",
-           [](PyContext &self, nb::args args, nb::kwargs kwargs) {
-             self.cleanup();
-           })
+           [](PyContext &self, nb::args args, nb::kwargs kwargs) {})
       .def_static("get_global_context", &PyContext::getGlobalContext,
                   "Obtain the global context instance.")
       .def_prop_ro("diagnostic_context",
@@ -4398,23 +4391,23 @@ void bindOtherClasses(nb::module_ &m) {
            },
            "callback"_a, "opaque_handle"_a,
            "Set the yield callback function for this context.")
-      .def("parse_ir",
-           [](PyContext &self, PyMemoryBuffer &memBuf) {
-             try {
-               auto res = parseIR(self.get(), memBuf.get());
-               memBuf.resetNoClean(); // We Cannot reuse the memory buffer again
-               return res;
-             } catch (const std::exception& ex) {
-               // TODO test whether it is still available after a filed operation.
-               memBuf.resetNoClean();
-               throw ex;
-             }
-           },
-           "memory_buffer"_a,
-           "Read LLVM IR from a memory buffer and convert it into an in-memory Module"
-           "object.\n\n"
-           ":raises RuntimeError\n"
-           "NOTE that you cannot use passed-in memory_buffer after this operation.")
+      // .def("parse_ir",
+      //      [](PyContext &self, PyMemoryBuffer &memBuf) {
+      //        try {
+      //          auto res = parseIR(self.get(), memBuf.get());
+      //          memBuf.resetNoClean(); // We Cannot reuse the memory buffer again
+      //          return res;
+      //        } catch (const std::exception& ex) {
+      //          // TODO test whether it is still available after a filed operation.
+      //          memBuf.resetNoClean();
+      //          throw ex;
+      //        }
+      //      },
+      //      "memory_buffer"_a,
+      //      "Read LLVM IR from a memory buffer and convert it into an in-memory Module"
+      //      "object.\n\n"
+      //      ":raises RuntimeError\n"
+      //      "NOTE that you cannot use passed-in memory_buffer after this operation.")
       .def("create_builder",
            [](PyContext &self) {
              return PyBuilder(LLVMCreateBuilderInContext(self.get()));
@@ -4516,10 +4509,7 @@ void bindOtherClasses(nb::module_ &m) {
              return &self;
            })
       .def("__exit__",
-           [](PyModule &self, nb::args args, nb::kwargs kwargs) {
-             // NOTE `delete &self` doesn't work properly
-             self.cleanup();
-           })
+           [](PyModule &self, nb::args args, nb::kwargs kwargs) {})
       .def_prop_ro("first_global_variable",
                    [](PyModule &m) -> optional<PyGlobalVariable> {
                      auto res = LLVMGetFirstGlobal(m.get());
@@ -4874,7 +4864,6 @@ void bindIterators(nb::module_ &m) {
   BIND_ITERATOR_CLASS(PyNamedMDNodeIterator, "NamedMDNodeIterator")
   BIND_ITERATOR_CLASS(PyFunctionIterator, "FunctionIterator")
 }
-
 
 
 void populateCore(nb::module_ &m) {

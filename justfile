@@ -15,7 +15,7 @@ ipython: install-normal
     ipython
 
 install-normal:
-    pip install .
+    pip install -v .
     
 install-dev-requirements:
     pip install -r ./requirements.txt

@@ -44,7 +44,7 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 include_directories(${CMAKE_SOURCE_DIR}/src/llvm)
-
+include_directories(${CMAKE_SOURCE_DIR}/src/llvm/_types)
 include_directories(${LLVM_INCLUDE_DIRS})
 separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
 add_definitions(${LLVM_DEFINITIONS_LIST})
@@ -64,6 +64,10 @@ nanobind_add_module(
   src/llvm/Core.cpp
   src/llvm/ErrorHandling.cpp
   src/llvm/Utils.cpp
+  
+  src/llvm/_types/PyModule.cpp
+  src/llvm/_types/PyContext.cpp
+  
   ${LLVM_INCLUDE_DIRS}
 )
 
@@ -75,7 +79,8 @@ target_link_libraries(llvmpym_ext PRIVATE ${llvm_libs} fmt::fmt)
 # although we are going build a full llvm python binding :-
 # TODO for MacOS immitate llvmlite only expose certain symbols. Can it work?
 # https://github.com/numba/llvmlite/blob/78ebf9bf188379b2642112aff388480384306c6b/ffi/CMakeLists.txt#L76C53-L76C61
-if(UNIX)
+
+if(UNIX AND (${CMAKE_BUILD_TYPE} STREQUAL "Release"))
   set_property(TARGET llvmpym_ext APPEND_STRING PROPERTY LINK_FLAGS "-flto")
   if(NOT APPLE)
     set_property(TARGET llvmpym_ext APPEND_STRING PROPERTY LINK_FLAGS " -Wl,--exclude-libs,ALL")

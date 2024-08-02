@@ -5,6 +5,12 @@
 #include <utility>
 #include <iostream>
 #include <memory>
+#include <string>
+#include <unordered_map>
+#include <mutex>
+
+#include "_types/PyModule.h"
+#include "_types/PyContext.h"
 
 /*
   We don't define MoveOnly class to also give `Move` operation a default method
@@ -400,7 +406,6 @@ private:
 
 
 
-
 typedef LLVMModuleFlagEntry *LLVMModuleFlagEntries;
 
 class PyModuleFlagEntries : public NonCopyable {
@@ -468,93 +473,6 @@ private:
       entries = nullptr;
     }
   }
-};
-
-
-
-class PyContext : public NonCopyable {
-public:
-  explicit PyContext() : context(LLVMContextCreate()), is_global_context(false) {}
-
-  explicit PyContext(LLVMContextRef context, bool is_global_context)
-  : context(context), is_global_context(is_global_context) {}
-
-  explicit PyContext(LLVMContextRef context) : context(context) {
-    // TODO check
-    LLVMContextRef global_context = LLVMGetGlobalContext();
-    is_global_context = global_context == context;
-  }
-
-  static PyContext getGlobalContext() {
-    return PyContext(LLVMGetGlobalContext(), true);
-  }
-
-  ~PyContext() {
-    cleanup();
-  }
-
-  LLVMContextRef get() const {
-    return context;
-  }
-
-  DEFINE_MOVE_SEMANTICS_CLEANUP_2(PyContext, context, is_global_context, false)
-
-  void cleanup() {
-    // don't clean global context, which is managed by LLVM
-    if (context && !is_global_context) {
-      LLVMContextDispose(context);
-      context = nullptr;
-    }
-  }
-
-
-private:
-  LLVMContextRef context;
-  bool is_global_context;
-};
-
-
-
-
-
-class PyModule : public NonCopyable {
-public:
-  explicit PyModule(const std::string &id) {
-    module = LLVMModuleCreateWithName(id.c_str());
-    if (!module) {
-      throw std::runtime_error("Failed to create LLVM module");
-    }
-  }
-
-  explicit PyModule(const std::string &id, PyContext &context) {
-    module = LLVMModuleCreateWithNameInContext(id.c_str(), context.get());
-    if (!module) {
-      throw std::runtime_error("Failed to create LLVM module");
-    }
-  }
-
-  explicit PyModule(LLVMModuleRef module) : module(module) {}
-
-  ~PyModule() {
-    cleanup();
-  }
-
-  
-  LLVMModuleRef get() {
-    return module;
-  }
-
-  DEFINE_MOVE_SEMANTICS_CLEANUP(PyModule, module)
-
-  void cleanup() {
-    if (module) {
-      LLVMDisposeModule(module);
-      module = nullptr;
-    }
-  }
-  
-private:
-  LLVMModuleRef module;
 };
 
 
