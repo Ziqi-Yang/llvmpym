@@ -7,11 +7,11 @@ std::mutex PyMetadataEntries::map_mutex;
 PyMetadataEntries::PyMetadataEntries(LLVMValueMetadataEntries entries, size_t len)
 : entries(get_shared_entries(entries)), len(len) { }
 
-LLVMValueMetadataEntries PyMetadataEntries::get() {
+LLVMValueMetadataEntries PyMetadataEntries::get() const {
   return entries.get();
 }
 
-size_t PyMetadataEntries::getLen() {
+size_t PyMetadataEntries::getLen() const {
   return len;
 }
 

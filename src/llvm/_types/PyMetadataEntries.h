@@ -12,8 +12,8 @@ typedef LLVMValueMetadataEntry *LLVMValueMetadataEntries;
 class PyMetadataEntries {
 public:
   explicit PyMetadataEntries(LLVMValueMetadataEntries entries, size_t len);
-  LLVMValueMetadataEntries get();
-  size_t getLen();
+  LLVMValueMetadataEntries get() const;
+  size_t getLen() const;
   
 private:
   std::shared_ptr<LLVMValueMetadataEntry> entries;

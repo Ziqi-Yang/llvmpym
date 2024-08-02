@@ -12,8 +12,8 @@ typedef LLVMModuleFlagEntry *LLVMModuleFlagEntries;
 class PyModuleFlagEntries {
 public:
   explicit PyModuleFlagEntries(LLVMModuleFlagEntries entries, size_t len);
-  LLVMModuleFlagEntries get();
-  size_t getLen();
+  LLVMModuleFlagEntries get() const;
+  size_t getLen() const;
 
 private:
   std::shared_ptr<LLVMModuleFlagEntry> entries;

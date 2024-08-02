@@ -7,11 +7,11 @@ std::mutex PyModuleFlagEntries::map_mutex;
 PyModuleFlagEntries::PyModuleFlagEntries(LLVMModuleFlagEntries entries, size_t len)
 : entries(get_shared_entries(entries)), len(len) { }
 
-LLVMModuleFlagEntries PyModuleFlagEntries::get() {
+LLVMModuleFlagEntries PyModuleFlagEntries::get() const {
   return entries.get();
 }
 
-size_t PyModuleFlagEntries::getLen() {
+size_t PyModuleFlagEntries::getLen() const {
   return len;
 }
 
