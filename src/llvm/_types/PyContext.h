@@ -1,5 +1,5 @@
-#ifndef LLVMPYM_TYPE_PYCONTEXT_H
-#define LLVMPYM_TYPE_PYCONTEXT_H
+#ifndef LLVMPYM__TYPES_PYCONTEXT_H
+#define LLVMPYM__TYPES_PYCONTEXT_H
 
 #include <llvm-c/Core.h>
 #include <stdexcept>

@@ -1,5 +1,5 @@
-#ifndef LLVMPYM_TYPE_PYMODULE_H
-#define LLVMPYM_TYPE_PYMODULE_H
+#ifndef LLVMPYM__TYPES_PYMODULE_H
+#define LLVMPYM__TYPES_PYMODULE_H
 
 #include <llvm-c/Core.h>
 #include <memory>
@@ -16,10 +16,6 @@ public:
 
   LLVMModuleRef get() const;
 
-  // Move semantics using shared_ptr
-  PyModule(PyModule&& other) noexcept = default;
-  PyModule& operator=(PyModule&& other) noexcept = default;
-
 private:
   std::shared_ptr<LLVMOpaqueModule> module;
 
@@ -29,7 +25,6 @@ private:
 
   static std::shared_ptr<LLVMOpaqueModule> get_shared_module(LLVMModuleRef module);
 
-  // Static members for shared ownership management
   static std::unordered_map<LLVMModuleRef, std::weak_ptr<LLVMOpaqueModule>> module_map;
   static std::mutex map_mutex;
 };

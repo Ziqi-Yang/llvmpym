@@ -12,6 +12,7 @@
 #include "_types/PyModule.h"
 #include "_types/PyContext.h"
 #include "_types/PyMetadataEntries.h"
+#include "_types/PyModuleFlagEntries.h"
 
 /*
   We don't define MoveOnly class to also give `Move` operation a default method
@@ -406,39 +407,6 @@ private:
 
 
 
-typedef LLVMModuleFlagEntry *LLVMModuleFlagEntries;
-
-class PyModuleFlagEntries : public NonCopyable {
-public:
-  explicit PyModuleFlagEntries(LLVMModuleFlagEntries entries, size_t len)
-  : entries(entries), len(len) {}
-  
-  ~PyModuleFlagEntries() {
-    cleanup();
-  }
-
-  LLVMModuleFlagEntries get() const {
-    return entries;
-  }
-
-  size_t getLen() const {
-    return len;
-  }
-
-  DEFINE_MOVE_SEMANTICS_CLEANUP_2(PyModuleFlagEntries, entries, len, 0)
-  
-
-private:
-  LLVMModuleFlagEntries entries;
-  size_t len;
-
-  void cleanup() {
-    if (entries) {
-      LLVMDisposeModuleFlagsMetadata(entries);
-      entries = nullptr;
-    }
-  }
-};
 
 
 #endif
