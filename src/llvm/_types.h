@@ -13,6 +13,7 @@
 #include "_types/PyContext.h"
 #include "_types/PyMetadataEntries.h"
 #include "_types/PyModuleFlagEntries.h"
+#include "_types/PyOperandBundle.h"
 
 /*
   We don't define MoveOnly class to also give `Move` operation a default method
@@ -370,42 +371,6 @@ DEFINE_PY_WRAPPER_CLASS_SELF_DISPOSABLE_NONCOPYABLE
 
 DEFINE_DIRECT_SUB_CLASS(PyPassManagerBase, PyPassManager);
 DEFINE_DIRECT_SUB_CLASS(PyPassManagerBase, PyFunctionPassManager);
-
-
-/*
-  shared pointer is need to make a NonCopyable object able to be used in
-  std::vector
-  TODO test (nanobind)
-  another approach is to keep a reference counter inside the counter, but this
-  seems more complex and needs more integration (nanobind) effort (though it has guide)
- */
-class PyOperandBundle : public std::enable_shared_from_this<PyOperandBundle>,
-public NonCopyable {
-public:
-  explicit PyOperandBundle(LLVMOperandBundleRef bundle) : bundle(bundle) {}
-  
-  ~PyOperandBundle() {
-    cleanup();
-  }
-
-  LLVMOperandBundleRef get() const {
-    return bundle;
-  }
-
-  DEFINE_MOVE_SEMANTICS_CLEANUP(PyOperandBundle, bundle)
-
-private:
-  LLVMOperandBundleRef bundle;
-
-  void cleanup() {
-    if (bundle) {
-      LLVMDisposeOperandBundle(bundle);
-      bundle = nullptr;
-    }
-  }
-};
-
-
 
 
 

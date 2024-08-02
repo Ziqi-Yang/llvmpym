@@ -3552,12 +3552,12 @@ void bindOtherClasses(nb::module_ &m) {
       .def("invoke_with_operand_bundles",
            [](PyBuilder &self, PyType &type, PyFunction &fn, std::vector<PyValue> args,
               PyBasicBlock Then, PyBasicBlock Catch,
-              std::vector<std::shared_ptr<PyOperandBundle>> bundles, const char *name) {
+              std::vector<PyOperandBundle> bundles, const char *name) {
              unsigned args_num  = args.size();
              UNWRAP_VECTOR_WRAPPER_CLASS(LLVMValueRef, args, rawArgs, args_num);
 
              unsigned bundles_num = bundles.size();
-             UNWRAP_VECTOR_WRAPPER_CLASS_POINTER(LLVMOperandBundleRef, bundles, rawBundles,
+             UNWRAP_VECTOR_WRAPPER_CLASS(LLVMOperandBundleRef, bundles, rawBundles,
                                          bundles_num);
              
              auto res = LLVMBuildInvokeWithOperandBundles
@@ -3801,13 +3801,13 @@ void bindOtherClasses(nb::module_ &m) {
      .def("call_with_operand_bundles",
           [](PyBuilder &self, PyTypeFunction type, PyFunction fn,
              std::vector<PyValue> args,
-             std::vector<std::shared_ptr<PyOperandBundle>> bundles,
+             std::vector<PyOperandBundle> bundles,
              const char *name) {
             unsigned args_num = args.size();
             UNWRAP_VECTOR_WRAPPER_CLASS(LLVMValueRef, args, rawArgs, args_num);
 
             unsigned bundles_num = bundles.size();
-            UNWRAP_VECTOR_WRAPPER_CLASS_POINTER(LLVMOperandBundleRef, bundles, rawBundles,
+            UNWRAP_VECTOR_WRAPPER_CLASS(LLVMOperandBundleRef, bundles, rawBundles,
                                                 bundles_num);
             
             return PyCallInst(LLVMBuildCallWithOperandBundles
