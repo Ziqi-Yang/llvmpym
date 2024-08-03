@@ -42,3 +42,9 @@ class TestModule:
         pass
     
 
+class TestEquality:
+    # TODO
+    def test_value(self):
+        x = ConstantInt(IntType.GlobalInt32, 100, True)
+        y = ConstantInt(IntType.GlobalInt32, 100, True)
+        assert x == y

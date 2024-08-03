@@ -27,7 +27,15 @@ asm_str = r'''
 m = utils.parse_assembly(asm_str)
 
 for f in m.functions:
-    print(f'Function: {f.name}/`{f.type}`')
-    m = f.parent
+    print(f'Function | name: "{f.name}", type: "{f.type}"')  
+    module = f.parent
+    # assert m == module
     assert f.kind == core.ValueKind.Function
-    print(f"Functoin attributes: {}")
+    print()
+    for i, a in enumerate(f.args, 1):
+        print(f'Argument | name: "{a.name}", type: "{a.type}"') 
+        attrs = f.get_attributes_at_index(i)
+        print(f"\tattrs: {attrs}")
+
+    print("\n----------------------------\n")
+        

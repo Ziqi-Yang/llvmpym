@@ -80,3 +80,14 @@ As a contrast, the following went smooth.
 
 In conclusion, it is suggested that classes which do self memory control shouldn't be
 appeared as a default argument of some functions.
+
+
+Resources / References
+----------------------
+
+LLVM online reference are all of the latest version. To view reference of a certain version,
+please manually build the docs.
+
+- `LLVM C API doxygen <https://llvm.org/docs/doxygen/group__LLVMCCore.html>`_
+- `LLVM Reference Manual <https://llvm.org/docs/LangRef.html>`_
+

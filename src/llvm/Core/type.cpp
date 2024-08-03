@@ -17,7 +17,24 @@ template <typename T>
 using optional = std::optional<T>;
 
 void bindTypeClasses(nb::module_ &m) {
-  nb::class_<PyType>(m, "Type", "Type")
+  auto TypeClass = nb::class_<PyType>(m, "Type", "Type");
+  auto TypeIntClass = nb::class_<PyTypeInt, PyType>(m, "IntType", "IntType");
+  auto TypeRealClass = nb::class_<PyTypeReal, PyType>(m, "RealType", "RealType");
+  auto TypeFunctionClass = nb::class_<PyTypeFunction, PyType> (m, "FunctionType", "FunctionType");
+  auto TypeStructClass = nb::class_<PyTypeStruct, PyType> (m, "StructType", "StructType");
+  auto TypeSequenceClass = nb::class_<PyTypeSequence, PyType>(m, "SequenceType", "SequenceType");
+  auto TypeArrayClass = nb::class_<PyTypeArray, PyTypeSequence>(m, "ArrayType", "ArrayType");
+  auto TypePointerClass = nb::class_<PyTypePointer, PyTypeSequence>(m, "PointerType", "PointerType");
+  auto TypeVectorClass = nb::class_<PyTypeVector, PyTypeSequence>(m, "VectorType", "VectorType");
+  auto TypeVoidClass = nb::class_<PyTypeVoid, PyType>(m, "VoidType", "VoidType");
+  auto TypeLabelClass = nb::class_<PyTypeLabel, PyType>(m, "LabelType", "LabelType");
+  auto TypeX86MMXClass = nb::class_<PyTypeX86MMX, PyType>(m, "X86MMXType", "X86MMXType");
+  auto TypeX86AMXClass = nb::class_<PyTypeX86AMX, PyType>(m, "X86AMXType", "X86AMXType");
+  auto TypeTokenClass = nb::class_<PyTypeToken, PyType>(m, "TokenType", "TokenType");
+  auto TypeMetadataClass = nb::class_<PyTypeMetadata, PyType>(m, "MetadataType", "MetadataType");
+  auto TypeTargetExtClass = nb::class_<PyTypeTargetExt, PyType>(m, "TargetExtType", "TargetExtType");
+  
+  TypeClass
       .def("__repr__",
            [](PyType &self) {
              auto kind = get_repr_str(LLVMGetTypeKind(self.get()));
@@ -80,24 +97,8 @@ void bindTypeClasses(nb::module_ &m) {
              return LLVMDumpType(self.get());
            },
            "Dump a representation of a type to stderr.");
-  
-  auto TypeIntClass = nb::class_<PyTypeInt, PyType>(m, "IntType", "IntType");
-  auto TypeRealClass = nb::class_<PyTypeReal, PyType>(m, "RealType", "RealType");
-  auto TypeFunctionClass = nb::class_<PyTypeFunction, PyType> (m, "FunctionType", "FunctionType");
-  auto TypeStructClass = nb::class_<PyTypeStruct, PyType> (m, "StructType", "StructType");
-  auto TypeSequenceClass = nb::class_<PyTypeSequence, PyType>(m, "SequenceType", "SequenceType");
-  auto TypeArrayClass = nb::class_<PyTypeArray, PyTypeSequence>(m, "ArrayType", "ArrayType");
-  auto TypePointerClass = nb::class_<PyTypePointer, PyTypeSequence>(m, "PointerType", "PointerType");
-  auto TypeVectorClass = nb::class_<PyTypeVector, PyTypeSequence>(m, "VectorType", "VectorType");
-  auto TypeVoidClass = nb::class_<PyTypeVoid, PyType>(m, "VoidType", "VoidType");
-  auto TypeLabelClass = nb::class_<PyTypeLabel, PyType>(m, "LabelType", "LabelType");
-  auto TypeX86MMXClass = nb::class_<PyTypeX86MMX, PyType>(m, "X86MMXType", "X86MMXType");
-  auto TypeX86AMXClass = nb::class_<PyTypeX86AMX, PyType>(m, "X86AMXType", "X86AMXType");
-  auto TypeTokenClass = nb::class_<PyTypeToken, PyType>(m, "TokenType", "TokenType");
-  auto TypeMetadataClass = nb::class_<PyTypeMetadata, PyType>(m, "MetadataType", "MetadataType");
-  auto TypeTargetExtClass = nb::class_<PyTypeTargetExt, PyType>(m, "TargetExtType", "TargetExtType");
-  
 
+  
   TypeIntClass
       .def("__repr__",
            [](PyTypeInt &self) {

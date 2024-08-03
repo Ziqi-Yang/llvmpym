@@ -1,3 +1,7 @@
+// For type/value class hierarchy see doxygen/group__LLVMCCore.html
+//
+// ====================================
+
 #ifndef LLVMPYM__TYPES_H
 #define LLVMPYM__TYPES_H
 
@@ -20,7 +24,7 @@
 
 
 #define DEFINE_PY_WRAPPER_CLASS(ClassName, UnderlyingType) \
-  class ClassName { \
+  class ClassName: public PyLLVMObject<ClassName, UnderlyingType> { \
   public: \
     explicit ClassName(UnderlyingType raw) \
     : raw(raw) {} \
@@ -34,7 +38,7 @@
   };
 
 #define DEFINE_PY_WRAPPER_CLASS_POLYMORPHIC(ClassName, UnderlyingType) \
-  class ClassName { \
+  class ClassName: public PyLLVMObject<ClassName, UnderlyingType> { \
   public: \
     virtual ~ClassName() = default; \
     explicit ClassName(UnderlyingType raw) \
@@ -245,6 +249,31 @@ enum class PyLLVMFastMathFlags {
   All = LLVMFastMathAll
 };
 
+template <typename Derived, typename UnderlyingType>
+class PyLLVMObject {
+public:
+  virtual ~PyLLVMObject() = default;
+
+  UnderlyingType get() const {
+    return const_cast<const Derived*>(static_cast<const Derived*>(this))->get();
+  }
+
+  bool __bool__() const {
+    UnderlyingType raw = static_cast<UnderlyingType>(get());
+    if (!raw) return false;
+    return true;
+  }
+
+  // `__equal__` and `__hash__` works well on pointer type UnderlyingType
+  bool __equal__(const PyLLVMObject& other) const {
+    return this->get() == other.get();
+  }
+
+  std::size_t __hash__() const {
+    return std::hash<UnderlyingType>{}(this->get());
+  }
+};
+
 
 DEFINE_PY_WRAPPER_CLASS_POLYMORPHIC(PyValue, LLVMValueRef)
 DEFINE_PY_WRAPPER_CLASS_POLYMORPHIC(PyType, LLVMTypeRef)
@@ -309,7 +338,7 @@ DEFINE_DIRECT_SUB_CLASS(PyPassManagerBase, PyFunctionPassManager);
 
 DEFINE_ITERATOR_CLASS(PyUseIterator, PyUse, LLVMGetNextUse)
 DEFINE_ITERATOR_CLASS(PyBasicBlockIterator, PyBasicBlock, LLVMGetNextBasicBlock)
-DEFINE_ITERATOR_CLASS(PyArgumentIterator, PyArgument, LLVMGetNextParam)
+// DEFINE_ITERATOR_CLASS(PyArgumentIterator, PyArgument, LLVMGetNextParam)
 DEFINE_ITERATOR_CLASS(PyInstructionIterator, PyInstruction, LLVMGetNextInstruction)
 DEFINE_ITERATOR_CLASS(PyGlobalVariableIterator, PyGlobalVariable, LLVMGetNextGlobal)
 DEFINE_ITERATOR_CLASS(PyGlobalIFuncIterator, PyGlobalIFunc, LLVMGetNextGlobalIFunc)

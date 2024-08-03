@@ -18,8 +18,8 @@ using optional = std::optional<T>;
 
 
 void bindValueClasses(nb::module_ &m) {
-  auto ValueClass = nb::class_<PyValue>(m, "Value", "Value");
-
+  auto ValueClass = nb::class_<PyValue, PyLLVMObject<PyValue, LLVMValueRef>>
+                      (m, "Value", "Value");
   nb::class_<PyMetadataAsValue, PyValue>(m, "MetadataAsValue", "MetadataAsValue");
   auto MDNodeValueClass = nb::class_<PyMDNodeValue, PyMetadataAsValue>
                             (m, "MDNodeValue", "MDNodeValue");
@@ -696,7 +696,7 @@ void bindValueClasses(nb::module_ &m) {
            },
            "index"_a,
            "Obtain the operand bundle attached to this instruction at the given index.")
-      .def("set_param_alignment",
+      .def("set_arg_alignment",
            [](PyCallBase &self, LLVMAttributeIndex idx, unsigned align) {
              return LLVMSetInstrParamAlignment(self.get(), idx, align);
            },
@@ -1086,11 +1086,21 @@ void bindValueClasses(nb::module_ &m) {
       .def_prop_ro("debug_loc_line",
                    [](PyFunction &f) { return LLVMGetDebugLocLine(f.get()); },
                    "Return the line number of the debug location for this value")
-      .def_prop_ro("param_num",
+      .def_prop_ro("arg_num",
                    [](PyFunction &self) {
                      return LLVMCountParams(self.get());
                    })
-      .def_prop_ro("params",
+      .def_prop_ro("first_arg",
+                   [](PyFunction &self) -> optional<PyArgument> {
+                     auto res = LLVMGetFirstParam(self.get());
+                     WRAP_OPTIONAL_RETURN(res, PyArgument);
+                   })
+      .def_prop_ro("last_arg",
+                   [](PyFunction &self) -> optional<PyArgument> {
+                     auto res = LLVMGetLastParam(self.get());
+                     WRAP_OPTIONAL_RETURN(res, PyArgument);
+                   })
+      .def_prop_ro("args",
                    [](PyFunction &self) {
                      unsigned param_num = LLVMCountParams(self.get());
                      std::vector<LLVMValueRef> params(param_num);
@@ -1098,22 +1108,7 @@ void bindValueClasses(nb::module_ &m) {
                      WRAP_VECTOR_FROM_DEST(PyArgument, param_num, res, params);
                      return res;
                    })
-      .def_prop_ro("first_param",
-                   [](PyFunction &self) -> optional<PyArgument> {
-                     auto res = LLVMGetFirstParam(self.get());
-                     WRAP_OPTIONAL_RETURN(res, PyArgument);
-                   })
-      .def_prop_ro("last_param",
-                   [](PyFunction &self) -> optional<PyArgument> {
-                     auto res = LLVMGetLastParam(self.get());
-                     WRAP_OPTIONAL_RETURN(res, PyArgument);
-                   })
-      // .def_prop_ro("params", // also have the same name method
-      //              [](PyFunction &self) {
-      //                auto res = LLVMGetFirstParam(self.get());
-      //                return PyArgumentIterator(PyArgument(res));
-      //              })
-      .def("get_param",
+      .def("get_arg",
            [](PyFunction &self, unsigned index) {
              return PyArgument(LLVMGetParam(self.get(), index));
            },
