@@ -18,101 +18,8 @@
 #include "_types/PyMemoryBuffer.h"
 #include "_types/PyModuleProvider.h"
 
-/*
-  We don't define MoveOnly class to also give `Move` operation a default method
-  is because when the sub-class has a custom destructor, the compiler will not
-  automatically generate a move constructor or move assignment operator
- */
-class NonCopyable {
-public:
-  NonCopyable(const NonCopyable &) = delete;
-  NonCopyable &operator=(const NonCopyable &) = delete;
 
-protected:
-  NonCopyable() = default;
-  virtual ~NonCopyable() = default;
-};
-
-
-#define DEFINE_MOVE_SEMANTICS_CLEANUP(ClassName, ValueName) \
-    ClassName(ClassName&& other) noexcept : ValueName(other.ValueName) { \
-      other.ValueName = nullptr; \
-    } \
-\
-    ClassName& operator=(ClassName&& other) noexcept { \
-      if (this != &other) { \
-        cleanup(); \
-        ValueName = other.ValueName; \
-        other.ValueName = nullptr; \
-      } \
-      return *this; \
-    }
-
-#define DEFINE_MOVE_SEMANTICS_CLEANUP_2(ClassName, Value0Name, Value1Name, Value1Default) \
-    ClassName(ClassName&& other) noexcept \
-    : Value0Name(other.Value0Name), Value1Name(other.Value1Name) { \
-      other.Value0Name = nullptr; \
-      other.Value1Name = Value1Default; \
-    } \
-\
-    ClassName& operator=(ClassName&& other) noexcept { \
-      if (this != &other) { \
-        cleanup(); \
-        Value0Name = other.Value0Name; \
-        other.Value0Name = nullptr; \
-\
-        Value1Name = other.Value1Name; \
-        other.Value1Name = Value1Default; \
-      } \
-      return *this; \
-    }
-
-
-// note the underlying type must be a pointer type
-#define DEFINE_PY_WRAPPER_CLASS_SELF_DISPOSABLE_NONCOPYABLE(ClassName, UnderlyingType, DISPOSE_FUNC) \
-  class ClassName : public NonCopyable { \
-  public: \
-    explicit ClassName(UnderlyingType raw) \
-    : raw(raw) {} \
-\
-    ~ClassName() { \
-      cleanup(); \
-    } \
-\
-    UnderlyingType get() { \
-      return raw; \
-    } \
-\
-    ClassName(ClassName&& other) noexcept : raw(other.raw) { \
-      other.raw = nullptr; \
-    } \
-\
-    ClassName& operator=(ClassName&& other) noexcept { \
-      if (this != &other) { \
-        cleanup(); \
-        raw = other.raw; \
-        other.raw = nullptr; \
-      } \
-      return *this; \
-    } \
-\
-    void resetNoClean() { \
-      raw = nullptr; \
-    }     \
-\
-  private: \
-    UnderlyingType raw; \
-\
-    void cleanup() { \
-      if (raw) { \
-        DISPOSE_FUNC(raw); \
-        raw = nullptr; \
-      } \
-    } \
-  };
-
-
-#define DEFINE_PY_WRAPPER_CLASS_COPYABLE(ClassName, UnderlyingType) \
+#define DEFINE_PY_WRAPPER_CLASS(ClassName, UnderlyingType) \
   class ClassName { \
   public: \
     explicit ClassName(UnderlyingType raw) \
@@ -126,7 +33,7 @@ protected:
     UnderlyingType raw; \
   };
 
-#define DEFINE_PY_WRAPPER_CLASS_COPYABLE_POLYMORPHIC(ClassName, UnderlyingType) \
+#define DEFINE_PY_WRAPPER_CLASS_POLYMORPHIC(ClassName, UnderlyingType) \
   class ClassName { \
   public: \
     virtual ~ClassName() = default; \
@@ -339,16 +246,16 @@ enum class PyLLVMFastMathFlags {
 };
 
 
-DEFINE_PY_WRAPPER_CLASS_COPYABLE_POLYMORPHIC(PyValue, LLVMValueRef)
-DEFINE_PY_WRAPPER_CLASS_COPYABLE_POLYMORPHIC(PyType, LLVMTypeRef)
-DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyDiagnosticInfo, LLVMDiagnosticInfoRef)
-DEFINE_PY_WRAPPER_CLASS_COPYABLE_POLYMORPHIC(PyAttribute, LLVMAttributeRef)
-DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyNamedMDNode, LLVMNamedMDNodeRef)
-DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyUse, LLVMUseRef)
-DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyBasicBlock, LLVMBasicBlockRef)
-DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyBuilder, LLVMBuilderRef)
+DEFINE_PY_WRAPPER_CLASS_POLYMORPHIC(PyValue, LLVMValueRef)
+DEFINE_PY_WRAPPER_CLASS_POLYMORPHIC(PyType, LLVMTypeRef)
+DEFINE_PY_WRAPPER_CLASS(PyDiagnosticInfo, LLVMDiagnosticInfoRef)
+DEFINE_PY_WRAPPER_CLASS_POLYMORPHIC(PyAttribute, LLVMAttributeRef)
+DEFINE_PY_WRAPPER_CLASS(PyNamedMDNode, LLVMNamedMDNodeRef)
+DEFINE_PY_WRAPPER_CLASS(PyUse, LLVMUseRef)
+DEFINE_PY_WRAPPER_CLASS(PyBasicBlock, LLVMBasicBlockRef)
+DEFINE_PY_WRAPPER_CLASS(PyBuilder, LLVMBuilderRef)
 
-DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyMetadata, LLVMMetadataRef)
+DEFINE_PY_WRAPPER_CLASS(PyMetadata, LLVMMetadataRef)
 DEFINE_DIRECT_SUB_CLASS(PyMetadata, PyMDNode)
 DEFINE_DIRECT_SUB_CLASS(PyMetadata, PyValueAsMetadata)
 DEFINE_DIRECT_SUB_CLASS(PyMetadata, PyMDString)
@@ -361,7 +268,7 @@ DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyStringAttribute);
 PY_FOR_EACH_VALUE_CLASS_RELATIONSHIP(DEFINE_DIRECT_SUB_CLASS)
 PY_FOR_EACH_TYPE_CLASS_RELASIONSHIP(DEFINE_DIRECT_SUB_CLASS)
 
-DEFINE_PY_WRAPPER_CLASS_COPYABLE(PyIntrinsic, unsigned)
+DEFINE_PY_WRAPPER_CLASS(PyIntrinsic, unsigned)
 
 
 
