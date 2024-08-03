@@ -1,0 +1,10 @@
+#ifndef LLVMPYM_CORE_GLOBALFUNC_H
+#define LLVMPYM_CORE_GLOBALFUNC_H
+
+#include <nanobind/nanobind.h>
+#include <llvm-c/Core.h>
+#include "../_types.h"
+
+void bindGlobalFunctions(nanobind::module_ &m);
+
+#endif

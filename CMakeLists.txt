@@ -45,7 +45,9 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 include_directories(${CMAKE_SOURCE_DIR}/src/llvm)
 include_directories(${CMAKE_SOURCE_DIR}/src/llvm/_types)
+include_directories(${CMAKE_SOURCE_DIR}/src/llvm/Core)
 include_directories(${LLVM_INCLUDE_DIRS})
+
 separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
 add_definitions(${LLVM_DEFINITIONS_LIST})
 
@@ -61,7 +63,17 @@ nanobind_add_module(
 
   # Source code goes here
   src/llvmpym_ext.cpp
+  
   src/llvm/Core.cpp
+  src/llvm/Core/enum.cpp
+  src/llvm/Core/utils.cpp
+  src/llvm/Core/globalFunc.cpp
+  src/llvm/Core/type.cpp
+  src/llvm/Core/value.cpp
+  src/llvm/Core/iterator.cpp
+  src/llvm/Core/miscClasses.cpp
+
+  
   src/llvm/ErrorHandling.cpp
   src/llvm/Utils.cpp
   

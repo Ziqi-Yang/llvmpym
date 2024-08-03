@@ -3,7 +3,7 @@
 #include <nanobind/stl/string.h>
 #include "Utils.h"
 #include "_types.h"
-#include "Core.h"
+#include "Core/utils.h"
 
 namespace nb = nanobind;
 using namespace nb::literals;
