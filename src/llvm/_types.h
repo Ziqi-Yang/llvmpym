@@ -319,7 +319,6 @@ DEFINE_DIRECT_SUB_CLASS(PyPassManagerBase, PyPassManager);
 DEFINE_DIRECT_SUB_CLASS(PyPassManagerBase, PyFunctionPassManager);
 
 
-
 #define DEFINE_ITERATOR_CLASS(TypeName, UnderlyingType, GetNextFn) \
   class TypeName { \
   public: \
@@ -330,22 +329,16 @@ DEFINE_DIRECT_SUB_CLASS(PyPassManagerBase, PyFunctionPassManager);
   } \
   \
   UnderlyingType next() { \
-    auto res = GetNextFn(val.get()); \
-    if (!res) \
-      throw nanobind::stop_iteration(); \
+  if (!val.get()) \
+       throw nanobind::stop_iteration(); \
     auto prev = val; \
-    val = UnderlyingType(res); \
+    val = UnderlyingType(GetNextFn(val.get())); \
     return prev; \
   } \
   \
   private: \
     UnderlyingType val; \
   };
-
-#define BIND_ITERATOR_CLASS(ClassName, PythonClassName) \
-  nanobind::class_<ClassName>(m, PythonClassName, PythonClassName) \
-      .def("__iter__", [](ClassName &self) { return self; }) \
-      .def("__next__", &ClassName::next);
 
 
 DEFINE_ITERATOR_CLASS(PyUseIterator, PyUse, LLVMGetNextUse)

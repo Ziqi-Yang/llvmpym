@@ -30,14 +30,38 @@ for f in m.functions:
     print(f'Function | name: "{f.name}", type: "{f.type}"')  
     module = f.parent
     assert m == module # point to the same module object
-    assert f.parent is not module # but python objects are not the same
+    assert m is not module # but python objects are not the same
     assert f.kind == core.ValueKind.Function
     for i, a in enumerate(f.args, 1):
         print(f'\tArgument | name: "{a.name}", type: "{a.type}"') 
         attrs = f.get_attributes_at_index(i)
         print(f"\t\tattrs: {attrs}")
-    for b in f.basic_blocks:
-        print(b)
+    for bb in f.basic_blocks:
+        print(f'\tBasicBlock | name: "{bb.name}" | value.type: "{bb.value.type}"')
+        print("-------- Content of BasicBlock ---------")
+        print(str(bb))
+        print("-------- End of BasicBlock ---------")
+        fn = bb.parent
+        assert fn == f
+        assert fn is not f
+        assert bb.value.kind == core.ValueKind.BasicBlock
+        for insr in bb.instructions:
+            print(f'\t\tInstruction | name: "{insr.name}" | opcode: "{insr.opcode}" | type: \
+"{insr.type}" | str: "{insr}"')
+            assert insr.parent == bb
+            assert insr.parent is not bb
+            assert insr.kind == core.ValueKind.Instruction
+            for i in range(insr.operands_num):
+                operand = insr.get_operand(0)
+                print(f'\t\t\tOperand | name: "{operand.name}" | type: "{operand.type}"')
 
-    # print("\n----------------------------\n")
-        
+    print("\n")
+
+print("\n\n")
+for g in m.global_variables:
+    print(g)
+    print(f'Global | name: "{g.name}" | type: "{g.type}"')
+    assert g.kind == core.ValueKind.GlobalVariable
+    print(f'\tvisibility: {g.visibility}')
+    print()
+

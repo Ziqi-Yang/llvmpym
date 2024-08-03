@@ -1612,7 +1612,9 @@ void bindValueClasses(nb::module_ &m) {
                   "vector_a"_a, "vector_b"_a, "mask"_a)
       .def_static("block_address",
                   [](PyConstant &value, PyBasicBlock &bb) {
-                    return PyValueAuto(LLVMBlockAddress(value.get(), bb.get()));
+                    // This instruction returns an BlockAddress kind value, which
+                    // isn't used elsewhere in LLVM C API
+                    return PyValue(LLVMBlockAddress(value.get(), bb.get()));
                   });
 
   

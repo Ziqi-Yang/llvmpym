@@ -796,6 +796,11 @@ void bindOtherClasses(nb::module_ &m) {
            [](PyBasicBlock &self) {
              return "<BasicBlock>";
            })
+      .def("__str__",
+           [](PyBasicBlock &self) {
+             auto value = LLVMBasicBlockAsValue(self.get());
+             return get_value_str(value);
+           })
       .def("__init__",
            [](PyBasicBlock *bb, PyContext &c, const char *name) {
              new (bb) PyBasicBlock(LLVMCreateBasicBlockInContext(c.get(), name));
@@ -1391,9 +1396,7 @@ void bindOtherClasses(nb::module_ &m) {
            [](PyModule &self) {
              return &self;
            })
-      .def("__exit__",
-
-                      [](PyModule &self, nb::args args, nb::kwargs kwargs) {})
+      .def("__exit__", [](PyModule &self, nb::args args, nb::kwargs kwargs) {})
       .def_prop_ro("first_global_variable",
                    [](PyModule &m) -> optional<PyGlobalVariable> {
                      auto res = LLVMGetFirstGlobal(m.get());
