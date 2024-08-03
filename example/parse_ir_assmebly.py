@@ -31,11 +31,11 @@ for f in m.functions:
     module = f.parent
     # assert m == module
     assert f.kind == core.ValueKind.Function
-    print()
     for i, a in enumerate(f.args, 1):
-        print(f'Argument | name: "{a.name}", type: "{a.type}"') 
+        print(f'\tArgument | name: "{a.name}", type: "{a.type}"') 
         attrs = f.get_attributes_at_index(i)
-        print(f"\tattrs: {attrs}")
+        print(f"\t\tattrs: {attrs}")
+
 
     print("\n----------------------------\n")
         

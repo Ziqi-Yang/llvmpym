@@ -21,6 +21,7 @@
 #include "_types/PyPassManagerBase.h"
 #include "_types/PyMemoryBuffer.h"
 #include "_types/PyModuleProvider.h"
+#include "_types/PyLLVMObject.h"
 
 
 #define DEFINE_PY_WRAPPER_CLASS(ClassName, UnderlyingType) \
@@ -232,6 +233,14 @@
   macro(PyType, PyTypeTargetExt) 
 
 
+#define BIND_PYLLVMOBJECT_(ClassName, UnderlyingType, PyClassName) \
+  nb::class_<PyLLVMObject<ClassName, UnderlyingType>> \
+      (m, #PyClassName, "The base class.") \
+      .def("__bool__", &PyLLVMObject<ClassName, UnderlyingType>::__bool__) \
+      .def("__eq__", &PyLLVMObject<ClassName, UnderlyingType>::__equal__) \
+      .def("__hash__", &PyLLVMObject<ClassName, UnderlyingType>::__hash__);
+
+
 enum class PyAttributeIndex {
   Return = LLVMAttributeReturnIndex,
   Function = LLVMAttributeFunctionIndex
@@ -249,31 +258,32 @@ enum class PyLLVMFastMathFlags {
   All = LLVMFastMathAll
 };
 
-template <typename Derived, typename UnderlyingType>
-class PyLLVMObject {
-public:
-  virtual ~PyLLVMObject() = default;
 
-  UnderlyingType get() const {
-    return const_cast<const Derived*>(static_cast<const Derived*>(this))->get();
-  }
+// NOTE the `__bool__` method of PyIntrinsic is overridden
+#define BIND_PYLLVMOBJECT() \
+  BIND_PYLLVMOBJECT_(PyValue, LLVMValueRef, PyValueObject) \
+  BIND_PYLLVMOBJECT_(PyType, LLVMTypeRef, PyTypeObject) \
+  BIND_PYLLVMOBJECT_(PyDiagnosticInfo, LLVMDiagnosticInfoRef, PyDiagnosticInfoObject) \
+  BIND_PYLLVMOBJECT_(PyAttribute, LLVMAttributeRef, PyAttributeObject) \
+  BIND_PYLLVMOBJECT_(PyNamedMDNode, LLVMNamedMDNodeRef, PyNamedMDNodeObject) \
+  BIND_PYLLVMOBJECT_(PyUse, LLVMUseRef, PyUseObject) \
+  BIND_PYLLVMOBJECT_(PyBasicBlock, LLVMBasicBlockRef, PyBasicBlockObject) \
+  BIND_PYLLVMOBJECT_(PyBuilder, LLVMBuilderRef, PyBuilderObject) \
+  BIND_PYLLVMOBJECT_(PyMetadata, LLVMMetadataRef, PyMetadataObject) \
+  BIND_PYLLVMOBJECT_(PyIntrinsic, unsigned, PyIntrinsicObject) \
+\
+  BIND_PYLLVMOBJECT_(PyContext, LLVMContextRef, PyContextObject) \
+  BIND_PYLLVMOBJECT_(PyMemoryBuffer, LLVMMemoryBufferRef, PyMemoryBufferObject) \
+  BIND_PYLLVMOBJECT_(PyMetadataEntries, LLVMValueMetadataEntries, PyMetadataEntriesObject) \
+  BIND_PYLLVMOBJECT_(PyModuleFlagEntries, LLVMModuleFlagEntries, PyModuleFlagEntriesObject) \
+  BIND_PYLLVMOBJECT_(PyModule, LLVMModuleRef, PyModuleObject) \
+  BIND_PYLLVMOBJECT_(PyModuleProvider, LLVMModuleProviderRef, PyModuleProviderObject) \
+  BIND_PYLLVMOBJECT_(PyOperandBundle, LLVMOperandBundleRef, PyOperandBundleObject) \
+  BIND_PYLLVMOBJECT_(PyPassManagerBase, LLVMPassManagerRef, PyPassManagerBaseObject)
 
-  bool __bool__() const {
-    UnderlyingType raw = static_cast<UnderlyingType>(get());
-    if (!raw) return false;
-    return true;
-  }
 
-  // `__equal__` and `__hash__` works well on pointer type UnderlyingType
-  bool __equal__(const PyLLVMObject& other) const {
-    return this->get() == other.get();
-  }
 
-  std::size_t __hash__() const {
-    return std::hash<UnderlyingType>{}(this->get());
-  }
-};
-
+ 
 
 DEFINE_PY_WRAPPER_CLASS_POLYMORPHIC(PyValue, LLVMValueRef)
 DEFINE_PY_WRAPPER_CLASS_POLYMORPHIC(PyType, LLVMTypeRef)
@@ -285,6 +295,7 @@ DEFINE_PY_WRAPPER_CLASS(PyBasicBlock, LLVMBasicBlockRef)
 DEFINE_PY_WRAPPER_CLASS(PyBuilder, LLVMBuilderRef)
 
 DEFINE_PY_WRAPPER_CLASS(PyMetadata, LLVMMetadataRef)
+
 DEFINE_DIRECT_SUB_CLASS(PyMetadata, PyMDNode)
 DEFINE_DIRECT_SUB_CLASS(PyMetadata, PyValueAsMetadata)
 DEFINE_DIRECT_SUB_CLASS(PyMetadata, PyMDString)
@@ -298,8 +309,6 @@ PY_FOR_EACH_VALUE_CLASS_RELATIONSHIP(DEFINE_DIRECT_SUB_CLASS)
 PY_FOR_EACH_TYPE_CLASS_RELASIONSHIP(DEFINE_DIRECT_SUB_CLASS)
 
 DEFINE_PY_WRAPPER_CLASS(PyIntrinsic, unsigned)
-
-
 
 
 

@@ -7,8 +7,9 @@
 #include <unordered_map>
 #include <mutex>
 #include <string>
+#include "PyLLVMObject.h"
 
-class PyModule {
+class PyModule : public PyLLVMObject<PyModule, LLVMModuleRef> {
 public:
   explicit PyModule(const std::string &id);
   explicit PyModule(const std::string &id, LLVMContextRef context);

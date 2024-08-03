@@ -26,7 +26,9 @@ void bindOtherClasses(nb::module_ &m) {
        "exist simultaneously. A single context is not thread safe. However,"
        "different contexts can execute on different threads simultaneously.");
 
-  auto AttributeClass = nb::class_<PyAttribute>(m, "Attribute", "Attribute");
+  auto AttributeClass =
+    nb::class_<PyAttribute, PyLLVMObject<PyAttribute, LLVMAttributeRef>>
+      (m, "Attribute", "Attribute");
   auto EnumAttributeClass = nb::class_<PyEnumAttribute, PyAttribute>
                               (m, "EnumAttribute", "EnumAttribute");
   auto TypeAttributeClass = nb::class_<PyTypeAttribute, PyAttribute>
@@ -35,12 +37,16 @@ void bindOtherClasses(nb::module_ &m) {
                                 (m, "StringAttribute", "StringAttribute");
   
   
-  auto BasicBlockClass = nb::class_<PyBasicBlock>
-                           (m, "BasicBlock", "BasicBlock");
-  auto DiagnosticInfoClass = nb::class_<PyDiagnosticInfo>
-                               (m, "DiagnosticInfo", "DiagnosticInfo");
+  auto BasicBlockClass =
+    nb::class_<PyBasicBlock, PyLLVMObject<PyBasicBlock, LLVMBasicBlockRef>>
+      (m, "BasicBlock", "BasicBlock");
+  auto DiagnosticInfoClass =
+    nb::class_<PyDiagnosticInfo, PyLLVMObject<PyDiagnosticInfo, LLVMDiagnosticInfoRef>>
+      (m, "DiagnosticInfo", "DiagnosticInfo");
 
-  auto NamedMDNodeClass = nb::class_<PyNamedMDNode>(m, "NamedMDNode", "NamedMDNode");
+  auto NamedMDNodeClass =
+    nb::class_<PyNamedMDNode, PyLLVMObject<PyNamedMDNode, LLVMNamedMDNodeRef>>
+      (m, "NamedMDNode", "NamedMDNode");
   auto ModuleClass =
     nb::class_<PyModule>
       (m, "Module",
@@ -50,7 +56,9 @@ void bindOtherClasses(nb::module_ &m) {
 
   auto ModuleFlagEntriesClass = nb::class_<PyModuleFlagEntries>
                                   (m, "ModuleFlagEntry", "ModuleFlagEntry");
-  auto MetadataClass = nb::class_<PyMetadata>(m, "Metadata", "Metadata");
+  auto MetadataClass =
+    nb::class_<PyMetadata, PyLLVMObject<PyMetadata, LLVMMetadataRef>>
+      (m, "Metadata", "Metadata");
   auto MDNodeClass = nb::class_<PyMDNode, PyMetadata>(m, "MDNode", "MDNode");
   auto MDStringClass = nb::class_<PyMDString, PyMetadata>(m, "MDString", "MDString");
   auto ValueAsMetadata = nb::class_<PyValueAsMetadata, PyMetadata>
@@ -60,12 +68,18 @@ void bindOtherClasses(nb::module_ &m) {
   auto MetadataEntriesClass = nb::class_<PyMetadataEntries>
                                 (m, "MetadataEntry", "MetadataEntry");
   
-  auto UseClass = nb::class_<PyUse>(m, "Use", "Use");
+  auto UseClass =
+    nb::class_<PyUse, PyLLVMObject<PyUse, LLVMUseRef>>
+      (m, "Use", "Use");
 
-  auto IntrinsicClass = nb::class_<PyIntrinsic>(m, "Intrinsic", "Intrinsic");
+  auto IntrinsicClass =
+    nb::class_<PyIntrinsic, PyLLVMObject<PyIntrinsic, unsigned>>
+      (m, "Intrinsic", "Intrinsic");
   auto OperandBundleClass = nb::class_<PyOperandBundle>(m, "OperandBundle",
                                                         "OperandBundle");
-  auto BuilderClass = nb::class_<PyBuilder>(m, "Builder", "Builder");
+  auto BuilderClass =
+    nb::class_<PyBuilder, PyLLVMObject<PyBuilder, LLVMBuilderRef>>
+      (m, "Builder", "Builder");
   auto ModuleProviderClass = nb::class_<PyModuleProvider>
                                (m, "ModuleProvider", "ModuleProvider");
   auto MemoryBufferClass = nb::class_<PyMemoryBuffer>
@@ -921,6 +935,8 @@ void bindOtherClasses(nb::module_ &m) {
               auto name = std::string(raw_name, len);
               return fmt::format("<Instrinsic id={} name={}>", self.get(), name);
             })
+       .def("__bool__", // override default behavior
+            [](PyIntrinsic &self) { return true; })
        .def_static("lookup",
                    [](std::string &name) {
                      return PyIntrinsic(LLVMLookupIntrinsicID(name.c_str(), name.size()));

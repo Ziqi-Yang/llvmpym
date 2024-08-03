@@ -5,8 +5,9 @@
 #include <memory>
 #include <unordered_map>
 #include <mutex>
+#include "PyLLVMObject.h"
 
-class PyOperandBundle {
+class PyOperandBundle : public PyLLVMObject<PyOperandBundle, LLVMOperandBundleRef> {
 public:
   explicit PyOperandBundle(LLVMOperandBundleRef bundle);
   LLVMOperandBundleRef get() const;

@@ -5,8 +5,9 @@
 #include <memory>
 #include <unordered_map>
 #include <mutex>
+#include "PyLLVMObject.h"
 
-class PyPassManagerBase {
+class PyPassManagerBase : public PyLLVMObject<PyPassManagerBase, LLVMPassManagerRef> {
 public:
   explicit PyPassManagerBase(LLVMPassManagerRef pm);
   LLVMPassManagerRef get() const;

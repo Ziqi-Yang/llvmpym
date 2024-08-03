@@ -5,8 +5,9 @@
 #include <memory>
 #include <unordered_map>
 #include <mutex>
+#include "PyLLVMObject.h"
 
-class PyModuleProvider {
+class PyModuleProvider : public PyLLVMObject<PyModuleProvider, LLVMModuleProviderRef>{
 public:
   explicit PyModuleProvider(LLVMModuleProviderRef mp);
   LLVMModuleProviderRef get() const;

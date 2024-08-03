@@ -6,8 +6,9 @@
 #include <memory>
 #include <unordered_map>
 #include <mutex>
+#include "PyLLVMObject.h"
 
-class PyContext {
+class PyContext : public PyLLVMObject<PyContext, LLVMContextRef> {
 public:
   explicit PyContext();
   explicit PyContext(LLVMContextRef context, bool is_global_context);

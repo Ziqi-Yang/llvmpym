@@ -5,8 +5,9 @@
 #include <memory>
 #include <unordered_map>
 #include <mutex>
+#include "PyLLVMObject.h"
 
-class PyMemoryBuffer {
+class PyMemoryBuffer : public PyLLVMObject<PyMemoryBuffer, LLVMMemoryBufferRef> {
 public:
   explicit PyMemoryBuffer(LLVMMemoryBufferRef mb);
   LLVMMemoryBufferRef get() const;

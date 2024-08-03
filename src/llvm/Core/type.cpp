@@ -17,7 +17,7 @@ template <typename T>
 using optional = std::optional<T>;
 
 void bindTypeClasses(nb::module_ &m) {
-  auto TypeClass = nb::class_<PyType>(m, "Type", "Type");
+  auto TypeClass = nb::class_<PyType, PyLLVMObject<PyType, LLVMTypeRef>>(m, "Type", "Type");
   auto TypeIntClass = nb::class_<PyTypeInt, PyType>(m, "IntType", "IntType");
   auto TypeRealClass = nb::class_<PyTypeReal, PyType>(m, "RealType", "RealType");
   auto TypeFunctionClass = nb::class_<PyTypeFunction, PyType> (m, "FunctionType", "FunctionType");

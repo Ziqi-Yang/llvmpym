@@ -5,10 +5,11 @@
 #include <memory>
 #include <unordered_map>
 #include <mutex>
+#include "PyLLVMObject.h"
 
 typedef LLVMValueMetadataEntry *LLVMValueMetadataEntries;
 
-class PyMetadataEntries {
+class PyMetadataEntries : public PyLLVMObject<PyMetadataEntries, LLVMValueMetadataEntries> {
 public:
   explicit PyMetadataEntries(LLVMValueMetadataEntries entries, size_t len);
   LLVMValueMetadataEntries get() const;
