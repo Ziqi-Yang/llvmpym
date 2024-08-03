@@ -1,6 +1,9 @@
 #ifndef PYLLVMOBJECT_H
 #define PYLLVMOBJECT_H
 
+#include <iostream>
+#include <memory>
+
 template <typename Derived, typename UnderlyingType>
 class PyLLVMObject {
 public:
@@ -21,9 +24,9 @@ public:
     return this->get() == other.get();
   }
 
-std::size_t __hash__() const {
+  std::size_t __hash__() const {
     return std::hash<UnderlyingType>{}(this->get());
-}
+  }
 };
 
 

@@ -1029,11 +1029,6 @@ void bindValueClasses(nb::module_ &m) {
                      auto res = LLVMGetLastBasicBlock(self.get());
                      WRAP_OPTIONAL_RETURN(res, PyBasicBlock);
                    })
-      .def_prop_ro("basic_blocks",
-                   [](PyFunction &self) {
-                     auto res =  LLVMGetFirstBasicBlock(self.get());
-                     return PyBasicBlockIterator(PyBasicBlock(res));
-                   })
       .def_prop_ro("entry_basic_block",
                    [](PyFunction &self) {
                      return PyBasicBlock(LLVMGetEntryBasicBlock(self.get()));

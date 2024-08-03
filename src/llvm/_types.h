@@ -22,6 +22,7 @@
 #include "_types/PyMemoryBuffer.h"
 #include "_types/PyModuleProvider.h"
 #include "_types/PyLLVMObject.h"
+#include "_types/PyLLVMObject.h"
 
 
 #define DEFINE_PY_WRAPPER_CLASS(ClassName, UnderlyingType) \
@@ -258,8 +259,10 @@ enum class PyLLVMFastMathFlags {
   All = LLVMFastMathAll
 };
 
-
-// NOTE the `__bool__` method of PyIntrinsic is overridden
+/*
+ * Check three places: here, class inheritance, binding class inheritance
+ * NOTE the `__bool__` method of PyIntrinsic is overridden
+ */
 #define BIND_PYLLVMOBJECT() \
   BIND_PYLLVMOBJECT_(PyValue, LLVMValueRef, PyValueObject) \
   BIND_PYLLVMOBJECT_(PyType, LLVMTypeRef, PyTypeObject) \
@@ -346,7 +349,7 @@ DEFINE_DIRECT_SUB_CLASS(PyPassManagerBase, PyFunctionPassManager);
 
 
 DEFINE_ITERATOR_CLASS(PyUseIterator, PyUse, LLVMGetNextUse)
-DEFINE_ITERATOR_CLASS(PyBasicBlockIterator, PyBasicBlock, LLVMGetNextBasicBlock)
+// DEFINE_ITERATOR_CLASS(PyBasicBlockIterator, PyBasicBlock, LLVMGetNextBasicBlock)
 // DEFINE_ITERATOR_CLASS(PyArgumentIterator, PyArgument, LLVMGetNextParam)
 DEFINE_ITERATOR_CLASS(PyInstructionIterator, PyInstruction, LLVMGetNextInstruction)
 DEFINE_ITERATOR_CLASS(PyGlobalVariableIterator, PyGlobalVariable, LLVMGetNextGlobal)

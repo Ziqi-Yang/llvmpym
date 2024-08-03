@@ -29,13 +29,15 @@ m = utils.parse_assembly(asm_str)
 for f in m.functions:
     print(f'Function | name: "{f.name}", type: "{f.type}"')  
     module = f.parent
-    # assert m == module
+    assert m == module # point to the same module object
+    assert f.parent is not module # but python objects are not the same
     assert f.kind == core.ValueKind.Function
     for i, a in enumerate(f.args, 1):
         print(f'\tArgument | name: "{a.name}", type: "{a.type}"') 
         attrs = f.get_attributes_at_index(i)
         print(f"\t\tattrs: {attrs}")
+    for b in f.basic_blocks:
+        print(b)
 
-
-    print("\n----------------------------\n")
+    # print("\n----------------------------\n")
         

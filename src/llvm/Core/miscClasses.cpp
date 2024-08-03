@@ -19,7 +19,7 @@ using optional = std::optional<T>;
 
 void bindOtherClasses(nb::module_ &m) {
   auto ContextClass =
-    nb::class_<PyContext>
+    nb::class_<PyContext, PyLLVMObject<PyContext, LLVMContextRef>>
       (m, "Context",
        "Contexts are execution states for the core LLVM IR system.\n\n"
        "Most types are tied to a context instance. Multiple contexts can"
@@ -47,15 +47,19 @@ void bindOtherClasses(nb::module_ &m) {
   auto NamedMDNodeClass =
     nb::class_<PyNamedMDNode, PyLLVMObject<PyNamedMDNode, LLVMNamedMDNodeRef>>
       (m, "NamedMDNode", "NamedMDNode");
+  
   auto ModuleClass =
-    nb::class_<PyModule>
+    nb::class_<PyModule, PyLLVMObject<PyModule, LLVMModuleRef>>
       (m, "Module",
        "Modules represent the top-level structure in an LLVM program. An LLVM"
        "module is effectively a translation unit or a collection of translation "
        "units merged together.");
 
-  auto ModuleFlagEntriesClass = nb::class_<PyModuleFlagEntries>
-                                  (m, "ModuleFlagEntry", "ModuleFlagEntry");
+  auto ModuleFlagEntriesClass =
+    nb::class_<PyModuleFlagEntries, PyLLVMObject<PyModuleFlagEntries, LLVMModuleFlagEntries>>
+      (m, "ModuleFlagEntry", "ModuleFlagEntry");
+
+  
   auto MetadataClass =
     nb::class_<PyMetadata, PyLLVMObject<PyMetadata, LLVMMetadataRef>>
       (m, "Metadata", "Metadata");
@@ -65,29 +69,35 @@ void bindOtherClasses(nb::module_ &m) {
                            (m, "ValueAsMetadata", "ValueAsMetadata");
 
   
-  auto MetadataEntriesClass = nb::class_<PyMetadataEntries>
-                                (m, "MetadataEntry", "MetadataEntry");
+  auto MetadataEntriesClass =
+    nb::class_<PyMetadataEntries, PyLLVMObject<PyMetadataEntries, LLVMValueMetadataEntries>>
+      (m, "MetadataEntry", "MetadataEntry");
   
   auto UseClass =
     nb::class_<PyUse, PyLLVMObject<PyUse, LLVMUseRef>>
       (m, "Use", "Use");
 
   auto IntrinsicClass =
+    // nb::class_<PyIntrinsic, PyLLVMObject<PyIntrinsic, unsigned>>
     nb::class_<PyIntrinsic, PyLLVMObject<PyIntrinsic, unsigned>>
       (m, "Intrinsic", "Intrinsic");
-  auto OperandBundleClass = nb::class_<PyOperandBundle>(m, "OperandBundle",
-                                                        "OperandBundle");
+  auto OperandBundleClass =
+    nb::class_<PyOperandBundle, PyLLVMObject<PyOperandBundle, LLVMOperandBundleRef>>
+      (m, "OperandBundle", "OperandBundle");
   auto BuilderClass =
     nb::class_<PyBuilder, PyLLVMObject<PyBuilder, LLVMBuilderRef>>
       (m, "Builder", "Builder");
-  auto ModuleProviderClass = nb::class_<PyModuleProvider>
-                               (m, "ModuleProvider", "ModuleProvider");
-  auto MemoryBufferClass = nb::class_<PyMemoryBuffer>
-                             (m, "MemoryBuffer", "MemoryBuffer");
+  auto ModuleProviderClass =
+    nb::class_<PyModuleProvider, PyLLVMObject<PyModuleProvider, LLVMModuleProviderRef>>
+      (m, "ModuleProvider", "ModuleProvider");
+  auto MemoryBufferClass =
+    nb::class_<PyMemoryBuffer, PyLLVMObject<PyMemoryBuffer, LLVMMemoryBufferRef>>
+      (m, "MemoryBuffer", "MemoryBuffer");
   
   // no need to create PyPassManagerBase binding
-  auto PassManagerClass = nb::class_<PyPassManager>
-                            (m, "PassManager", "PassManager");
+  auto PassManagerClass =
+    nb::class_<PyPassManager, PyLLVMObject<PyPassManagerBase, LLVMPassManagerRef>>
+      (m, "PassManager", "PassManager");
   auto FunctionPassManagerClass = nb::class_<PyFunctionPassManager>
                                     (m, "FunctionPassManager", "FunctionPassManager");
 
@@ -1382,7 +1392,8 @@ void bindOtherClasses(nb::module_ &m) {
              return &self;
            })
       .def("__exit__",
-           [](PyModule &self, nb::args args, nb::kwargs kwargs) {})
+
+                      [](PyModule &self, nb::args args, nb::kwargs kwargs) {})
       .def_prop_ro("first_global_variable",
                    [](PyModule &m) -> optional<PyGlobalVariable> {
                      auto res = LLVMGetFirstGlobal(m.get());
