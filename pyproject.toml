@@ -49,7 +49,7 @@ environment = { SKBUILD_CMAKE_ARGS="-DLLVM_DIR=D:/a/llvmpym/llvmpym/llvm-build/l
 [tool.cibuildwheel.macos.environment]
 MACOSX_DEPLOYMENT_TARGET = "14.0"
 PATH="/opt/homebrew/opt/llvm/bin:$PATH"
-SKBUILD_CMAKE_ARGS="-DCMAKE_CXX_FLAGS=-I/opt/homebrew/opt/llvm/include;-DCMAKE_EXE_LINKER_FLAGS=-L/opt/homebrew/opt/llvm/lib;-DCMAKE_SHARED_LINKER_FLAGS=-L/opt/homebrew/opt/llvm/lib/c++;-DLDFLAGS=-L/opt/homebrew/opt/llvm/lib/c++ -Wl,-rpath,/opt/homebrew/opt/llvm/lib/c++"
-
+LDFLAGS="-L/opt/homebrew/opt/llvm/lib/c++ -L/opt/homebrew/opt/llvm/lib -lunwind"
+CPPFLAGS="-I/opt/homebrew/opt/llvm/include"
 
 
