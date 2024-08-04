@@ -1,3 +1,4 @@
+// note the flag has extra underscore
 #ifndef LLVMPYM__UTILS_H
 #define LLVMPYM__UTILS_H
 

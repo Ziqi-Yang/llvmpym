@@ -1,5 +1,5 @@
-#ifndef LLVMPYM__TYPES_PYMODULE_H
-#define LLVMPYM__TYPES_PYMODULE_H
+#ifndef LLVMPYM_TYPES_PYMODULE_H
+#define LLVMPYM_TYPES_PYMODULE_H
 
 #include <llvm-c/Core.h>
 #include <memory>

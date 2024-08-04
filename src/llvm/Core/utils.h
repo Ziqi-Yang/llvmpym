@@ -3,7 +3,7 @@
 
 #include <nanobind/nanobind.h>
 #include <llvm-c/Core.h>
-#include "../_types.h"
+#include "../types.h"
 #include <fmt/core.h>
 #include <string>
 

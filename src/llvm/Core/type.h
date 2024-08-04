@@ -1,5 +1,5 @@
-#ifndef LLVMPYM_CORE_TYPES_H
-#define LLVMPYM_CORE_TYPES_H
+#ifndef LLVMPYM_CORE_TYPE_H
+#define LLVMPYM_CORE_TYPE_H
 
 #include <nanobind/nanobind.h>
 

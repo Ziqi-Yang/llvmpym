@@ -1,5 +1,7 @@
 #include "globalFunc.h"
 #include <llvm-c/Core.h>
+#include <llvm-c/Core.h>
+#include "../types.h"
 
 namespace nb = nanobind;
 using namespace nb::literals;

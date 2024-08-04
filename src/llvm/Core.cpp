@@ -1,6 +1,6 @@
 #include "Core.h"
-#include "_types.h"
-#include "_utils.h"
+#include "types.h"
+#include "utils.h"
 
 #include "Core/utils.h"
 #include "Core/enum.h"

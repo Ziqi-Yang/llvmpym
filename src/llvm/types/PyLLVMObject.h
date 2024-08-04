@@ -1,5 +1,5 @@
-#ifndef PYLLVMOBJECT_H
-#define PYLLVMOBJECT_H
+#ifndef LLVMPYM_TYPES_PYLLVMOBJECT_H
+#define LLVMPYM_TYPES_PYLLVMOBJECT_H
 
 #include <iostream>
 #include <memory>

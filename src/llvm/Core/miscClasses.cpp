@@ -6,8 +6,8 @@
 #include <fmt/core.h>
 #include <optional>
 #include <stdexcept>
-#include "../_types.h"
-#include "../_utils.h"
+#include "../types.h"
+#include "../utils.h"
 #include "utils.h"
 
 namespace nb = nanobind;

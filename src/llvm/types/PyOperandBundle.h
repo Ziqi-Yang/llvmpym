@@ -1,5 +1,5 @@
-#ifndef PYOPERANDBUNDLE_H
-#define PYOPERANDBUNDLE_H
+#ifndef LLVMPYM_TYPES_PYOPERANDBUNDLE_H
+#define LLVMPYM_TYPES_PYOPERANDBUNDLE_H
 
 #include <llvm-c/Core.h>
 #include <memory>

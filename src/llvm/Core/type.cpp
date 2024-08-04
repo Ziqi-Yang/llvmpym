@@ -6,8 +6,8 @@
 #include <llvm-c/Core.h>
 #include <fmt/core.h>
 #include <optional>
-#include "../_types.h"
-#include "../_utils.h"
+#include "../types.h"
+#include "../utils.h"
 #include "utils.h"
 
 namespace nb = nanobind;
