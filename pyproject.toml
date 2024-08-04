@@ -51,7 +51,6 @@ MACOSX_DEPLOYMENT_TARGET = "14.0"
 PATH="/opt/homebrew/opt/llvm/bin:$PATH"
 LDFLAGS="-L/opt/homebrew/opt/llvm/lib/c++ -L/opt/homebrew/opt/llvm/lib -lunwind"
 CPPFLAGS="-I/opt/homebrew/opt/llvm/include"
-# SKBUILD_CMAKE_ARGS="-DLLVM_DIR=/opt/homebrew/opt/llvm/lib/cmake/llvm"
 
 
 

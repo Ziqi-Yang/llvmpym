@@ -101,7 +101,7 @@ target_link_libraries(llvmpym_ext PRIVATE ${llvm_libs} fmt::fmt)
 # TODO for MacOS immitate llvmlite only expose certain symbols. Can it work?
 # https://github.com/numba/llvmlite/blob/78ebf9bf188379b2642112aff388480384306c6b/ffi/CMakeLists.txt#L76C53-L76C61
 
-if(UNIX AND (${CMAKE_BUILD_TYPE} STREQUAL "Release"))
+if(UNIX AND CMAKE_BUILD_TYPE STREQUAL "Release")
   set_property(TARGET llvmpym_ext APPEND_STRING PROPERTY LINK_FLAGS "-flto")
   if(NOT APPLE)
     set_property(TARGET llvmpym_ext APPEND_STRING PROPERTY LINK_FLAGS " -Wl,--exclude-libs,ALL")
