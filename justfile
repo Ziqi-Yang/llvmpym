@@ -23,6 +23,14 @@ install-dev-requirements:
 build-docs:
     cd ./docs && make html
 
+run-all-examples:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for file in ./example/*.py; do
+      python $file > /dev/null || echo $file failed
+    done
+    echo done!
+
 opendoc:
     xdg-open ./docs/build/html/index.html
 

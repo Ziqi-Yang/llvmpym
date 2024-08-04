@@ -27,12 +27,29 @@ for example:
    valgrind --leak-check=full python ./example/llvmir_builder.py
 
 
-Check the generated stub file
-------------------------------
+Check the correctness of generated stub file
+--------------------------------------------
 
 The generated stub file is possible to contain errors like you use a Python keyword
 as an parameter name of a function. Run ``cd ./docs && make html`` to check it, which
 is handled by *sphinx-autoapi*.
+
+
+
+Add a python sub-module
+-------------------------
+
+Like `core`, `support` under `llvmpym` module.
+
+Steps:
+
+#. module definition file inside ``src/llvm`` directory
+#. module registry in ``src/llvmpym_ext.cpp``
+#. add module definition file as an dependency of the final extension file in ``CMakeLists.txt``
+   (``nanobind_add_module``)
+#. ``CMakeLists.txt`` generate stub file (i.e. ``nanobind_add_stub`` and ``install``)
+#. add a python file in ``src/llvmpym`` directory to remap module from
+   `llvmpym.llvmpym_ext.<module>` to `llvmpym.<module>`
 
 
 NanoBind Pitfalls

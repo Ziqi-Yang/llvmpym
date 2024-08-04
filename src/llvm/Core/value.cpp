@@ -1598,11 +1598,11 @@ void bindValueClasses(nb::module_ &m) {
                   },
                   "vector"_a, "index"_a)
       .def_static("insert_element",
-                  [](PyConstantVector &vector, PyConstant &value, PyConstant &index) {
+                  [](PyConstantVector &vector, PyConstant &index, PyConstant &value) {
                     return PyValueAuto(LLVMConstInsertElement(vector.get(), value.get(),
                                                               index.get()));
                   },
-                  "vector"_a, "index"_a, "index"_a)
+                  "vector"_a, "index"_a, "value"_a)
       .def_static("shuffle_vector",
                   [](PyConstantVector &vectorA, PyConstantVector &vectorB,
                      PyConstant &mask) {

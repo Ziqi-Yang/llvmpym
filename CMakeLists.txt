@@ -132,7 +132,7 @@ nanobind_add_stub(
 
 nanobind_add_stub(
   llvmpym_ext_stub_support
-  MODULE llvmpym_ext.utils
+  MODULE llvmpym_ext.support
   OUTPUT support.pyi
   PYTHON_PATH $<TARGET_FILE_DIR:llvmpym_ext>
   DEPENDS llvmpym_ext
@@ -156,6 +156,7 @@ install(FILES
   ${CMAKE_BINARY_DIR}/__init__.pyi
   ${CMAKE_BINARY_DIR}/core.pyi
   ${CMAKE_BINARY_DIR}/error_handling.pyi
+  ${CMAKE_BINARY_DIR}/support.pyi
   ${CMAKE_BINARY_DIR}/utils.pyi
   
   DESTINATION ${SKBUILD_PROJECT_NAME}/llvmpym_ext)
