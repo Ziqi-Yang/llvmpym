@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 3.20.0...3.29.6)
 # default for both c and c++ (c is needed for MacOS build)
 project(${SKBUILD_PROJECT_NAME})
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # required for linking fmt library during cibuildwheels build on manylinux_2_28
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 if(UNIX)
