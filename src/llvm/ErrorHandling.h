@@ -2,8 +2,7 @@
 #define LLVMPYM_ERRORHANLDING_H
 
 #include <nanobind/nanobind.h>
-namespace nb = nanobind;
 
-void populateErrorHandling(nb::module_ &m);
+void populateErrorHandling(nanobind::module_ &m);
 
 #endif

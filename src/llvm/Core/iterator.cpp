@@ -1,5 +1,5 @@
 #include "iterator.h"
-#include "../types.h"
+#include "../types_priv.h"
 
 namespace nb = nanobind;
 using namespace nb::literals;

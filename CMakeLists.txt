@@ -47,7 +47,7 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 include_directories(${CMAKE_SOURCE_DIR}/src/llvm)
-include_directories(${CMAKE_SOURCE_DIR}/src/llvm/types)
+include_directories(${CMAKE_SOURCE_DIR}/src/llvm/types_priv)
 include_directories(${CMAKE_SOURCE_DIR}/src/llvm/Core)
 include_directories(${LLVM_INCLUDE_DIRS})
 
@@ -80,14 +80,14 @@ nanobind_add_module(
   src/llvm/Utils.cpp
   src/llvm/Support.cpp
   
-  src/llvm/types/PyModule.cpp
-  src/llvm/types/PyContext.cpp
-  src/llvm/types/PyMetadataEntries.cpp
-  src/llvm/types/PyModuleFlagEntries.cpp
-  src/llvm/types/PyOperandBundle.cpp
-  src/llvm/types/PyPassManagerBase.cpp
-  src/llvm/types/PyMemoryBuffer.cpp
-  src/llvm/types/PyModuleProvider.cpp
+  src/llvm/types_priv/PyModule.cpp
+  src/llvm/types_priv/PyContext.cpp
+  src/llvm/types_priv/PyMetadataEntries.cpp
+  src/llvm/types_priv/PyModuleFlagEntries.cpp
+  src/llvm/types_priv/PyOperandBundle.cpp
+  src/llvm/types_priv/PyPassManagerBase.cpp
+  src/llvm/types_priv/PyMemoryBuffer.cpp
+  src/llvm/types_priv/PyModuleProvider.cpp
  
   ${LLVM_INCLUDE_DIRS}
 )

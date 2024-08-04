@@ -3,7 +3,7 @@
 #include "llvm/ErrorHandling.h"
 #include "llvm/Utils.h"
 #include "llvm/Support.h"
-#include "llvm/types.h"
+#include "llvm/types_priv.h"
 
 namespace nb = nanobind;
 using namespace nb::literals;

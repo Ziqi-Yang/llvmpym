@@ -2,9 +2,8 @@
 //
 // ====================================
 
-// note the flag has extra underscore
-#ifndef LLVMPYM__TYPES_H
-#define LLVMPYM__TYPES_H
+#ifndef LLVMPYM_TYPES_PRIV_H
+#define LLVMPYM_TYPES_PRIV_H
 
 #include <llvm-c/Core.h>
 #include <utility>
@@ -14,16 +13,16 @@
 #include <unordered_map>
 #include <mutex>
 
-#include "types/PyModule.h"
-#include "types/PyContext.h"
-#include "types/PyMetadataEntries.h"
-#include "types/PyModuleFlagEntries.h"
-#include "types/PyOperandBundle.h"
-#include "types/PyPassManagerBase.h"
-#include "types/PyMemoryBuffer.h"
-#include "types/PyModuleProvider.h"
-#include "types/PyLLVMObject.h"
-#include "types/PyLLVMObject.h"
+#include "types_priv/PyModule.h"
+#include "types_priv/PyContext.h"
+#include "types_priv/PyMetadataEntries.h"
+#include "types_priv/PyModuleFlagEntries.h"
+#include "types_priv/PyOperandBundle.h"
+#include "types_priv/PyPassManagerBase.h"
+#include "types_priv/PyMemoryBuffer.h"
+#include "types_priv/PyModuleProvider.h"
+#include "types_priv/PyLLVMObject.h"
+#include "types_priv/PyLLVMObject.h"
 
 
 #define DEFINE_PY_WRAPPER_CLASS(ClassName, UnderlyingType) \

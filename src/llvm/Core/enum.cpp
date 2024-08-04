@@ -1,6 +1,6 @@
 #include "enum.h"
 #include <llvm-c/Core.h>
-#include "../types.h"
+#include "../types_priv.h"
 
 namespace nb = nanobind;
 

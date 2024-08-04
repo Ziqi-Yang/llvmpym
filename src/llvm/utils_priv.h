@@ -1,6 +1,5 @@
-// note the flag has extra underscore
-#ifndef LLVMPYM__UTILS_H
-#define LLVMPYM__UTILS_H
+#ifndef LLVMPYM_MY_UTILS_H
+#define LLVMPYM_MY_UTILS_H
 
 #define CONCATENATE_DETAIL(x, y) x##y
 // ensure tokens are fully expanded

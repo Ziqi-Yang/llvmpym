@@ -2,7 +2,7 @@
 #include <llvm-c/Core.h>
 #include <nanobind/stl/string.h>
 #include "Utils.h"
-#include "types.h"
+#include "types_priv.h"
 #include "Core/utils.h"
 
 namespace nb = nanobind;
