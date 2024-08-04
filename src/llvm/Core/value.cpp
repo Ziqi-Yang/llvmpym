@@ -9,6 +9,7 @@
 #include "../types_priv.h"
 #include "../utils_priv.h"
 #include "utils.h"
+#include <llvm-c/Analysis.h>
 
 namespace nb = nanobind;
 using namespace nb::literals;
@@ -1103,6 +1104,23 @@ void bindValueClasses(nb::module_ &m) {
                      WRAP_VECTOR_FROM_DEST(PyArgument, param_num, res, params);
                      return res;
                    })
+      .def("verify",
+           [](PyFunction &self, LLVMVerifierFailureAction action) -> optional<std::string>{
+             char *outMsg;
+             auto res = LLVMVerifyFunction(self.get(), action) == 0;
+             if (!res) {
+               if (outMsg) {
+                 std::string errMsg(outMsg);
+                 LLVMDisposeMessage(outMsg);
+                 return errMsg;
+               }
+               return "";
+             }
+             return std::nullopt;
+           },
+           "action"_a,
+           "Verifies that a single function is valid, taking the specified action. Usefu"
+           "for debugging.")
       .def("get_arg",
            [](PyFunction &self, unsigned index) {
              return PyArgument(LLVMGetParam(self.get(), index));

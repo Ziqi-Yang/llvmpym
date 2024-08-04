@@ -4,6 +4,7 @@
 #include "llvm/Utils.h"
 #include "llvm/Support.h"
 #include "llvm/types_priv.h"
+#include "llvm/Analysis.h"
 
 namespace nb = nanobind;
 using namespace nb::literals;
@@ -25,4 +26,7 @@ NB_MODULE(llvmpym_ext, m) {
    
   auto utilsModule = m.def_submodule("utils", "Utilities");
   populateUtils(utilsModule);
+
+  auto analysisModule = m.def_submodule("analysis", "Analysis");
+  populateAnalysis(analysisModule);
 }

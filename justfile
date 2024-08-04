@@ -1,6 +1,6 @@
 set dotenv-load
 
-LLVM-CONFIG := env('LLVM_CONFIG', "./llvm-build/bin/llvm-config")
+LLVM-CONFIG := env('LLVM_CONFIG', "llvm-config")
 
 install:
     pip install --no-build-isolation -ve .

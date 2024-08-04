@@ -3,6 +3,7 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 #include <nanobind/stl/optional.h>
+#include <llvm-c/Analysis.h>
 #include <fmt/core.h>
 #include <optional>
 #include <stdexcept>
@@ -1553,6 +1554,28 @@ void bindOtherClasses(nb::module_ &m) {
            "id"_a, "param_types"_a,
            "Create or insert the declaration of an intrinsic.  For overloaded intrinsics,"
            "parameter types must be provided to uniquely identify an overload.")
+      .def("verify",
+           [](PyModule &self, LLVMVerifierFailureAction action) -> optional<std::string> {
+             char *outMessage;
+             auto res = LLVMVerifyModule(self.get(), action, &outMessage) == 0;
+             if (!res) {
+               if (outMessage) {
+                 std::string errMsg(outMessage);
+                 LLVMDisposeMessage(outMessage);
+                 return errMsg;
+               }
+               return "";
+             }
+             return std::nullopt;
+           },
+           // NOTE currently no default argument since the stub file generation will emit
+           // error
+           // "action"_a = LLVMVerifierFailureAction::LLVMAbortProcessAction,
+           "action"_a,
+           "Verifies that a module is valid, taking the specified action if not.\n"
+           "Returns:\n"
+           "\tIf success, return None. Otherwise, optionally(based on action) return "
+           "a human-readable description if any invalid constructs.")
       .def("add_alias",
            [](PyModule &self, PyType &valueType, unsigned addrSpace, PyValue aliasee,
               const char *name) {

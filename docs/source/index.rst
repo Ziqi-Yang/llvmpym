@@ -75,10 +75,11 @@ Status
 .. csv-table:: LLVM C API Header File Mapping Status
    :header: "Python Module", "Header File"
 
-   "llvmpym.core", "Core.h, IRReader.h"
-   "llvmpym.error_handling", "ErrorHandling.h"
-   "llvmpym.support", "Support.h"
-   "llvmpym.utils", "<additional>"
+   "llvmpym.core", "``Core.h``, ``IRReader.h``, ``Analysis.h``"
+   "llvmpym.error_handling", "``ErrorHandling.h``"
+   "llvmpym.support", "``Support.h``"
+   "llvmpym.analysis.h", "``Analysis.h``"
+   "llvmpym.utils", "``<additional>``"
    
 
 - All functions that operates on lambda functions(function pointers) is not bound 

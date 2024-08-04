@@ -5,5 +5,4 @@
 
 void populateAnalysis(nanobind::module_ &m);
 
-
 #endif

@@ -1,6 +1,7 @@
 #include "utils.h"
 
 #include <llvm-c/IRReader.h>
+#include <stdexcept>
 
 PyMetadataAsValue* getMoreSpcMetadataAsValue(LLVMValueRef raw) {
   if (auto v = LLVMIsAMDNode(raw)) {
