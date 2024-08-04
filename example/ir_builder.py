@@ -3,7 +3,7 @@ import llvmpym.core as core
 import llvmpym.error_handling
 from llvmpym.core import IntType, IntPredicate
 
-c = core.Context.get_global_context();
+c = core.Context.get_global_context()
 fn_type = core.FunctionType(IntType.GlobalInt32,
                             [IntType.GlobalInt32, IntType.GlobalInt32],
                             False)
@@ -22,7 +22,7 @@ myint = builder.load2(stackint.type, stackint)
 # Currently, every property goes through an function call through LLVM, so there
 # may be some performance loss.
 # In the future, we may add cache to some unchanging object properties.
-add_inst = builder.add(fn.params[0], fn.params[1])
+add_inst = builder.add(fn.args[0], fn.args[1])
 mul_inst = builder.mul(add_inst, core.ConstantInt(IntType.GlobalInt32, 123, True))
 pred = builder.icmp(IntPredicate.SLT, add_inst, mul_inst)
 builder.ret(mul_inst)

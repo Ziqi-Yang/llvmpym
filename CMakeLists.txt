@@ -73,9 +73,9 @@ nanobind_add_module(
   src/llvm/Core/iterator.cpp
   src/llvm/Core/miscClasses.cpp
 
-  
   src/llvm/ErrorHandling.cpp
   src/llvm/Utils.cpp
+  src/llvm/Support.cpp
   
   src/llvm/_types/PyModule.cpp
   src/llvm/_types/PyContext.cpp
@@ -131,12 +131,22 @@ nanobind_add_stub(
 )
 
 nanobind_add_stub(
+  llvmpym_ext_stub_support
+  MODULE llvmpym_ext.utils
+  OUTPUT support.pyi
+  PYTHON_PATH $<TARGET_FILE_DIR:llvmpym_ext>
+  DEPENDS llvmpym_ext
+)
+
+nanobind_add_stub(
   llvmpym_ext_stub_utils
   MODULE llvmpym_ext.utils
   OUTPUT utils.pyi
   PYTHON_PATH $<TARGET_FILE_DIR:llvmpym_ext>
   DEPENDS llvmpym_ext
 )
+
+
 
 # Install directive for scikit-build-core
 install(TARGETS llvmpym_ext LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME})

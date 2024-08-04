@@ -22,14 +22,11 @@ private:
   bool is_global_context;
 
   struct LLVMContextDeleter {
-    LLVMContextDeleter(const PyContext* parent) : parent(parent) {}
     void operator()(LLVMContextRef context) const;
-    
-    const PyContext* parent;
   };
 
   static std::shared_ptr<LLVMOpaqueContext> get_shared_context(LLVMContextRef context,
-   const PyContext* py_context);
+   bool is_global_context);
 
   static std::unordered_map<LLVMContextRef, std::weak_ptr<LLVMOpaqueContext>> context_map;
   static std::mutex map_mutex;

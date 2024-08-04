@@ -1,4 +1,6 @@
 #include <nanobind/nanobind.h>
+#include <llvm-c/Support.h>
+
 
 namespace nb = nanobind;
 using namespace nb::literals;
