@@ -80,6 +80,7 @@ Status
    "``Analysis.h``", "``core``, ``analysis``",
    "``ErrorHandling.h``", "``error_handling``"
    "``Support.h``", "``support``"
+   "``TargetMachine.h``", "``TargetMachine``"
    "", "``utils``"
 
 - All functions that operates on lambda functions(function pointers) is not bound 
