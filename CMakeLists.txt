@@ -57,6 +57,9 @@ add_definitions(${LLVM_DEFINITIONS_LIST})
 nanobind_add_module(
   llvmpym_ext
 
+  # Target the stable ABI for Python 3.12+, which reduces
+  # the number of binary wheels that must be built (but has small performance cost).
+  # This does nothing on older Python versions.
   STABLE_ABI
 
   NB_STATIC

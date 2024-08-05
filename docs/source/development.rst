@@ -69,6 +69,16 @@ To inherit from ``PyLLVMObject``:
 #. If you create new `.cpp` file, add it to ``nanobind_add_module`` function in
    ``CMakeLists.txt`` file.
 
+Class Naming Style
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+`Pym` is used as prefix instead of `Py` is because some Python internal object
+uses `Py` as their class prefix (e.g. `PyContext`). When build for Python version
+which doesn't support `stable abi <https://docs.python.org/3/c-api/stable.html>`_
+or not enabled (For ``llvmpym``, it's ``Python 311`` build), then NanoBind will
+emit error on compilation.
+
+   
 Add a new Iterator Class
 -------------------------
 

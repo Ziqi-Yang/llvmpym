@@ -4,7 +4,7 @@ Installation
 Requirements
 ------------
 
-- **Python 3.12+**
+- **Python 3.11+**
 - If you install this library through PyPI, then your system needs to also meet the following
   requirements, otherwise you need to manually build the library:
 
