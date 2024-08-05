@@ -21,7 +21,7 @@ void bindGlobalFunctions(nb::module_ &m) {
         "The version components are returned via the function's three output "
         "parameters or skipped if a NULL pointer was supplied.");
 
-  // NOTE these two functions seems useless in Python
+  // NOTE these two functions seems useless in Pymthon
   // m.def("create_message", &LLVMCreateMessage, "message"_a);
   // m.def("dispose_message", &LLVMDisposeMessage, "message"_a); // error, may need a wrapper for created message
 

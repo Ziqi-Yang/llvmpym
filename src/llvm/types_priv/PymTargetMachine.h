@@ -5,12 +5,12 @@
 #include <memory>
 #include <unordered_map>
 #include <mutex>
-#include "PyLLVMObject.h"
+#include "PymLLVMObject.h"
 #include "utils.h"
 
-class PyTargetMachine : public PyLLVMObject<PyTargetMachine, LLVMTargetMachineRef> {
+class PymTargetMachine : public PymLLVMObject<PymTargetMachine, LLVMTargetMachineRef> {
 public:
-  explicit PyTargetMachine(LLVMTargetMachineRef machine);
+  explicit PymTargetMachine(LLVMTargetMachineRef machine);
   LLVMTargetMachineRef get() const;
   
 private:

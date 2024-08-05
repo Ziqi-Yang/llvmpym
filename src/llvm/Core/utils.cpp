@@ -3,13 +3,13 @@
 #include <llvm-c/IRReader.h>
 #include <stdexcept>
 
-PyMetadataAsValue* getMoreSpcMetadataAsValue(LLVMValueRef raw) {
+PymMetadataAsValue* getMoreSpcMetadataAsValue(LLVMValueRef raw) {
   if (auto v = LLVMIsAMDNode(raw)) {
-    return new PyMDNodeValue(v);
+    return new PymMDNodeValue(v);
   } else if (auto v = LLVMIsAMDString(raw)) {
-    return new PyMDStringValue(v);
+    return new PymMDStringValue(v);
   } 
-  return new PyMetadataAsValue(raw);
+  return new PymMetadataAsValue(raw);
 }
 
 
@@ -20,70 +20,70 @@ PyMetadataAsValue* getMoreSpcMetadataAsValue(LLVMValueRef raw) {
  * 
  * @param Inst: should be of LLVMInstructionValueKind
  */
-PyInstruction* PyInstructionAuto(LLVMValueRef inst) {
+PymInstruction* PymInstructionAuto(LLVMValueRef inst) {
   LLVMOpcode opcode = LLVMGetInstructionOpcode(inst);
   switch (opcode) {
   case LLVMCall:
-    return new PyCallInst(inst);
+    return new PymCallInst(inst);
   case LLVMInvoke:
-    return new PyInvokeInst(inst);
+    return new PymInvokeInst(inst);
 
   case LLVMFCmp:
-    return new PyFCmpInst(inst);
+    return new PymFCmpInst(inst);
   case LLVMICmp:
-    return new PyICmpInst(inst);
+    return new PymICmpInst(inst);
   case LLVMGetElementPtr:
-    return new PyGetElementPtrInst(inst);
+    return new PymGetElementPtrInst(inst);
   case LLVMPHI:
-    return new PyPHINode(inst);
+    return new PymPHINode(inst);
   case LLVMShuffleVector:
-    return new PyShuffleVectorInst(inst);
+    return new PymShuffleVectorInst(inst);
   case LLVMRet:
-    return new PyReturnInst(inst);
+    return new PymReturnInst(inst);
   case LLVMSwitch:
-    return new PySwitchInst(inst);
+    return new PymSwitchInst(inst);
   case LLVMCatchSwitch:
-    return new PyCatchSwitchInst(inst);
+    return new PymCatchSwitchInst(inst);
   case LLVMCleanupRet:
-    return new PyCleanupReturnInst(inst);
-  // no kind corresponding to PyFuncletPadInst
+    return new PymCleanupReturnInst(inst);
+  // no kind corresponding to PymFuncletPadInst
   case LLVMCatchPad:
-    return new PyCatchPadInst(inst);
+    return new PymCatchPadInst(inst);
   case LLVMAlloca:
-    return new PyAllocaInst(inst);
+    return new PymAllocaInst(inst);
   case LLVMInsertValue:
-    return new PyInsertValueInst(inst);
+    return new PymInsertValueInst(inst);
   case LLVMExtractValue:
-    return new PyExtractValueInst(inst);
+    return new PymExtractValueInst(inst);
   case LLVMBr:
-    return new PyBranchInst(inst);
+    return new PymBranchInst(inst);
   case LLVMIndirectBr:
-    return new PyIndirectBrInst(inst);
+    return new PymIndirectBrInst(inst);
   case LLVMLandingPad:
-    return new PyLandingPadInst(inst);
+    return new PymLandingPadInst(inst);
   case LLVMLoad:
-    return new PyLoadInst(inst);
+    return new PymLoadInst(inst);
   case LLVMStore:
-    return new PyStoreInst(inst);
+    return new PymStoreInst(inst);
   case LLVMAtomicRMW:
-    return new PyAtomicRMWInst(inst);
+    return new PymAtomicRMWInst(inst);
   case LLVMAtomicCmpXchg:
-    return new PyAtomicCmpXchgInst(inst);
+    return new PymAtomicCmpXchgInst(inst);
   case LLVMFence:
-    return new PyFenceInst(inst);
+    return new PymFenceInst(inst);
 
   default:
-    return new PyInstruction(inst);
+    return new PymInstruction(inst);
   }
 }
 
 
 
-PyType* PyTypeAuto(LLVMTypeRef rawType) {
+PymType* PymTypeAuto(LLVMTypeRef rawType) {
   LLVMTypeKind kind = LLVMGetTypeKind(rawType);
   switch (kind) {
   case LLVMVoidTypeKind:
-    return new PyTypeVoid(rawType);
+    return new PymTypeVoid(rawType);
   case LLVMHalfTypeKind:
   case LLVMFloatTypeKind:
   case LLVMDoubleTypeKind:
@@ -91,35 +91,35 @@ PyType* PyTypeAuto(LLVMTypeRef rawType) {
   case LLVMFP128TypeKind:
   case LLVMPPC_FP128TypeKind:
   case LLVMBFloatTypeKind:
-    return new PyTypeReal(rawType);
+    return new PymTypeReal(rawType);
   case LLVMLabelTypeKind:
-    return new PyTypeLabel(rawType);
+    return new PymTypeLabel(rawType);
   case LLVMIntegerTypeKind:
-    return new PyTypeInt(rawType);
+    return new PymTypeInt(rawType);
   case LLVMFunctionTypeKind:
-    return new PyTypeFunction(rawType);
+    return new PymTypeFunction(rawType);
   case LLVMStructTypeKind:
-    return new PyTypeStruct(rawType);
+    return new PymTypeStruct(rawType);
   case LLVMArrayTypeKind:
-    return new PyTypeArray(rawType);
+    return new PymTypeArray(rawType);
   case LLVMPointerTypeKind:
-    return new PyTypePointer(rawType);
+    return new PymTypePointer(rawType);
   case LLVMVectorTypeKind:
-    return new PyTypeVector(rawType);
+    return new PymTypeVector(rawType);
   case LLVMMetadataTypeKind:
-    return new PyTypeMetadata(rawType);
+    return new PymTypeMetadata(rawType);
   case LLVMX86_MMXTypeKind:
-    return new PyTypeX86MMX(rawType);
+    return new PymTypeX86MMX(rawType);
   case LLVMTokenTypeKind:
-    return new PyTypeToken(rawType);
+    return new PymTypeToken(rawType);
   case LLVMScalableVectorTypeKind:
-    return new PyTypeVector(rawType);
+    return new PymTypeVector(rawType);
   case LLVMX86_AMXTypeKind:
-    return new PyTypeX86AMX(rawType);
+    return new PymTypeX86AMX(rawType);
   case LLVMTargetExtTypeKind:
-    return new PyTypeTargetExt(rawType);
+    return new PymTypeTargetExt(rawType);
   default:
-    return new PyType(rawType);
+    return new PymType(rawType);
   }
 }
 
@@ -127,78 +127,78 @@ PyType* PyTypeAuto(LLVMTypeRef rawType) {
  * It seems like the enum type doesn't cover all the sub-classes,
  * so user may still need to do a manual cast using `to_XXX` method
  */
-PyValue* PyValueAuto(LLVMValueRef rawValue) {
+PymValue* PymValueAuto(LLVMValueRef rawValue) {
   LLVMValueKind kind = LLVMGetValueKind(rawValue);
   switch (kind) {
   case LLVMArgumentValueKind:
-    return new PyArgument(rawValue);
+    return new PymArgument(rawValue);
   case LLVMBasicBlockValueKind:
-    return new PyBasicBlockValue(rawValue);
+    return new PymBasicBlockValue(rawValue);
   // case LLVMMemoryUseValueKind:
   // case LLVMMemoryDefValueKind:
   // case LLVMMemoryPhiValueKind:
 
   case LLVMFunctionValueKind:
-    return new PyFunction(rawValue);
+    return new PymFunction(rawValue);
   case LLVMGlobalAliasValueKind:
-    return new PyGlobalAlias(rawValue);
+    return new PymGlobalAlias(rawValue);
   case LLVMGlobalIFuncValueKind:
-    return new PyGlobalIFunc(rawValue);
+    return new PymGlobalIFunc(rawValue);
   case LLVMGlobalVariableValueKind:
-    return new PyGlobalVariable(rawValue);
+    return new PymGlobalVariable(rawValue);
   // case LLVMBlockAddressValueKind:
   case LLVMConstantExprValueKind:
-    return new PyConstantExpr(rawValue);
+    return new PymConstantExpr(rawValue);
   case LLVMConstantArrayValueKind:
-    return new PyConstantArray(rawValue);
+    return new PymConstantArray(rawValue);
   case LLVMConstantStructValueKind:
-    return new PyConstantStruct(rawValue);
+    return new PymConstantStruct(rawValue);
   case LLVMConstantVectorValueKind:
-    return new PyConstantVector(rawValue);
+    return new PymConstantVector(rawValue);
 
   case LLVMUndefValueValueKind:
-    return new PyUndefValue(rawValue);
+    return new PymUndefValue(rawValue);
   case LLVMConstantDataArrayValueKind:
-    return new PyConstantDataArray(rawValue);
+    return new PymConstantDataArray(rawValue);
   case LLVMConstantDataVectorValueKind:
-    return new PyConstantDataVector(rawValue);
+    return new PymConstantDataVector(rawValue);
   case LLVMConstantIntValueKind:
-    return new PyConstantInt(rawValue);
+    return new PymConstantInt(rawValue);
   case LLVMConstantFPValueKind:
-    return new PyConstantFP(rawValue);
+    return new PymConstantFP(rawValue);
   case LLVMConstantTokenNoneValueKind:
   case LLVMConstantAggregateZeroValueKind:
   case LLVMConstantPointerNullValueKind:
-    return new PyConstant(rawValue);
+    return new PymConstant(rawValue);
 
   case LLVMMetadataAsValueValueKind:
     return getMoreSpcMetadataAsValue(rawValue);
   case LLVMInlineAsmValueKind:
-    return new PyInlineAsm(rawValue);
+    return new PymInlineAsm(rawValue);
 
   case LLVMInstructionValueKind:
-    return PyInstructionAuto(rawValue);
+    return PymInstructionAuto(rawValue);
   case LLVMPoisonValueValueKind:
-    return new PyPoisonValue(rawValue);
+    return new PymPoisonValue(rawValue);
   // case LLVMConstantTargetNoneValueKind: // 
   default:
-    return new PyValue(rawValue);
+    return new PymValue(rawValue);
   }
 }
 
-PyAttribute* PyAttributeAuto(LLVMAttributeRef rawValue) {
+PymAttribute* PymAttributeAuto(LLVMAttributeRef rawValue) {
   if (LLVMIsEnumAttribute(rawValue)) {
-    return new PyEnumAttribute(rawValue);
+    return new PymEnumAttribute(rawValue);
   } else if (LLVMIsStringAttribute(rawValue)) {
-    return new PyStringAttribute(rawValue);
+    return new PymStringAttribute(rawValue);
   } else if (LLVMIsTypeAttribute(rawValue)) {
-    return new PyTypeAttribute(rawValue);
+    return new PymTypeAttribute(rawValue);
   } else {
-    return new PyAttribute(rawValue);
+    return new PymAttribute(rawValue);
   }
 }
 
-PyModule parseIR(LLVMContextRef ctx, LLVMMemoryBufferRef memBuf) {
+PymModule parseIR(LLVMContextRef ctx, LLVMMemoryBufferRef memBuf) {
   LLVMModuleRef m = nullptr;
   char *errMsg = nullptr;
   bool success = LLVMParseIRInContext(ctx, memBuf, &m, &errMsg) == 0;
@@ -211,5 +211,5 @@ PyModule parseIR(LLVMContextRef ctx, LLVMMemoryBufferRef memBuf) {
     throw std::runtime_error(errorMessage);
   }
 
-  return PyModule(m);
+  return PymModule(m);
 }

@@ -6,14 +6,14 @@
 #include <unordered_map>
 #include <mutex>
 #include <string>
-#include "PyLLVMObject.h"
+#include "PymLLVMObject.h"
 #include "utils.h"
 
-class PyModule : public PyLLVMObject<PyModule, LLVMModuleRef> {
+class PymModule : public PymLLVMObject<PymModule, LLVMModuleRef> {
 public:
-  explicit PyModule(const std::string &id);
-  explicit PyModule(const std::string &id, LLVMContextRef context);
-  explicit PyModule(LLVMModuleRef module);
+  explicit PymModule(const std::string &id);
+  explicit PymModule(const std::string &id, LLVMContextRef context);
+  explicit PymModule(LLVMModuleRef module);
 
   LLVMModuleRef get() const;
 

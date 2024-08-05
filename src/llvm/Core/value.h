@@ -6,22 +6,22 @@
 
 #define PY_DECLARE_VALUE_CAST(name) \
   .def("to_" #name, \
-       [](PyValue &v) -> std::optional<PyValue *> { \
+       [](PymValue &v) -> std::optional<PymValue *> { \
          auto res = LLVMIsA##name(v.get()); \
          if (res) \
-           return PyValueAuto(res); \
+           return PymValueAuto(res); \
          return std::nullopt; \
        }, \
        "Origin function: LLVMIsA" #name "\n\n" \
        "None means conversion failed.\n\n" \
        "Note if the target class is not supported in python binding, then it will " \
-       "return a generic PyValue type object") 
+       "return a generic PymValue type object") 
 
 
 #define CONSTANT_EXPR_BIND_BINARY_OP(NAME, FUNCTION) \
   .def_static(#NAME, \
-      [](PyConstant &lhs, PyConstant &rhs) { \
-        return PyValueAuto(FUNCTION(lhs.get(), rhs.get())); \
+      [](PymConstant &lhs, PymConstant &rhs) { \
+        return PymValueAuto(FUNCTION(lhs.get(), rhs.get())); \
       }, \
       "lhs"_a, "rhs"_a)
   

@@ -13,7 +13,7 @@ using namespace nb::literals;
 
 
 NB_MODULE(llvmpym_ext, m) {
-  m.doc() = "LLVM Python Native Extension";
+  m.doc() = "LLVM Pymthon Native Extension";
   
   BIND_PYLLVMOBJECT();
   

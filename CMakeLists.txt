@@ -80,17 +80,17 @@ nanobind_add_module(
   src/llvm/Target.cpp
   src/llvm/TargetMachine.cpp
   
-  src/llvm/types_priv/PyModule.cpp
-  src/llvm/types_priv/PyContext.cpp
-  src/llvm/types_priv/PyMetadataEntries.cpp
-  src/llvm/types_priv/PyModuleFlagEntries.cpp
-  src/llvm/types_priv/PyOperandBundle.cpp
-  src/llvm/types_priv/PyPassManagerBase.cpp
-  src/llvm/types_priv/PyMemoryBuffer.cpp
-  src/llvm/types_priv/PyModuleProvider.cpp
-  src/llvm/types_priv/PyTargetData.cpp
-  src/llvm/types_priv/PyTargetMachine.cpp
-  src/llvm/types_priv/PyTargetMachineOptions.cpp
+  src/llvm/types_priv/PymModule.cpp
+  src/llvm/types_priv/PymContext.cpp
+  src/llvm/types_priv/PymMetadataEntries.cpp
+  src/llvm/types_priv/PymModuleFlagEntries.cpp
+  src/llvm/types_priv/PymOperandBundle.cpp
+  src/llvm/types_priv/PymPassManagerBase.cpp
+  src/llvm/types_priv/PymMemoryBuffer.cpp
+  src/llvm/types_priv/PymModuleProvider.cpp
+  src/llvm/types_priv/PymTargetData.cpp
+  src/llvm/types_priv/PymTargetMachine.cpp
+  src/llvm/types_priv/PymTargetMachineOptions.cpp
  
   ${LLVM_INCLUDE_DIRS}
 )

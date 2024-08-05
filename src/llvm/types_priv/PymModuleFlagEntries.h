@@ -5,14 +5,14 @@
 #include <memory>
 #include <unordered_map>
 #include <mutex>
-#include "PyLLVMObject.h"
+#include "PymLLVMObject.h"
 #include "utils.h"
 
 typedef LLVMModuleFlagEntry *LLVMModuleFlagEntries;
 
-class PyModuleFlagEntries : public PyLLVMObject<PyModuleFlagEntries, LLVMModuleFlagEntries>{
+class PymModuleFlagEntries : public PymLLVMObject<PymModuleFlagEntries, LLVMModuleFlagEntries>{
 public:
-  explicit PyModuleFlagEntries(LLVMModuleFlagEntries entries, size_t len);
+  explicit PymModuleFlagEntries(LLVMModuleFlagEntries entries, size_t len);
   LLVMModuleFlagEntries get() const;
   size_t getLen() const;
 

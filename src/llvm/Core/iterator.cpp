@@ -6,15 +6,15 @@ using namespace nb::literals;
 
 
 void bindIterators(nb::module_ &m) {
-  BIND_ITERATOR_CLASS(PyUseIterator, "UseIterator")
-  // BIND_ITERATOR_CLASS(PyBasicBlockIterator, "BasicBlockIterator")
-  // BIND_ITERATOR_CLASS(PyArgumentIterator, "ArgumentIterator")
-  BIND_ITERATOR_CLASS(PyInstructionIterator, "InstructionIterator")
-  BIND_ITERATOR_CLASS(PyGlobalVariableIterator, "GlobalVariableIterator")
-  BIND_ITERATOR_CLASS(PyGlobalIFuncIterator, "GlobalIFuncIterator")
-  BIND_ITERATOR_CLASS(PyGlobalAliasIterator, "GlobalAliasIterator")
-  BIND_ITERATOR_CLASS(PyNamedMDNodeIterator, "NamedMDNodeIterator")
-  BIND_ITERATOR_CLASS(PyFunctionIterator, "FunctionIterator")
+  BIND_ITERATOR_CLASS(PymUseIterator, "UseIterator")
+  // BIND_ITERATOR_CLASS(PymBasicBlockIterator, "BasicBlockIterator")
+  // BIND_ITERATOR_CLASS(PymArgumentIterator, "ArgumentIterator")
+  BIND_ITERATOR_CLASS(PymInstructionIterator, "InstructionIterator")
+  BIND_ITERATOR_CLASS(PymGlobalVariableIterator, "GlobalVariableIterator")
+  BIND_ITERATOR_CLASS(PymGlobalIFuncIterator, "GlobalIFuncIterator")
+  BIND_ITERATOR_CLASS(PymGlobalAliasIterator, "GlobalAliasIterator")
+  BIND_ITERATOR_CLASS(PymNamedMDNodeIterator, "NamedMDNodeIterator")
+  BIND_ITERATOR_CLASS(PymFunctionIterator, "FunctionIterator")
 }
 
 

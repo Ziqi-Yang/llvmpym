@@ -14,22 +14,22 @@
 #include <unordered_map>
 #include <mutex>
 
-#include "types_priv/PyModule.h"
-#include "types_priv/PyContext.h"
-#include "types_priv/PyMetadataEntries.h"
-#include "types_priv/PyModuleFlagEntries.h"
-#include "types_priv/PyOperandBundle.h"
-#include "types_priv/PyPassManagerBase.h"
-#include "types_priv/PyMemoryBuffer.h"
-#include "types_priv/PyModuleProvider.h"
-#include "types_priv/PyTargetData.h"
-#include "types_priv/PyTargetMachine.h"
-#include "types_priv/PyTargetMachineOptions.h"
-#include "types_priv/PyLLVMObject.h"
+#include "types_priv/PymModule.h"
+#include "types_priv/PymContext.h"
+#include "types_priv/PymMetadataEntries.h"
+#include "types_priv/PymModuleFlagEntries.h"
+#include "types_priv/PymOperandBundle.h"
+#include "types_priv/PymPassManagerBase.h"
+#include "types_priv/PymMemoryBuffer.h"
+#include "types_priv/PymModuleProvider.h"
+#include "types_priv/PymTargetData.h"
+#include "types_priv/PymTargetMachine.h"
+#include "types_priv/PymTargetMachineOptions.h"
+#include "types_priv/PymLLVMObject.h"
 
 
 #define DEFINE_PY_WRAPPER_CLASS(ClassName, UnderlyingType) \
-  class ClassName: public PyLLVMObject<ClassName, UnderlyingType> { \
+  class ClassName: public PymLLVMObject<ClassName, UnderlyingType> { \
   public: \
     explicit ClassName(UnderlyingType raw) \
     : raw(raw) {} \
@@ -43,7 +43,7 @@
   };
 
 #define DEFINE_PY_WRAPPER_CLASS_POLYMORPHIC(ClassName, UnderlyingType) \
-  class ClassName: public PyLLVMObject<ClassName, UnderlyingType> { \
+  class ClassName: public PymLLVMObject<ClassName, UnderlyingType> { \
   public: \
     virtual ~ClassName() = default; \
     explicit ClassName(UnderlyingType raw) \
@@ -162,95 +162,95 @@
 // e.g.
 // CallBase => CallInst & InvokeInst (refers to LLVM implementation code)
 // NOTE
-// rename python side name of PyBasicBlock to BasicBlockValue to avoid collision
-// with PyBasicBlockWrapper
+// rename python side name of PymBasicBlock to BasicBlockValue to avoid collision
+// with PymBasicBlockWrapper
 #define PY_FOR_EACH_VALUE_CLASS_RELATIONSHIP(macro) \
-  macro(PyValue, PyMetadataAsValue) \
-  macro(PyMetadataAsValue, PyMDNodeValue) \
-  macro(PyMetadataAsValue, PyValueAsMetadataValue) \
-  macro(PyMetadataAsValue, PyMDStringValue) \
-  macro(PyValue, PyArgument) \
-  macro(PyValue, PyBasicBlockValue) \
-  macro(PyValue, PyInlineAsm) \
-  macro(PyValue, PyUser) \
-    macro(PyUser, PyConstant) \
-      macro(PyConstant, PyConstantArray) \
-      macro(PyConstant, PyConstantDataSequential) \
-      macro(PyConstantDataSequential, PyConstantDataArray) \
-      macro(PyConstantDataSequential, PyConstantDataVector) \
-      macro(PyConstant, PyConstantExpr) \
-      macro(PyConstant, PyConstantFP) \
-      macro(PyConstant, PyConstantInt) \
-      macro(PyConstant, PyConstantStruct) \
-      macro(PyConstant, PyConstantVector) \
-      macro(PyConstant, PyGlobalValue) \
-        macro(PyGlobalValue, PyGlobalAlias) \
-        macro(PyGlobalValue, PyGlobalObject) \
-          macro(PyGlobalObject, PyFunction) \
-          macro(PyGlobalObject, PyGlobalVariable) \
-          macro(PyGlobalObject, PyGlobalIFunc) \
-      macro(PyConstant, PyUndefValue) \
-      macro(PyConstant, PyPoisonValue) \
-    macro(PyUser, PyInstruction) \
-      macro(PyInstruction, PyCallBase) \
-        macro(PyCallBase, PyCallInst) \
-        macro(PyCallBase, PyInvokeInst) \
-      macro(PyInstruction, PyFCmpInst) \
-      macro(PyInstruction, PyICmpInst) \
-      macro(PyInstruction, PyGetElementPtrInst) \
-      macro(PyInstruction, PyPHINode) \
-      macro(PyInstruction, PyShuffleVectorInst) \
-      macro(PyInstruction, PyReturnInst) \
-      macro(PyInstruction, PySwitchInst) \
-      macro(PyInstruction, PyCatchSwitchInst) \
-      macro(PyInstruction, PyCleanupReturnInst) \
-      macro(PyInstruction, PyFuncletPadInst) \
-        macro(PyFuncletPadInst, PyCatchPadInst) \
-      macro(PyInstruction, PyAllocaInst) \
-      macro(PyInstruction, PyIEValueInstBase) \
-        macro(PyIEValueInstBase, PyInsertValueInst) \
-        macro(PyIEValueInstBase, PyExtractValueInst) \
-      macro(PyInstruction, PyBranchInst) \
-      macro(PyInstruction, PyIndirectBrInst) \
-      macro(PyInstruction, PyLandingPadInst) \
-      macro(PyInstruction, PyLoadInst) \
-      macro(PyInstruction, PyStoreInst) \
-      macro(PyInstruction, PyAtomicRMWInst) \
-      macro(PyInstruction, PyAtomicCmpXchgInst) \
-      macro(PyInstruction, PyFenceInst)
+  macro(PymValue, PymMetadataAsValue) \
+  macro(PymMetadataAsValue, PymMDNodeValue) \
+  macro(PymMetadataAsValue, PymValueAsMetadataValue) \
+  macro(PymMetadataAsValue, PymMDStringValue) \
+  macro(PymValue, PymArgument) \
+  macro(PymValue, PymBasicBlockValue) \
+  macro(PymValue, PymInlineAsm) \
+  macro(PymValue, PymUser) \
+    macro(PymUser, PymConstant) \
+      macro(PymConstant, PymConstantArray) \
+      macro(PymConstant, PymConstantDataSequential) \
+      macro(PymConstantDataSequential, PymConstantDataArray) \
+      macro(PymConstantDataSequential, PymConstantDataVector) \
+      macro(PymConstant, PymConstantExpr) \
+      macro(PymConstant, PymConstantFP) \
+      macro(PymConstant, PymConstantInt) \
+      macro(PymConstant, PymConstantStruct) \
+      macro(PymConstant, PymConstantVector) \
+      macro(PymConstant, PymGlobalValue) \
+        macro(PymGlobalValue, PymGlobalAlias) \
+        macro(PymGlobalValue, PymGlobalObject) \
+          macro(PymGlobalObject, PymFunction) \
+          macro(PymGlobalObject, PymGlobalVariable) \
+          macro(PymGlobalObject, PymGlobalIFunc) \
+      macro(PymConstant, PymUndefValue) \
+      macro(PymConstant, PymPoisonValue) \
+    macro(PymUser, PymInstruction) \
+      macro(PymInstruction, PymCallBase) \
+        macro(PymCallBase, PymCallInst) \
+        macro(PymCallBase, PymInvokeInst) \
+      macro(PymInstruction, PymFCmpInst) \
+      macro(PymInstruction, PymICmpInst) \
+      macro(PymInstruction, PymGetElementPtrInst) \
+      macro(PymInstruction, PymPHINode) \
+      macro(PymInstruction, PymShuffleVectorInst) \
+      macro(PymInstruction, PymReturnInst) \
+      macro(PymInstruction, PymSwitchInst) \
+      macro(PymInstruction, PymCatchSwitchInst) \
+      macro(PymInstruction, PymCleanupReturnInst) \
+      macro(PymInstruction, PymFuncletPadInst) \
+        macro(PymFuncletPadInst, PymCatchPadInst) \
+      macro(PymInstruction, PymAllocaInst) \
+      macro(PymInstruction, PymIEValueInstBase) \
+        macro(PymIEValueInstBase, PymInsertValueInst) \
+        macro(PymIEValueInstBase, PymExtractValueInst) \
+      macro(PymInstruction, PymBranchInst) \
+      macro(PymInstruction, PymIndirectBrInst) \
+      macro(PymInstruction, PymLandingPadInst) \
+      macro(PymInstruction, PymLoadInst) \
+      macro(PymInstruction, PymStoreInst) \
+      macro(PymInstruction, PymAtomicRMWInst) \
+      macro(PymInstruction, PymAtomicCmpXchgInst) \
+      macro(PymInstruction, PymFenceInst)
 
 #define PY_FOR_EACH_TYPE_CLASS_RELASIONSHIP(macro) \
-  macro(PyType, PyTypeInt) \
-  macro(PyType, PyTypeReal) \
-  macro(PyType, PyTypeFunction) \
-  macro(PyType, PyTypeStruct) \
-  macro(PyType, PyTypeSequence) \
-    macro(PyTypeSequence, PyTypeArray) \
-    macro(PyTypeSequence, PyTypePointer) \
-    macro(PyTypeSequence, PyTypeVector) \
-  macro(PyType, PyTypeVoid) \
-  macro(PyType, PyTypeLabel) \
-  macro(PyType, PyTypeX86MMX) \
-  macro(PyType, PyTypeX86AMX) \
-  macro(PyType, PyTypeToken) \
-  macro(PyType, PyTypeMetadata) \
-  macro(PyType, PyTypeTargetExt) 
+  macro(PymType, PymTypeInt) \
+  macro(PymType, PymTypeReal) \
+  macro(PymType, PymTypeFunction) \
+  macro(PymType, PymTypeStruct) \
+  macro(PymType, PymTypeSequence) \
+    macro(PymTypeSequence, PymTypeArray) \
+    macro(PymTypeSequence, PymTypePointer) \
+    macro(PymTypeSequence, PymTypeVector) \
+  macro(PymType, PymTypeVoid) \
+  macro(PymType, PymTypeLabel) \
+  macro(PymType, PymTypeX86MMX) \
+  macro(PymType, PymTypeX86AMX) \
+  macro(PymType, PymTypeToken) \
+  macro(PymType, PymTypeMetadata) \
+  macro(PymType, PymTypeTargetExt) 
 
 
-#define BIND_PYLLVMOBJECT_(ClassName, UnderlyingType, PyClassName) \
-  nb::class_<PyLLVMObject<ClassName, UnderlyingType>> \
-      (m, #PyClassName, "The base class.") \
-      .def("__bool__", &PyLLVMObject<ClassName, UnderlyingType>::__bool__) \
-      .def("__eq__", &PyLLVMObject<ClassName, UnderlyingType>::__equal__) \
-      .def("__hash__", &PyLLVMObject<ClassName, UnderlyingType>::__hash__);
+#define BIND_PYLLVMOBJECT_(ClassName, UnderlyingType, PymClassName) \
+  nb::class_<PymLLVMObject<ClassName, UnderlyingType>> \
+      (m, #PymClassName, "The base class.") \
+      .def("__bool__", &PymLLVMObject<ClassName, UnderlyingType>::__bool__) \
+      .def("__eq__", &PymLLVMObject<ClassName, UnderlyingType>::__equal__) \
+      .def("__hash__", &PymLLVMObject<ClassName, UnderlyingType>::__hash__);
 
 
-enum class PyAttributeIndex {
+enum class PymAttributeIndex {
   Return = LLVMAttributeReturnIndex,
   Function = LLVMAttributeFunctionIndex
 };
 
-enum class PyLLVMFastMathFlags {
+enum class PymLLVMFastMathFlags {
   AllowReassoc = LLVMFastMathAllowReassoc,
   NoNaNs = LLVMFastMathNoNaNs,
   NoInfs = LLVMFastMathNoInfs,
@@ -264,70 +264,70 @@ enum class PyLLVMFastMathFlags {
 
 /*
  * Check three places: here, class inheritance, binding class inheritance
- * NOTE the `__bool__` method of PyIntrinsic is overridden
+ * NOTE the `__bool__` method of PymIntrinsic is overridden
  */
 #define BIND_PYLLVMOBJECT() \
-  BIND_PYLLVMOBJECT_(PyValue, LLVMValueRef, PyValueObject) \
-  BIND_PYLLVMOBJECT_(PyType, LLVMTypeRef, PyTypeObject) \
-  BIND_PYLLVMOBJECT_(PyDiagnosticInfo, LLVMDiagnosticInfoRef, PyDiagnosticInfoObject) \
-  BIND_PYLLVMOBJECT_(PyAttribute, LLVMAttributeRef, PyAttributeObject) \
-  BIND_PYLLVMOBJECT_(PyNamedMDNode, LLVMNamedMDNodeRef, PyNamedMDNodeObject) \
-  BIND_PYLLVMOBJECT_(PyUse, LLVMUseRef, PyUseObject) \
-  BIND_PYLLVMOBJECT_(PyBasicBlock, LLVMBasicBlockRef, PyBasicBlockObject) \
-  BIND_PYLLVMOBJECT_(PyBuilder, LLVMBuilderRef, PyBuilderObject) \
-  BIND_PYLLVMOBJECT_(PyMetadata, LLVMMetadataRef, PyMetadataObject) \
-  BIND_PYLLVMOBJECT_(PyIntrinsic, unsigned, PyIntrinsicObject) \
+  BIND_PYLLVMOBJECT_(PymValue, LLVMValueRef, PymValueObject) \
+  BIND_PYLLVMOBJECT_(PymType, LLVMTypeRef, PymTypeObject) \
+  BIND_PYLLVMOBJECT_(PymDiagnosticInfo, LLVMDiagnosticInfoRef, PymDiagnosticInfoObject) \
+  BIND_PYLLVMOBJECT_(PymAttribute, LLVMAttributeRef, PymAttributeObject) \
+  BIND_PYLLVMOBJECT_(PymNamedMDNode, LLVMNamedMDNodeRef, PymNamedMDNodeObject) \
+  BIND_PYLLVMOBJECT_(PymUse, LLVMUseRef, PymUseObject) \
+  BIND_PYLLVMOBJECT_(PymBasicBlock, LLVMBasicBlockRef, PymBasicBlockObject) \
+  BIND_PYLLVMOBJECT_(PymBuilder, LLVMBuilderRef, PymBuilderObject) \
+  BIND_PYLLVMOBJECT_(PymMetadata, LLVMMetadataRef, PymMetadataObject) \
+  BIND_PYLLVMOBJECT_(PymIntrinsic, unsigned, PymIntrinsicObject) \
 \
-  BIND_PYLLVMOBJECT_(PyContext, LLVMContextRef, PyContextObject) \
-  BIND_PYLLVMOBJECT_(PyMemoryBuffer, LLVMMemoryBufferRef, PyMemoryBufferObject) \
-  BIND_PYLLVMOBJECT_(PyMetadataEntries, LLVMValueMetadataEntries, PyMetadataEntriesObject) \
-  BIND_PYLLVMOBJECT_(PyModuleFlagEntries, LLVMModuleFlagEntries, PyModuleFlagEntriesObject) \
-  BIND_PYLLVMOBJECT_(PyModule, LLVMModuleRef, PyModuleObject) \
-  BIND_PYLLVMOBJECT_(PyModuleProvider, LLVMModuleProviderRef, PyModuleProviderObject) \
-  BIND_PYLLVMOBJECT_(PyOperandBundle, LLVMOperandBundleRef, PyOperandBundleObject) \
-  BIND_PYLLVMOBJECT_(PyPassManagerBase, LLVMPassManagerRef, PyPassManagerBaseObject) \
+  BIND_PYLLVMOBJECT_(PymContext, LLVMContextRef, PymContextObject) \
+  BIND_PYLLVMOBJECT_(PymMemoryBuffer, LLVMMemoryBufferRef, PymMemoryBufferObject) \
+  BIND_PYLLVMOBJECT_(PymMetadataEntries, LLVMValueMetadataEntries, PymMetadataEntriesObject) \
+  BIND_PYLLVMOBJECT_(PymModuleFlagEntries, LLVMModuleFlagEntries, PymModuleFlagEntriesObject) \
+  BIND_PYLLVMOBJECT_(PymModule, LLVMModuleRef, PymModuleObject) \
+  BIND_PYLLVMOBJECT_(PymModuleProvider, LLVMModuleProviderRef, PymModuleProviderObject) \
+  BIND_PYLLVMOBJECT_(PymOperandBundle, LLVMOperandBundleRef, PymOperandBundleObject) \
+  BIND_PYLLVMOBJECT_(PymPassManagerBase, LLVMPassManagerRef, PymPassManagerBaseObject) \
 \
-  BIND_PYLLVMOBJECT_(PyTarget, LLVMTargetRef, PyTargetObject) \
-  BIND_PYLLVMOBJECT_(PyTargetMachine, LLVMTargetMachineRef, PyTargetMachineObject) \
-  BIND_PYLLVMOBJECT_(PyTargetMachineOptions, LLVMTargetMachineOptionsRef, \
-    PyTargetMachineOptionsObject) \
+  BIND_PYLLVMOBJECT_(PymTarget, LLVMTargetRef, PymTargetObject) \
+  BIND_PYLLVMOBJECT_(PymTargetMachine, LLVMTargetMachineRef, PymTargetMachineObject) \
+  BIND_PYLLVMOBJECT_(PymTargetMachineOptions, LLVMTargetMachineOptionsRef, \
+    PymTargetMachineOptionsObject) \
 \
-  BIND_PYLLVMOBJECT_(PyTargetData, LLVMTargetDataRef, PyTargetDataObject)
+  BIND_PYLLVMOBJECT_(PymTargetData, LLVMTargetDataRef, PymTargetDataObject)
 
 
 // Core --------------------------------------------------------
 
  
 
-DEFINE_PY_WRAPPER_CLASS_POLYMORPHIC(PyValue, LLVMValueRef)
-DEFINE_PY_WRAPPER_CLASS_POLYMORPHIC(PyType, LLVMTypeRef)
-DEFINE_PY_WRAPPER_CLASS(PyDiagnosticInfo, LLVMDiagnosticInfoRef)
-DEFINE_PY_WRAPPER_CLASS_POLYMORPHIC(PyAttribute, LLVMAttributeRef)
-DEFINE_PY_WRAPPER_CLASS(PyNamedMDNode, LLVMNamedMDNodeRef)
-DEFINE_PY_WRAPPER_CLASS(PyUse, LLVMUseRef)
-DEFINE_PY_WRAPPER_CLASS(PyBasicBlock, LLVMBasicBlockRef)
-DEFINE_PY_WRAPPER_CLASS(PyBuilder, LLVMBuilderRef)
+DEFINE_PY_WRAPPER_CLASS_POLYMORPHIC(PymValue, LLVMValueRef)
+DEFINE_PY_WRAPPER_CLASS_POLYMORPHIC(PymType, LLVMTypeRef)
+DEFINE_PY_WRAPPER_CLASS(PymDiagnosticInfo, LLVMDiagnosticInfoRef)
+DEFINE_PY_WRAPPER_CLASS_POLYMORPHIC(PymAttribute, LLVMAttributeRef)
+DEFINE_PY_WRAPPER_CLASS(PymNamedMDNode, LLVMNamedMDNodeRef)
+DEFINE_PY_WRAPPER_CLASS(PymUse, LLVMUseRef)
+DEFINE_PY_WRAPPER_CLASS(PymBasicBlock, LLVMBasicBlockRef)
+DEFINE_PY_WRAPPER_CLASS(PymBuilder, LLVMBuilderRef)
 
-DEFINE_PY_WRAPPER_CLASS(PyMetadata, LLVMMetadataRef)
+DEFINE_PY_WRAPPER_CLASS(PymMetadata, LLVMMetadataRef)
 
-DEFINE_DIRECT_SUB_CLASS(PyMetadata, PyMDNode)
-DEFINE_DIRECT_SUB_CLASS(PyMetadata, PyValueAsMetadata)
-DEFINE_DIRECT_SUB_CLASS(PyMetadata, PyMDString)
+DEFINE_DIRECT_SUB_CLASS(PymMetadata, PymMDNode)
+DEFINE_DIRECT_SUB_CLASS(PymMetadata, PymValueAsMetadata)
+DEFINE_DIRECT_SUB_CLASS(PymMetadata, PymMDString)
 
 
-DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyEnumAttribute);
-DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyTypeAttribute);
-DEFINE_DIRECT_SUB_CLASS(PyAttribute, PyStringAttribute);
+DEFINE_DIRECT_SUB_CLASS(PymAttribute, PymEnumAttribute);
+DEFINE_DIRECT_SUB_CLASS(PymAttribute, PymTypeAttribute);
+DEFINE_DIRECT_SUB_CLASS(PymAttribute, PymStringAttribute);
 
 PY_FOR_EACH_VALUE_CLASS_RELATIONSHIP(DEFINE_DIRECT_SUB_CLASS)
 PY_FOR_EACH_TYPE_CLASS_RELASIONSHIP(DEFINE_DIRECT_SUB_CLASS)
 
-DEFINE_PY_WRAPPER_CLASS(PyIntrinsic, unsigned)
+DEFINE_PY_WRAPPER_CLASS(PymIntrinsic, unsigned)
 
 
 
-DEFINE_DIRECT_SUB_CLASS(PyPassManagerBase, PyPassManager);
-DEFINE_DIRECT_SUB_CLASS(PyPassManagerBase, PyFunctionPassManager);
+DEFINE_DIRECT_SUB_CLASS(PymPassManagerBase, PymPassManager);
+DEFINE_DIRECT_SUB_CLASS(PymPassManagerBase, PymFunctionPassManager);
 
 
 #define DEFINE_ITERATOR_CLASS(TypeName, UnderlyingType, GetNextFn) \
@@ -351,8 +351,8 @@ DEFINE_DIRECT_SUB_CLASS(PyPassManagerBase, PyFunctionPassManager);
     UnderlyingType val; \
   };
 
-#define BIND_ITERATOR_CLASS(ClassName, PythonClassName) \
-  nanobind::class_<ClassName>(m, PythonClassName, PythonClassName) \
+#define BIND_ITERATOR_CLASS(ClassName, PymthonClassName) \
+  nanobind::class_<ClassName>(m, PymthonClassName, PymthonClassName) \
   .def("__iter__", [](ClassName &self) { return self; }) \
   .def("__next__", &ClassName::next);
 
@@ -360,22 +360,22 @@ DEFINE_DIRECT_SUB_CLASS(PyPassManagerBase, PyFunctionPassManager);
 
 
 
-DEFINE_ITERATOR_CLASS(PyUseIterator, PyUse, LLVMGetNextUse)
-// DEFINE_ITERATOR_CLASS(PyBasicBlockIterator, PyBasicBlock, LLVMGetNextBasicBlock)
-// DEFINE_ITERATOR_CLASS(PyArgumentIterator, PyArgument, LLVMGetNextParam)
-DEFINE_ITERATOR_CLASS(PyInstructionIterator, PyInstruction, LLVMGetNextInstruction)
-DEFINE_ITERATOR_CLASS(PyGlobalVariableIterator, PyGlobalVariable, LLVMGetNextGlobal)
-DEFINE_ITERATOR_CLASS(PyGlobalIFuncIterator, PyGlobalIFunc, LLVMGetNextGlobalIFunc)
-DEFINE_ITERATOR_CLASS(PyGlobalAliasIterator, PyGlobalAlias, LLVMGetNextGlobalAlias)
-DEFINE_ITERATOR_CLASS(PyNamedMDNodeIterator, PyNamedMDNode, LLVMGetNextNamedMetadata)
-DEFINE_ITERATOR_CLASS(PyFunctionIterator, PyFunction, LLVMGetNextFunction)
+DEFINE_ITERATOR_CLASS(PymUseIterator, PymUse, LLVMGetNextUse)
+// DEFINE_ITERATOR_CLASS(PymBasicBlockIterator, PymBasicBlock, LLVMGetNextBasicBlock)
+// DEFINE_ITERATOR_CLASS(PymArgumentIterator, PymArgument, LLVMGetNextParam)
+DEFINE_ITERATOR_CLASS(PymInstructionIterator, PymInstruction, LLVMGetNextInstruction)
+DEFINE_ITERATOR_CLASS(PymGlobalVariableIterator, PymGlobalVariable, LLVMGetNextGlobal)
+DEFINE_ITERATOR_CLASS(PymGlobalIFuncIterator, PymGlobalIFunc, LLVMGetNextGlobalIFunc)
+DEFINE_ITERATOR_CLASS(PymGlobalAliasIterator, PymGlobalAlias, LLVMGetNextGlobalAlias)
+DEFINE_ITERATOR_CLASS(PymNamedMDNodeIterator, PymNamedMDNode, LLVMGetNextNamedMetadata)
+DEFINE_ITERATOR_CLASS(PymFunctionIterator, PymFunction, LLVMGetNextFunction)
 
 
 
 // TargetMachine ---------------------------------------------------------
 
-DEFINE_PY_WRAPPER_CLASS(PyTarget, LLVMTargetRef)
-DEFINE_ITERATOR_CLASS(PyTargetIterator, PyTarget, LLVMGetNextTarget)
+DEFINE_PY_WRAPPER_CLASS(PymTarget, LLVMTargetRef)
+DEFINE_ITERATOR_CLASS(PymTargetIterator, PymTarget, LLVMGetNextTarget)
 
 
 

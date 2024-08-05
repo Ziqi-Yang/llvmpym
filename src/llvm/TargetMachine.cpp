@@ -13,19 +13,19 @@ namespace nb = nanobind;
 using namespace nb::literals;
 
 void populateTargetMachine(nanobind::module_ &m) {
-  BIND_ITERATOR_CLASS(PyTargetIterator, "TargetIterator")
+  BIND_ITERATOR_CLASS(PymTargetIterator, "TargetIterator")
 
   auto TargetMachineClass =
-    nb::class_<PyTargetMachine, PyLLVMObject<PyTargetMachine, LLVMTargetMachineRef>>
+    nb::class_<PymTargetMachine, PymLLVMObject<PymTargetMachine, LLVMTargetMachineRef>>
       (m, "TargetMachine", "TargetMachine");
 
   auto TargetMachineOptionsClass =
-    nb::class_<PyTargetMachineOptions,
-               PyLLVMObject<PyTargetMachineOptions, LLVMTargetMachineOptionsRef>>
+    nb::class_<PymTargetMachineOptions,
+               PymLLVMObject<PymTargetMachineOptions, LLVMTargetMachineOptionsRef>>
       (m, "TargetMachineOptions", "TargetMachineOptions");
 
   auto TargetClass =
-    nb::class_<PyTarget, PyLLVMObject<PyTarget, LLVMTargetRef>>(m, "Target", "Target");
+    nb::class_<PymTarget, PymLLVMObject<PymTarget, LLVMTargetRef>>(m, "Target", "Target");
 
 
   nb::enum_<LLVMCodeGenOptLevel>(m, "CodeGenOptLevel", "CodeGenOptLevel")
@@ -55,15 +55,15 @@ void populateTargetMachine(nanobind::module_ &m) {
       .value("Large", LLVMCodeModel::LLVMCodeModelLarge);
 
   TargetClass
-      .def("__iter__", [](PyTarget &self) { return PyTargetIterator(self); })
+      .def("__iter__", [](PymTarget &self) { return PymTargetIterator(self); })
       .def_static("get_first",
                   []() {
-                    return PyTarget(LLVMGetFirstTarget());
+                    return PymTarget(LLVMGetFirstTarget());
                   },
                   "Returns the first llvm::Target in the registered targets list.")
       .def_static("get_from_name",
                   [](const char *name) {
-                    return PyTarget(LLVMGetTargetFromName(name));
+                    return PymTarget(LLVMGetTargetFromName(name));
                   },
                   "name"_a,
                   "Finds the target corresponding to the given name")
@@ -72,114 +72,114 @@ void populateTargetMachine(nanobind::module_ &m) {
                     char *errorMessage;
                     LLVMTargetRef T;
                     auto res = LLVMGetTargetFromTriple(triple, &T, &errorMessage) == 0;
-                    WRAP_DISPOSE_MESSAGE_RUNTIME_ERROR(res, errorMessage, PyTarget);
+                    WRAP_DISPOSE_MESSAGE_RUNTIME_ERROR(res, errorMessage, PymTarget);
                   },
                   "triple"_a,
                   "Finds the target corresponding to the given triple."
                   "Raises:\n"
                   "\tRuntimeError")
       .def_prop_ro("name",
-                   [](PyTarget &self) {
+                   [](PymTarget &self) {
                      return LLVMGetTargetName(self.get());
                    })
       .def_prop_ro("description",
-                   [](PyTarget &self) {
+                   [](PymTarget &self) {
                      return LLVMGetTargetDescription(self.get());
                    })
       .def_prop_ro("has_jit",
-                   [](PyTarget &self) {
+                   [](PymTarget &self) {
                      return LLVMTargetHasJIT(self.get()) != 0;
                    })
       .def_prop_ro("has_target_machine",
-                   [](PyTarget &self) {
+                   [](PymTarget &self) {
                      return LLVMTargetHasTargetMachine(self.get()) != 0;
                    })
       .def_prop_ro("has_asm_backend",
-                   [](PyTarget &self) {
+                   [](PymTarget &self) {
                      return LLVMTargetHasTargetMachine(self.get()) != 0;
                    })
       .def_prop_ro("next",
-                   [](PyTarget &self) -> std::optional<PyTarget> {
+                   [](PymTarget &self) -> std::optional<PymTarget> {
                      auto res = LLVMGetNextTarget(self.get());
-                     WRAP_OPTIONAL_RETURN(res, PyTarget);
+                     WRAP_OPTIONAL_RETURN(res, PymTarget);
                    },
                    "Returns the next llvm::Target given a previous one (or null "
                    "if there's none)");
   TargetMachineOptionsClass
       .def("__init__",
-           [](PyTargetMachineOptions *tmo) {
-             new (tmo) PyTargetMachineOptions(LLVMCreateTargetMachineOptions());
+           [](PymTargetMachineOptions *tmo) {
+             new (tmo) PymTargetMachineOptions(LLVMCreateTargetMachineOptions());
            })
       .def("set_cpu",
-           [](PyTargetMachineOptions &self, const char *cpu) {
+           [](PymTargetMachineOptions &self, const char *cpu) {
              return LLVMTargetMachineOptionsSetCPU(self.get(), cpu);
            },
            "cpu"_a)
       .def("set_features",
-           [](PyTargetMachineOptions &self, const char *features) {
+           [](PymTargetMachineOptions &self, const char *features) {
              return LLVMTargetMachineOptionsSetFeatures(self.get(), features);
            },
            "features"_a)
       .def("set_abi",
-           [](PyTargetMachineOptions &self, const char *abi) {
+           [](PymTargetMachineOptions &self, const char *abi) {
              return LLVMTargetMachineOptionsSetABI(self.get(), abi);
            },
            "abi"_a)
       .def("set_code_gen_opt_level",
-           [](PyTargetMachineOptions &self, LLVMCodeGenOptLevel level) {
+           [](PymTargetMachineOptions &self, LLVMCodeGenOptLevel level) {
              return LLVMTargetMachineOptionsSetCodeGenOptLevel(self.get(), level);
            },
            "level"_a)
       .def("set_reloc_mode",
-           [](PyTargetMachineOptions &self, LLVMRelocMode reloc) {
+           [](PymTargetMachineOptions &self, LLVMRelocMode reloc) {
              return LLVMTargetMachineOptionsSetRelocMode(self.get(), reloc);
            },
            "reloc"_a)
       .def("set_code_model",
-           [](PyTargetMachineOptions &self, LLVMCodeModel codeModel) {
+           [](PymTargetMachineOptions &self, LLVMCodeModel codeModel) {
              return LLVMTargetMachineOptionsSetCodeModel(self.get(), codeModel);
            },
            "code_model"_a);
 
   TargetMachineClass
       .def("__init__",
-           [](PyTargetMachine *tm, PyTarget &T, const char *triple,
-              PyTargetMachineOptions options) {
+           [](PymTargetMachine *tm, PymTarget &T, const char *triple,
+              PymTargetMachineOptions options) {
              auto res = LLVMCreateTargetMachineWithOptions
                           (T.get(), triple, options.get());
-             new (tm) PyTargetMachine(res);
+             new (tm) PymTargetMachine(res);
            },
            "target"_a, "triple"_a, "options"_a)
       .def("__init__",
-           [](PyTargetMachine *tm, PyTarget &T, const char *triple, const char *cpu,
+           [](PymTargetMachine *tm, PymTarget &T, const char *triple, const char *cpu,
               const char *features, LLVMCodeGenOptLevel level, LLVMRelocMode reloc,
               LLVMCodeModel codeModel) {
              auto res = LLVMCreateTargetMachine
                           (T.get(), triple, cpu, features, level, reloc, codeModel);
-             new (tm) PyTargetMachine(res);
+             new (tm) PymTargetMachine(res);
            })
       .def_prop_ro("target",
-                   [](PyTargetMachine &self) {
-                     return PyTarget(LLVMGetTargetMachineTarget(self.get()));
+                   [](PymTargetMachine &self) {
+                     return PymTarget(LLVMGetTargetMachineTarget(self.get()));
                    })
       .def_prop_ro("triple",
-                   [](PyTargetMachine &self) {
+                   [](PymTargetMachine &self) {
                      auto res = LLVMGetTargetMachineTriple(self.get());
                      RETURN_MESSAGE(res);
                    })
       .def_prop_ro("cpu",
-                   [](PyTargetMachine &self) {
+                   [](PymTargetMachine &self) {
                      auto res = LLVMGetTargetMachineCPU(self.get());
                      RETURN_MESSAGE(res);
                    })
       .def_prop_ro("feature_string",
-                   [](PyTargetMachine &self) {
+                   [](PymTargetMachine &self) {
                      auto res = LLVMGetTargetMachineFeatureString(self.get());
                      RETURN_MESSAGE(res);
                    });
       // TODO nedd 
       // .def_prop_ro("data_layout",
-      //              [](PyTargetMachine &self) {
+      //              [](PymTargetMachine &self) {
       //                return LLVMCreateTargetDataLayout(self.get());
       //              });
 }

@@ -5,9 +5,9 @@
 #include <memory>
 
 template <typename Derived, typename UnderlyingType>
-class PyLLVMObject {
+class PymLLVMObject {
 public:
-  virtual ~PyLLVMObject() = default;
+  virtual ~PymLLVMObject() = default;
 
   UnderlyingType get() const {
     return const_cast<const Derived*>(static_cast<const Derived*>(this))->get();
@@ -20,7 +20,7 @@ public:
   }
 
   // `__equal__` and `__hash__` works well on pointer type UnderlyingType
-  bool __equal__(const PyLLVMObject& other) const {
+  bool __equal__(const PymLLVMObject& other) const {
     return this->get() == other.get();
   }
 

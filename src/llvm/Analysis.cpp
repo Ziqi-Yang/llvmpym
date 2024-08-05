@@ -18,7 +18,7 @@ void populateAnalysis(nb::module_ &m) {
              "verifier will just return 1");
 
   m.def("view_function_cfg",
-        [](PyFunction &f) {
+        [](PymFunction &f) {
           return LLVMViewFunctionCFG(f.get());
         },
         "fn"_a,
@@ -26,7 +26,7 @@ void populateAnalysis(nb::module_ &m) {
         "Useful for debugging.");
 
   m.def("view_function_cfg_only",
-        [](PyFunction &f) {
+        [](PymFunction &f) {
           return LLVMViewFunctionCFGOnly(f.get());
         },
         "fn"_a,

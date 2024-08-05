@@ -5,16 +5,16 @@
 #include <memory>
 #include <unordered_map>
 #include <mutex>
-#include "PyLLVMObject.h"
+#include "PymLLVMObject.h"
 #include "utils.h"
 
-class PyMemoryBuffer : public PyLLVMObject<PyMemoryBuffer, LLVMMemoryBufferRef> {
+class PymMemoryBuffer : public PymLLVMObject<PymMemoryBuffer, LLVMMemoryBufferRef> {
 public:
-  explicit PyMemoryBuffer(LLVMMemoryBufferRef mb);
+  explicit PymMemoryBuffer(LLVMMemoryBufferRef mb);
   LLVMMemoryBufferRef get() const;
 
   /*
-   * This function reset the PyMemoryBuffer object, preventing it from 
+   * This function reset the PymMemoryBuffer object, preventing it from 
    * being automatically disposed
    */
   void reset();

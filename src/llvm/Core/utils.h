@@ -16,9 +16,9 @@ inline const char *get_repr_str(T &&obj) {
   return nanobind::repr(nanobind::cast(obj)).c_str();
 }
 
-PyMetadataAsValue* getMoreSpcMetadataAsValue(LLVMValueRef raw);
+PymMetadataAsValue* getMoreSpcMetadataAsValue(LLVMValueRef raw);
 
-inline std::string get_type_str(PyType &t) {
+inline std::string get_type_str(PymType &t) {
   char *str = LLVMPrintTypeToString(t.get());
   std::string res(str);
   LLVMDisposeMessage(str);
@@ -38,21 +38,21 @@ inline std::string get_value_name(LLVMValueRef v) {
   return std::string(str, len);
 }
 
-inline std::string gen_value_repr(const char *typeName, PyValue &v) {
+inline std::string gen_value_repr(const char *typeName, PymValue &v) {
   LLVMValueRef raw = v.get();
   auto name = get_value_name(raw);
   return fmt::format("<{} name='{}'>", typeName, name);
 }
 
-PyInstruction* PyInstructionAuto(LLVMValueRef inst);
+PymInstruction* PymInstructionAuto(LLVMValueRef inst);
 
-PyType* PyTypeAuto(LLVMTypeRef rawType);
+PymType* PymTypeAuto(LLVMTypeRef rawType);
 
-PyValue* PyValueAuto(LLVMValueRef rawValue);
+PymValue* PymValueAuto(LLVMValueRef rawValue);
 
-PyAttribute* PyAttributeAuto(LLVMAttributeRef rawValue);
+PymAttribute* PymAttributeAuto(LLVMAttributeRef rawValue);
 
-PyModule parseIR(LLVMContextRef ctx, LLVMMemoryBufferRef memBuf);
+PymModule parseIR(LLVMContextRef ctx, LLVMMemoryBufferRef memBuf);
 
 
 #endif

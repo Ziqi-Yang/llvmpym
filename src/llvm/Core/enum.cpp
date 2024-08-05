@@ -375,9 +375,9 @@ void bindEnums(nb::module_ &m) {
               "However, duplicate entries in the second list are dropped during "
               "the append operation.");
 
-  nb::enum_<PyAttributeIndex>(m, "AttributeIndex", "AttributeIndex")
-      .value("Return", PyAttributeIndex::Return)
-      .value("Function", PyAttributeIndex::Function);
+  nb::enum_<PymAttributeIndex>(m, "AttributeIndex", "AttributeIndex")
+      .value("Return", PymAttributeIndex::Return)
+      .value("Function", PymAttributeIndex::Function);
 
   nb::enum_<LLVMTailCallKind>(m, "TailCallKind", "TailCallKind")
       .value("LLVMTailCallKindNone", LLVMTailCallKind::LLVMTailCallKindNone)
@@ -387,16 +387,16 @@ void bindEnums(nb::module_ &m) {
 
   // TODO LLVMAttributeIndex
 
-  nb::enum_<PyLLVMFastMathFlags>(m, "FastMathFlags", "FastMathFlags")
-       .value("AllowReassoc", PyLLVMFastMathFlags::AllowReassoc)
-       .value("NoNaNs", PyLLVMFastMathFlags::NoNaNs)
-       .value("NoInfs", PyLLVMFastMathFlags::NoInfs)
-       .value("NoSignedZeros", PyLLVMFastMathFlags::NoSignedZeros)
-       .value("AllowReciprocal", PyLLVMFastMathFlags::AllowReciprocal)
-       .value("AllowContract", PyLLVMFastMathFlags::AllowContract)
-       .value("ApproxFunc", PyLLVMFastMathFlags::ApproxFunc)
-       .value("None_", PyLLVMFastMathFlags::None)
-       .value("All", PyLLVMFastMathFlags::All);
+  nb::enum_<PymLLVMFastMathFlags>(m, "FastMathFlags", "FastMathFlags")
+       .value("AllowReassoc", PymLLVMFastMathFlags::AllowReassoc)
+       .value("NoNaNs", PymLLVMFastMathFlags::NoNaNs)
+       .value("NoInfs", PymLLVMFastMathFlags::NoInfs)
+       .value("NoSignedZeros", PymLLVMFastMathFlags::NoSignedZeros)
+       .value("AllowReciprocal", PymLLVMFastMathFlags::AllowReciprocal)
+       .value("AllowContract", PymLLVMFastMathFlags::AllowContract)
+       .value("ApproxFunc", PymLLVMFastMathFlags::ApproxFunc)
+       .value("None_", PymLLVMFastMathFlags::None)
+       .value("All", PymLLVMFastMathFlags::All);
 
   // TODO LLVMFastMathFlags
 }
