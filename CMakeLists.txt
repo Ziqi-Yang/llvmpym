@@ -80,6 +80,7 @@ nanobind_add_module(
   src/llvm/Utils.cpp
   src/llvm/Support.cpp
   src/llvm/Analysis.cpp
+  src/llvm/TargetMachine.cpp
   
   src/llvm/types_priv/PyModule.cpp
   src/llvm/types_priv/PyContext.cpp
@@ -93,7 +94,8 @@ nanobind_add_module(
   ${LLVM_INCLUDE_DIRS}
 )
 
-llvm_map_components_to_libnames(llvm_libs core transformutils analysis support)
+llvm_map_components_to_libnames(llvm_libs core transformutils analysis support
+  target)
 
 # Link against LLVM libraries
 target_link_libraries(llvmpym_ext PRIVATE ${llvm_libs} fmt::fmt)
@@ -158,6 +160,13 @@ nanobind_add_stub(
   DEPENDS llvmpym_ext
 )
 
+nanobind_add_stub(
+  llvmpym_ext_stub_target_machine
+  MODULE llvmpym_ext.target_machine
+  OUTPUT target_machine.pyi
+  PYTHON_PATH $<TARGET_FILE_DIR:llvmpym_ext>
+  DEPENDS llvmpym_ext
+)
 
 
 # Install directive for scikit-build-core
@@ -171,5 +180,6 @@ install(FILES
   ${CMAKE_BINARY_DIR}/support.pyi
   ${CMAKE_BINARY_DIR}/utils.pyi
   ${CMAKE_BINARY_DIR}/analysis.pyi
+  ${CMAKE_BINARY_DIR}/target_machine.pyi
   
   DESTINATION ${SKBUILD_PROJECT_NAME}/llvmpym_ext)

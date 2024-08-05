@@ -6,6 +6,7 @@
 #define LLVMPYM_TYPES_PRIV_H
 
 #include <llvm-c/Core.h>
+#include <llvm-c/TargetMachine.h>
 #include <utility>
 #include <iostream>
 #include <memory>
@@ -353,6 +354,9 @@ DEFINE_ITERATOR_CLASS(PyFunctionIterator, PyFunction, LLVMGetNextFunction)
 
 
 
+// TargetMachine ---------------------------------------------------------
+
+DEFINE_PY_WRAPPER_CLASS(PyTarget, LLVMTargetRef)
 
 
 
