@@ -283,7 +283,9 @@ enum class PyLLVMFastMathFlags {
   BIND_PYLLVMOBJECT_(PyModule, LLVMModuleRef, PyModuleObject) \
   BIND_PYLLVMOBJECT_(PyModuleProvider, LLVMModuleProviderRef, PyModuleProviderObject) \
   BIND_PYLLVMOBJECT_(PyOperandBundle, LLVMOperandBundleRef, PyOperandBundleObject) \
-  BIND_PYLLVMOBJECT_(PyPassManagerBase, LLVMPassManagerRef, PyPassManagerBaseObject)
+  BIND_PYLLVMOBJECT_(PyPassManagerBase, LLVMPassManagerRef, PyPassManagerBaseObject) \
+\
+  BIND_PYLLVMOBJECT_(PyTarget, LLVMTargetRef, PyTargetObject)
 
 
 
@@ -341,6 +343,14 @@ DEFINE_DIRECT_SUB_CLASS(PyPassManagerBase, PyFunctionPassManager);
     UnderlyingType val; \
   };
 
+#define BIND_ITERATOR_CLASS(ClassName, PythonClassName) \
+  nanobind::class_<ClassName>(m, PythonClassName, PythonClassName) \
+  .def("__iter__", [](ClassName &self) { return self; }) \
+  .def("__next__", &ClassName::next);
+
+
+
+
 
 DEFINE_ITERATOR_CLASS(PyUseIterator, PyUse, LLVMGetNextUse)
 // DEFINE_ITERATOR_CLASS(PyBasicBlockIterator, PyBasicBlock, LLVMGetNextBasicBlock)
@@ -357,6 +367,7 @@ DEFINE_ITERATOR_CLASS(PyFunctionIterator, PyFunction, LLVMGetNextFunction)
 // TargetMachine ---------------------------------------------------------
 
 DEFINE_PY_WRAPPER_CLASS(PyTarget, LLVMTargetRef)
+DEFINE_ITERATOR_CLASS(PyTargetIterator, PyTarget, LLVMGetNextTarget)
 
 
 

@@ -59,6 +59,28 @@ Steps:
    LLVM components.
 
 
+Add a new Class
+----------------
+
+To inherit from ``PyLLVMObject``:
+
+#. ``nb::class_<PyTarget, PyLLVMObject<PyTarget, LLVMTargetRef>>(m, "Target", "Target")``
+#. Add an entry in ``BIND_PYLLVMOBJECT`` macro in ``src/types_priv``
+
+Add a new Iterator Class
+-------------------------
+
+For example, `PyTarget`
+
+#. Define iterator class in ``types_priv``: ``DEFINE_ITERATOR_CLASS(PyTargetIterator, PyTarget, LLVMGetNextTarget)``
+#. Bind iterator class. In corresponding module file: ``BIND_ITERATOR_CLASS(PyTargetIterator, "TargetIterator")``
+#. Possibly:
+
+   .. code-block:: c++
+
+      nb::class_<PyTarget, PyLLVMObject<PyTarget, LLVMTargetRef>>(m, "Target", "Target")
+          .def("__iter__", [](PyTarget &self) { return PyTargetIterator(self); });
+   
 NanoBind Pitfalls
 -----------------
 

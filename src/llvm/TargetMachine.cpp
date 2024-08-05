@@ -11,6 +11,8 @@ namespace nb = nanobind;
 using namespace nb::literals;
 
 void populateTargetMachine(nanobind::module_ &m) {
+  BIND_ITERATOR_CLASS(PyTargetIterator, "TargetIterator")
+
   nb::enum_<LLVMCodeGenOptLevel>(m, "CodeGenOptLevel", "CodeGenOptLevel")
       // None is a python keyword
       .value("Null", LLVMCodeGenOptLevel::LLVMCodeGenLevelNone)
@@ -37,7 +39,8 @@ void populateTargetMachine(nanobind::module_ &m) {
       .value("Medium", LLVMCodeModel::LLVMCodeModelMedium)
       .value("Large", LLVMCodeModel::LLVMCodeModelLarge);
 
-  nb::class_<PyTarget>(m, "Target", "Target")
+  nb::class_<PyTarget, PyLLVMObject<PyTarget, LLVMTargetRef>>(m, "Target", "Target")
+      .def("__iter__", [](PyTarget &self) { return PyTargetIterator(self); })
       .def_static("get_first",
                   []() {
                     return PyTarget(LLVMGetFirstTarget());
