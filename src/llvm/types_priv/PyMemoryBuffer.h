@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <mutex>
 #include "PyLLVMObject.h"
+#include "utils.h"
 
 class PyMemoryBuffer : public PyLLVMObject<PyMemoryBuffer, LLVMMemoryBufferRef> {
 public:
@@ -19,17 +20,7 @@ public:
   void reset();
   
 private:
-  std::shared_ptr<LLVMOpaqueMemoryBuffer> mb;
-
-  struct LLVMMemoryBufferRefDeleter {
-    void operator()(LLVMMemoryBufferRef mb) const;
-  };
-
-  static std::shared_ptr<LLVMOpaqueMemoryBuffer> get_shared_mb(LLVMMemoryBufferRef mb);
-
-  static std::unordered_map<LLVMMemoryBufferRef,
-                            std::weak_ptr<LLVMOpaqueMemoryBuffer>> mb_map;
-  static std::mutex map_mutex;
+  SHARED_POINTER_DEF(LLVMMemoryBufferRef, LLVMOpaqueMemoryBuffer);
 };
 
 #endif

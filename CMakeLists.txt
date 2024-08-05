@@ -90,6 +90,7 @@ nanobind_add_module(
   src/llvm/types_priv/PyPassManagerBase.cpp
   src/llvm/types_priv/PyMemoryBuffer.cpp
   src/llvm/types_priv/PyModuleProvider.cpp
+  src/llvm/types_priv/PyTargetMachine.cpp
  
   ${LLVM_INCLUDE_DIRS}
 )

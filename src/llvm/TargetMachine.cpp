@@ -2,8 +2,10 @@
 
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/optional.h>
+#include <llvm-c/Core.h>
 #include <llvm-c/TargetMachine.h>
 #include <optional>
+#include <stdexcept>
 #include "types_priv.h"
 #include "utils_priv.h"
 
@@ -46,6 +48,43 @@ void populateTargetMachine(nanobind::module_ &m) {
                     return PyTarget(LLVMGetFirstTarget());
                   },
                   "Returns the first llvm::Target in the registered targets list.")
+      .def_static("get_from_name",
+                  [](const char *name) {
+                    return PyTarget(LLVMGetTargetFromName(name));
+                  },
+                  "name"_a,
+                  "Finds the target corresponding to the given name")
+      .def_static("get_from_triple",
+                  [](const char *triple) {
+                    char *errorMessage;
+                    LLVMTargetRef T;
+                    auto res = LLVMGetTargetFromTriple(triple, &T, &errorMessage) == 0;
+                    WRAP_DISPOSE_MESSAGE_RUNTIME_ERROR(res, errorMessage, PyTarget);
+                  },
+                  "triple"_a,
+                  "Finds the target corresponding to the given triple."
+                  "Raises:\n"
+                  "\tRuntimeError")
+      .def_prop_ro("name",
+                   [](PyTarget &self) {
+                     return LLVMGetTargetName(self.get());
+                   })
+      .def_prop_ro("description",
+                   [](PyTarget &self) {
+                     return LLVMGetTargetDescription(self.get());
+                   })
+      .def_prop_ro("has_jit",
+                   [](PyTarget &self) {
+                     return LLVMTargetHasJIT(self.get()) != 0;
+                   })
+      .def_prop_ro("has_target_machine",
+                   [](PyTarget &self) {
+                     return LLVMTargetHasTargetMachine(self.get()) != 0;
+                   })
+      .def_prop_ro("has_asm_backend",
+                   [](PyTarget &self) {
+                     return LLVMTargetHasTargetMachine(self.get()) != 0;
+                   })
       .def_prop_ro("next",
                    [](PyTarget &self) -> std::optional<PyTarget> {
                      auto res = LLVMGetNextTarget(self.get());
@@ -53,5 +92,6 @@ void populateTargetMachine(nanobind::module_ &m) {
                    },
                    "Returns the next llvm::Target given a previous one (or null if there's none)");
 
-  
+  nb::class_<PyTargetMachine, PyLLVMObject<PyTargetMachine, LLVMTargetMachineRef>>
+    (m, "TargetMachine", "TargetMachine");
 }

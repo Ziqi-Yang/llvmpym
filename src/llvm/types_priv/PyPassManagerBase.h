@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <mutex>
 #include "PyLLVMObject.h"
+#include "utils.h"
 
 class PyPassManagerBase : public PyLLVMObject<PyPassManagerBase, LLVMPassManagerRef> {
 public:
@@ -13,17 +14,7 @@ public:
   LLVMPassManagerRef get() const;
   
 private:
-  std::shared_ptr<LLVMOpaquePassManager> pm;
-
-  struct LLVMOpaquePassManagerDeleter {
-    void operator()(LLVMPassManagerRef pm) const;
-  };
-
-  static std::shared_ptr<LLVMOpaquePassManager> get_shared_pm(LLVMPassManagerRef pm);
-
-  static std::unordered_map<LLVMPassManagerRef,
-                            std::weak_ptr<LLVMOpaquePassManager>> pm_map;
-  static std::mutex map_mutex;
+  SHARED_POINTER_DEF(LLVMPassManagerRef, LLVMOpaquePassManager);
 };
 
 

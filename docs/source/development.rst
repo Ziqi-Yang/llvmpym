@@ -66,6 +66,8 @@ To inherit from ``PyLLVMObject``:
 
 #. ``nb::class_<PyTarget, PyLLVMObject<PyTarget, LLVMTargetRef>>(m, "Target", "Target")``
 #. Add an entry in ``BIND_PYLLVMOBJECT`` macro in ``src/types_priv``
+#. If you create new `.cpp` file, add it to ``nanobind_add_module`` function in
+   ``CMakeLists.txt`` file.
 
 Add a new Iterator Class
 -------------------------
@@ -80,7 +82,14 @@ For example, `PyTarget`
 
       nb::class_<PyTarget, PyLLVMObject<PyTarget, LLVMTargetRef>>(m, "Target", "Target")
           .def("__iter__", [](PyTarget &self) { return PyTargetIterator(self); });
-   
+
+
+Docstring Style
+----------------
+
+https://www.sphinx-doc.org/en/master/usage/extensions/example_google.html
+
+          
 NanoBind Pitfalls
 -----------------
 

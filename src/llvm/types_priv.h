@@ -22,7 +22,7 @@
 #include "types_priv/PyPassManagerBase.h"
 #include "types_priv/PyMemoryBuffer.h"
 #include "types_priv/PyModuleProvider.h"
-#include "types_priv/PyLLVMObject.h"
+#include "types_priv/PyTargetMachine.h"
 #include "types_priv/PyLLVMObject.h"
 
 
@@ -285,9 +285,12 @@ enum class PyLLVMFastMathFlags {
   BIND_PYLLVMOBJECT_(PyOperandBundle, LLVMOperandBundleRef, PyOperandBundleObject) \
   BIND_PYLLVMOBJECT_(PyPassManagerBase, LLVMPassManagerRef, PyPassManagerBaseObject) \
 \
-  BIND_PYLLVMOBJECT_(PyTarget, LLVMTargetRef, PyTargetObject)
+  BIND_PYLLVMOBJECT_(PyTarget, LLVMTargetRef, PyTargetObject) \
+  BIND_PYLLVMOBJECT_(PyTargetMachine, LLVMTargetMachineRef, PyTargetMachineObject)
 
 
+
+// Core --------------------------------------------------------
 
  
 

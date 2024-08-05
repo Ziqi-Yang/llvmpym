@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <mutex>
 #include "PyLLVMObject.h"
+#include "utils.h"
 
 typedef LLVMModuleFlagEntry *LLVMModuleFlagEntries;
 
@@ -16,18 +17,9 @@ public:
   size_t getLen() const;
 
 private:
-  std::shared_ptr<LLVMModuleFlagEntry> entries;
   size_t len;
-
-  struct LLVMModuleFlagEntriesDeleter {
-    void operator()(LLVMModuleFlagEntries entries) const;
-  };
-
-  static std::shared_ptr<LLVMModuleFlagEntry> get_shared_entries(LLVMModuleFlagEntries entries);
-
-  static std::unordered_map<LLVMModuleFlagEntries,
-                            std::weak_ptr<LLVMModuleFlagEntry>> entries_map;
-  static std::mutex map_mutex;
+  
+  SHARED_POINTER_DEF(LLVMModuleFlagEntries, LLVMModuleFlagEntry);
 };
 
 

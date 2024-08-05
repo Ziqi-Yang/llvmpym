@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <mutex>
 #include "PyLLVMObject.h"
+#include "utils.h"
 
 typedef LLVMValueMetadataEntry *LLVMValueMetadataEntries;
 
@@ -16,18 +17,8 @@ public:
   size_t getLen() const;
   
 private:
-  std::shared_ptr<LLVMValueMetadataEntry> entries;
   size_t len;
-
-  struct LLVMValueMetadataEntriesDeleter {
-    void operator()(LLVMValueMetadataEntries entries) const;
-  };
-
-  static std::shared_ptr<LLVMValueMetadataEntry> get_shared_entries(LLVMValueMetadataEntries entries);
-
-  static std::unordered_map<LLVMValueMetadataEntries,
-                            std::weak_ptr<LLVMValueMetadataEntry>> entries_map;
-  static std::mutex map_mutex;
+  SHARED_POINTER_DEF(LLVMValueMetadataEntries, LLVMValueMetadataEntry);
 };
 
 

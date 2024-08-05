@@ -39,4 +39,17 @@
     return FUNC(VAR); \
   return std::nullopt;
 
+
+#define WRAP_DISPOSE_MESSAGE_RUNTIME_ERROR(RES, ERR_MSG, WRAP_FN) \
+  if (!RES) { \
+    if (ERR_MSG) { \
+      std::string _errMsg(ERR_MSG); \
+      LLVMDisposeMessage(ERR_MSG); \
+      throw std::runtime_error(_errMsg); \
+    } \
+    throw std::runtime_error(""); \
+  } \
+  return WRAP_FN(T);
+
+
 #endif

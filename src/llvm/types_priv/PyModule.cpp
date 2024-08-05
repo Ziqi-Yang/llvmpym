@@ -1,52 +1,25 @@
 #include "PyModule.h"
-
-std::unordered_map<LLVMModuleRef, std::weak_ptr<LLVMOpaqueModule>> PyModule::module_map;
-std::mutex PyModule::map_mutex;
-
+#include <stdexcept>
 
 PyModule::PyModule(const std::string &id) {
-  module = get_shared_module(LLVMModuleCreateWithName(id.c_str()));
-  if (!module) {
+  obj = get_shared_obj(LLVMModuleCreateWithName(id.c_str()));
+  if (!obj) {
     throw std::runtime_error("Failed to create Module");
   }
 }
 
 PyModule::PyModule(const std::string &id, LLVMContextRef context) {
-  module = get_shared_module(LLVMModuleCreateWithNameInContext(id.c_str(), context));
-  if (!module) {
+  obj = get_shared_obj(LLVMModuleCreateWithNameInContext(id.c_str(), context));
+  if (!obj) {
     throw std::runtime_error("Failed to create Module");
   }
 }
 
-PyModule::PyModule(LLVMModuleRef module)
-: module(get_shared_module(module)) { }
+PyModule::PyModule(LLVMModuleRef obj)
+: obj(get_shared_obj(obj)) { }
 
 LLVMModuleRef PyModule::get() const {
-  return module.get();
+  return obj.get();
 }
 
-
-void PyModule::LLVMModuleDeleter::operator()(LLVMModuleRef module) const {
-  if (module) {
-    LLVMDisposeModule(module);
-    
-    std::lock_guard<std::mutex> lock(PyModule::map_mutex);
-    PyModule::module_map.erase(module);
-  }
-}
-
-
-std::shared_ptr<LLVMOpaqueModule> PyModule::get_shared_module(LLVMModuleRef module) {
-  std::lock_guard<std::mutex> lock(PyModule::map_mutex);
-  auto it = PyModule::module_map.find(module);
-  
-  if (it != PyModule::module_map.end()) {
-    if (auto shared = it->second.lock()) {
-      return shared;
-    }
-  }
-  
-  auto shared = std::shared_ptr<LLVMOpaqueModule>(module, LLVMModuleDeleter());
-  PyModule::module_map[module] = shared;
-  return shared;
-}
+SHARED_POINTER_IMPL(PyModule, LLVMModuleRef, LLVMOpaqueModule, LLVMDisposeModule)

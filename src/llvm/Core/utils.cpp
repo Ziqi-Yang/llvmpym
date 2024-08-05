@@ -202,7 +202,7 @@ PyModule parseIR(LLVMContextRef ctx, LLVMMemoryBufferRef memBuf) {
   LLVMModuleRef m = nullptr;
   char *errMsg = nullptr;
   bool success = LLVMParseIRInContext(ctx, memBuf, &m, &errMsg) == 0;
-             
+
   if (!success) {
     std::string errorMessage;
     if (m) LLVMDisposeModule(m);

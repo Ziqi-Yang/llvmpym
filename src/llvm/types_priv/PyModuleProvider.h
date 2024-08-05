@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <mutex>
 #include "PyLLVMObject.h"
+#include "utils.h"
 
 class PyModuleProvider : public PyLLVMObject<PyModuleProvider, LLVMModuleProviderRef>{
 public:
@@ -13,17 +14,7 @@ public:
   LLVMModuleProviderRef get() const;
   
 private:
-  std::shared_ptr<LLVMOpaqueModuleProvider> mp;
-
-  struct LLVMModuleProviderRefDeleter {
-    void operator()(LLVMModuleProviderRef mp) const;
-  };
-
-  static std::shared_ptr<LLVMOpaqueModuleProvider> get_shared_mp(LLVMModuleProviderRef mp);
-
-  static std::unordered_map<LLVMModuleProviderRef,
-                            std::weak_ptr<LLVMOpaqueModuleProvider>> mp_map;
-  static std::mutex map_mutex;
+  SHARED_POINTER_DEF(LLVMModuleProviderRef, LLVMOpaqueModuleProvider);
 };
 
 
