@@ -1,15 +1,19 @@
 #include "TargetMachine.h"
 
 #include <nanobind/nanobind.h>
+#include <nanobind/stl/optional.h>
 #include <llvm-c/TargetMachine.h>
+#include <optional>
 #include "types_priv.h"
+#include "utils_priv.h"
 
 namespace nb = nanobind;
 using namespace nb::literals;
 
 void populateTargetMachine(nanobind::module_ &m) {
   nb::enum_<LLVMCodeGenOptLevel>(m, "CodeGenOptLevel", "CodeGenOptLevel")
-      .value("None", LLVMCodeGenOptLevel::LLVMCodeGenLevelNone)
+      // None is a python keyword
+      .value("Null", LLVMCodeGenOptLevel::LLVMCodeGenLevelNone)
       .value("Less", LLVMCodeGenOptLevel::LLVMCodeGenLevelLess)
       .value("Default", LLVMCodeGenOptLevel::LLVMCodeGenLevelDefault)
       .value("Aggressive", LLVMCodeGenOptLevel::LLVMCodeGenLevelAggressive);
@@ -38,7 +42,13 @@ void populateTargetMachine(nanobind::module_ &m) {
                   []() {
                     return PyTarget(LLVMGetFirstTarget());
                   },
-                  "Returns the first llvm::Target in the registered targets list.");
+                  "Returns the first llvm::Target in the registered targets list.")
+      .def_prop_ro("next",
+                   [](PyTarget &self) -> std::optional<PyTarget> {
+                     auto res = LLVMGetNextTarget(self.get());
+                     WRAP_OPTIONAL_RETURN(res, PyTarget);
+                   },
+                   "Returns the next llvm::Target given a previous one (or null if there's none)");
 
   
 }
