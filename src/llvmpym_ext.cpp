@@ -5,6 +5,7 @@
 #include "llvm/Support.h"
 #include "llvm/types_priv.h"
 #include "llvm/Analysis.h"
+#include "llvm/Target.h"
 #include "llvm/TargetMachine.h"
 
 namespace nb = nanobind;
@@ -30,7 +31,10 @@ NB_MODULE(llvmpym_ext, m) {
 
   auto analysisModule = m.def_submodule("analysis", "Analysis");
   populateAnalysis(analysisModule);
-
-  auto targetMachineModule = m.def_submodule("target_machine", "Target");
+  
+  auto targetModule = m.def_submodule("target", "Target");
+  populateTarget(targetModule);
+  
+  auto targetMachineModule = m.def_submodule("target_machine", "Target Machine");
   populateTargetMachine(targetMachineModule);
 }

@@ -57,9 +57,6 @@ add_definitions(${LLVM_DEFINITIONS_LIST})
 nanobind_add_module(
   llvmpym_ext
 
-  # Target the stable ABI for Python 3.12+, which reduces
-  # the number of binary wheels that must be built. This
-  # does nothing on older Python versions
   STABLE_ABI
 
   NB_STATIC
@@ -80,6 +77,7 @@ nanobind_add_module(
   src/llvm/Utils.cpp
   src/llvm/Support.cpp
   src/llvm/Analysis.cpp
+  src/llvm/Target.cpp
   src/llvm/TargetMachine.cpp
   
   src/llvm/types_priv/PyModule.cpp
@@ -90,7 +88,9 @@ nanobind_add_module(
   src/llvm/types_priv/PyPassManagerBase.cpp
   src/llvm/types_priv/PyMemoryBuffer.cpp
   src/llvm/types_priv/PyModuleProvider.cpp
+  src/llvm/types_priv/PyTargetData.cpp
   src/llvm/types_priv/PyTargetMachine.cpp
+  src/llvm/types_priv/PyTargetMachineOptions.cpp
  
   ${LLVM_INCLUDE_DIRS}
 )
@@ -162,6 +162,15 @@ nanobind_add_stub(
 )
 
 nanobind_add_stub(
+  llvmpym_ext_stub_target
+  MODULE llvmpym_ext.target
+  OUTPUT target.pyi
+  PYTHON_PATH $<TARGET_FILE_DIR:llvmpym_ext>
+  DEPENDS llvmpym_ext
+)
+
+
+nanobind_add_stub(
   llvmpym_ext_stub_target_machine
   MODULE llvmpym_ext.target_machine
   OUTPUT target_machine.pyi
@@ -181,6 +190,7 @@ install(FILES
   ${CMAKE_BINARY_DIR}/support.pyi
   ${CMAKE_BINARY_DIR}/utils.pyi
   ${CMAKE_BINARY_DIR}/analysis.pyi
+  ${CMAKE_BINARY_DIR}/target.pyi
   ${CMAKE_BINARY_DIR}/target_machine.pyi
   
   DESTINATION ${SKBUILD_PROJECT_NAME}/llvmpym_ext)

@@ -51,5 +51,10 @@
   } \
   return WRAP_FN(T);
 
+#define RETURN_MESSAGE(RES) \
+  std::string _str(RES); \
+  LLVMDisposeMessage(RES); \
+  return _str; \
+
 
 #endif
