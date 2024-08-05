@@ -73,14 +73,14 @@ Status
 ------
 
 .. csv-table:: LLVM C API Header File Mapping Status
-   :header: "Python Module", "Header File"
+  :header: "Header File", "Python Modules"
 
-   "llvmpym.core", "``Core.h``, ``IRReader.h``, ``Analysis.h``"
-   "llvmpym.error_handling", "``ErrorHandling.h``"
-   "llvmpym.support", "``Support.h``"
-   "llvmpym.analysis.h", "``Analysis.h``"
-   "llvmpym.utils", "``<additional>``"
-   
+   "``Core.h``", "``core``"
+   "``IRReader.h``", "``core``"
+   "``Analysis.h``", "``core``, ``analysis``",
+   "``ErrorHandling.h``", "``error_handling``"
+   "``Support.h``", "``support``"
+   "", "``utils``"
 
 - All functions that operates on lambda functions(function pointers) is not bound 
   or handled incorrectly. Typically those parameters'(or returned value's) type name ends 
