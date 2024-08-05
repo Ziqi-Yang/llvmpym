@@ -50,6 +50,13 @@ Steps:
 #. ``CMakeLists.txt`` generate stub file (i.e. ``nanobind_add_stub`` and ``install``)
 #. add a python file in ``src/llvmpym`` directory to remap module from
    `llvmpym.llvmpym_ext.<module>` to `llvmpym.<module>`
+#. Possibly you also need to add used LLVM components in ``CMakeLists.txt`` (
+   inside ``llvm_map_components_to_libnames``). To search for what component
+   a symbol/function is in, you can use `just find-components` command if you have
+   `just <https://github.com/casey/just>`_ installed, otherwise you need to see
+   the implementation detail in ``justfile`` file under the project root directory.
+   Note ``just list-llvm-components`` is also useful, which listed all the
+   LLVM components.
 
 
 NanoBind Pitfalls

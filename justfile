@@ -35,6 +35,8 @@ opendoc:
     xdg-open ./docs/build/html/index.html
 
 # Example: just find-components ./build/cp312-abi3-linux_x86_64/ LLVMCloneModule
+# build_dir is the pip(scikit-build-core) output directory, where the cmake cache
+# file contains the used LLVM library path
 # Find which llvm archive file contains the desired symbol
 find-components build_dir symbol:
     #!/usr/bin/env bash
