@@ -29,7 +29,7 @@ You can install the library from PyPI.
    
 The MacOS bundle is a lot larger than the Linux and Windows bundles. Though
 at this time they are of reasonable small size (Linux and Windows bundle are around
-1.7 megabytes, whereas MacOS bundle is around 12.4 megabytes).
+1.7 mebibytes, whereas MacOS bundle is around 12.4 mebibytes).
 
 Build from source
 -----------------

@@ -46,13 +46,11 @@ set(LLVM_LIBRARY_DIRS ${LLVM_LIBRARY_DIRS} CACHE STRING "LLVM library directorie
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
-include_directories(${CMAKE_SOURCE_DIR}/src/llvm)
-include_directories(${CMAKE_SOURCE_DIR}/src/llvm/types_priv)
-include_directories(${CMAKE_SOURCE_DIR}/src/llvm/Core)
-include_directories(${LLVM_INCLUDE_DIRS})
-
 separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
 add_definitions(${LLVM_DEFINITIONS_LIST})
+
+file(GLOB_RECURSE SOURCES src/*.cpp)
+file(GLOB_RECURSE SOURCE_HEADERS src/*.h)
 
 nanobind_add_module(
   llvmpym_ext
@@ -63,39 +61,12 @@ nanobind_add_module(
   STABLE_ABI
 
   NB_STATIC
-
-  # Source code goes here
-  src/llvmpym_ext.cpp
   
-  src/llvm/Core.cpp
-  src/llvm/Core/enum.cpp
-  src/llvm/Core/utils.cpp
-  src/llvm/Core/globalFunc.cpp
-  src/llvm/Core/type.cpp
-  src/llvm/Core/value.cpp
-  src/llvm/Core/iterator.cpp
-  src/llvm/Core/miscClasses.cpp
-
-  src/llvm/ErrorHandling.cpp
-  src/llvm/Utils.cpp
-  src/llvm/Support.cpp
-  src/llvm/Analysis.cpp
-  src/llvm/Target.cpp
-  src/llvm/TargetMachine.cpp
-  
-  src/llvm/types_priv/PymModule.cpp
-  src/llvm/types_priv/PymContext.cpp
-  src/llvm/types_priv/PymMetadataEntries.cpp
-  src/llvm/types_priv/PymModuleFlagEntries.cpp
-  src/llvm/types_priv/PymOperandBundle.cpp
-  src/llvm/types_priv/PymPassManagerBase.cpp
-  src/llvm/types_priv/PymMemoryBuffer.cpp
-  src/llvm/types_priv/PymModuleProvider.cpp
-  src/llvm/types_priv/PymTargetData.cpp
-  src/llvm/types_priv/PymTargetMachine.cpp
-  src/llvm/types_priv/PymTargetMachineOptions.cpp
- 
   ${LLVM_INCLUDE_DIRS}
+  
+  ${SOURCE_HEADERS}
+
+  ${SOURCES}
 )
 
 llvm_map_components_to_libnames(llvm_libs core transformutils analysis support

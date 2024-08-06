@@ -37,4 +37,7 @@ NB_MODULE(llvmpym_ext, m) {
   
   auto targetMachineModule = m.def_submodule("target_machine", "Target Machine");
   populateTargetMachine(targetMachineModule);
+
+  // auto bitReaderModule = m.def_submodule("bit_reader", "bit_reader");
+  // populateBitReader(bitReaderModule);
 }
