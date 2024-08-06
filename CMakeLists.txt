@@ -49,6 +49,11 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
 add_definitions(${LLVM_DEFINITIONS_LIST})
 
+include_directories(${CMAKE_SOURCE_DIR}/src/llvm)
+include_directories(${CMAKE_SOURCE_DIR}/src/llvm/types_priv)
+include_directories(${CMAKE_SOURCE_DIR}/src/llvm/Core)
+include_directories(${LLVM_INCLUDE_DIRS})
+
 file(GLOB_RECURSE SOURCES src/*.cpp)
 file(GLOB_RECURSE SOURCE_HEADERS src/*.h)
 
