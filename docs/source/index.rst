@@ -4,11 +4,8 @@ llvmpym documentation
 llvmpym is a python library that provides LLVM binding. Target LLVM version: `18.1.8`.
 
 The aim of this project is to provide a full python binding built on top of the LLVM
-C API. It shouldn't involve any LLVM C++ API, which is complex and less stable.
-If any functionality cannot be achieved, then it is the responsibility of the LLVM C API,
-excluding the constraints imposed by the bindings. In the case of missing functionalities,
-an `dev` branch is planned to provide to track the latest update of LLVM C API, and
-compatibility between different LLVM versions remains beyond the purview of this library.
+C API.
+
 
 Currently this project is still in its very early stage. Using the library means
 involving in the development (reporting bugs, providing ideas and advice, etc.) and
