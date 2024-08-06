@@ -77,7 +77,8 @@ Status
    "``Analysis.h``", "``core``, ``analysis``",
    "``ErrorHandling.h``", "``error_handling``"
    "``Support.h``", "``support``"
-   "``TargetMachine.h``", "``TargetMachine``"
+   "``TargetMachine.h``", "``target_machine``"
+   "``BitReader.h``", "(doing) ``bit_reader``, ``core``"
    "", "``utils``"
 
 - All functions that operates on lambda functions(function pointers) is not bound 

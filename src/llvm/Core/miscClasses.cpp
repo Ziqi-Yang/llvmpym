@@ -4,6 +4,7 @@
 #include <nanobind/stl/vector.h>
 #include <nanobind/stl/optional.h>
 #include <llvm-c/Analysis.h>
+#include <llvm-c/BitReader.h>
 #include <fmt/core.h>
 #include <optional>
 #include <stdexcept>
@@ -1283,14 +1284,9 @@ void bindOtherClasses(nb::module_ &m) {
            "Set the yield callback function for this context.")
       .def("parse_ir",
            [](PymContext &self, PymMemoryBuffer &memBuf) {
-             try {
-               auto res = parseIR(self.get(), memBuf.get());
-               memBuf.reset(); // We Cannot reuse the memory buffer again
-               return res;
-             } catch (const std::exception& ex) {
-               memBuf.reset();
-               throw ex;
-             }
+             auto res = parseIR(self.get(), memBuf.get());
+             memBuf.reset(); // We Cannot reuse the memory buffer again
+             return res;
            },
            "memory_buffer"_a,
            "Read LLVM IR from a memory buffer and convert it into an in-memory Module"
@@ -1301,6 +1297,38 @@ void bindOtherClasses(nb::module_ &m) {
            [](PymContext &self) {
              return PymBuilder(LLVMCreateBuilderInContext(self.get()));
            })
+       // LLVMParseBitcodeInContext is deprecated in favor of LLVMParseBitcodeInContext2
+      .def("parse_bitcode",
+           [](PymContext &self, PymMemoryBuffer &memBuf) {
+             LLVMModuleRef module;
+             auto res = LLVMParseBitcodeInContext2
+                          (self.get(), memBuf.get(), &module) == 0;
+             if (!res) {
+               throw std::runtime_error("Error!");
+             }
+             // TODO check memBuf availability
+             return PymModule(module);
+           },
+           "mem_buf"_a,
+           "Builds a module from the bitcode in the specified memory buffer, "
+           "returning a reference to the module")
+      // LLVMGetBitcodeModuleInContext is deprecated in favor of
+      //  LLVMGetBitcodeModuleInContext2
+      .def("get_bitcode_module",
+           [](PymContext &self, PymMemoryBuffer &memBuf) {
+             LLVMModuleRef module;
+             auto res = LLVMGetBitcodeModuleInContext2
+                          (self.get(), memBuf.get(), &module) == 0;
+             if (!res) {
+               throw std::runtime_error("Error!");
+             }
+             memBuf.reset();
+             return PymModule(module);
+           },
+           "mem_buf"_a,
+           "Reads a module from the given memory buffer.\n"
+           "Takes ownership of \p MemBuf if (and only if) the module was read "
+           "successfully")
       .def("create_basic_block",
            [](PymContext &self, const char *name) {
              return PymBasicBlock(LLVMCreateBasicBlockInContext
