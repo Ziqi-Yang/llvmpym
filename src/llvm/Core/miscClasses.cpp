@@ -5,6 +5,7 @@
 #include <nanobind/stl/optional.h>
 #include <llvm-c/Analysis.h>
 #include <llvm-c/BitReader.h>
+#include <llvm-c/BitWriter.h>
 #include <fmt/core.h>
 #include <optional>
 #include <stdexcept>
@@ -1327,7 +1328,7 @@ void bindOtherClasses(nb::module_ &m) {
            },
            "mem_buf"_a,
            "Reads a module from the given memory buffer.\n"
-           "Takes ownership of \p MemBuf if (and only if) the module was read "
+           "Takes ownership of MemBuf if (and only if) the module was read "
            "successfully")
       .def("create_basic_block",
            [](PymContext &self, const char *name) {
@@ -1571,6 +1572,17 @@ void bindOtherClasses(nb::module_ &m) {
            [](PymModule &self) {
              return PymModuleProvider(LLVMCreateModuleProviderForExistingModule
                                        (self.get()));
+           })
+      .def("write_bitcode_to_file",
+           [](PymModule &self, const char *path) {
+             return LLVMWriteBitcodeToFile(self.get(), path);
+           },
+           "path"_a)
+      // TODO LLVMWriteBitcodeToFD and LLVMWriteBitcodeToFileHandle is currently not
+      //  implemented
+      .def("write_bitcode_to_memory_buffer",
+           [](PymModule &self) {
+             return PymMemoryBuffer(LLVMWriteBitcodeToMemoryBuffer(self.get()));
            })
       .def("get_intrinsic_declaration",
            [](PymModule &module, unsigned ID, std::vector<PymType> paramTypes) {

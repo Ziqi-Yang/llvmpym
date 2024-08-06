@@ -70,7 +70,7 @@ nanobind_add_module(
 )
 
 llvm_map_components_to_libnames(llvm_libs core transformutils analysis support
-  target)
+  target bitwriter bitreader)
 
 # Link against LLVM libraries
 target_link_libraries(llvmpym_ext PRIVATE ${llvm_libs} fmt::fmt)
