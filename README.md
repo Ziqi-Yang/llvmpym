@@ -15,4 +15,4 @@ Past versions of document can be downloaded on the Release Page.
 
 ## Related Projects
 
-[lliv](https://github.com/Ziqi-Yang/lliv)
+[lliv](https://codeberg.org/meow_king/lliv): An interactive LLVM IR viewer based on llvmpym.
