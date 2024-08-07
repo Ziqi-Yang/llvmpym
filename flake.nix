@@ -18,6 +18,9 @@
 
             llvm_18
             cmake # need for finding ZLIB::ZLIB LLVM cmake dependency
+            libxml2
+            libffi
+            libpfm
           ];
         };
       });

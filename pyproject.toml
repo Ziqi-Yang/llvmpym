@@ -1,6 +1,6 @@
 [project]
 name = "llvmpym"
-version = "0.0.4"
+version = "0.0.5"
 description = "LLVM python binding"
 readme = "README.md"
 # can only be compiled for python >= 3.12

@@ -74,11 +74,38 @@ nanobind_add_module(
   ${SOURCES}
 )
 
-llvm_map_components_to_libnames(llvm_libs core transformutils analysis support
-  target bitwriter bitreader)
 
-# Link against LLVM libraries
+if ($ENV{LLVMPYM_SHARED})
+  set(llvm_libs LLVM)
+else()
+  # the following code will lead to `error: cannot use ‘typeid’ with ‘-fno-rtti’`
+  # problem on ubuntu build
+  # set(llvm_libs ${LLVM_AVAILABLE_LIBS})
+  # # List of libraries that are part of the monolithic LLVM shared library (possibly)
+  # # and should be removed. They will cause
+  # #   CommandLine Error: Option 'verify-dom-info' registered more than once!
+  # # error when not removed
+  # list(REMOVE_ITEM llvm_libs LLVMTableGenCommon LLVMDebuginfod LTO LLVMCFIVerify LLVMDiff
+  #   Remarks LLVM)
+
+  # Dynamically get all LLVM components and map them to library names
+  execute_process(
+    COMMAND llvm-config --components
+    OUTPUT_VARIABLE LLVM_COMPONENTS
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+
+  llvm_map_components_to_libnames(llvm_libs core transformutils analysis support
+    target bitwriter bitreader
+    aarch64disassembler amdgpudisassembler armdisassembler avrdisassembler bpfdisassembler hexagondisassembler lanaidisassembler loongarchdisassembler mcdisassembler mipsdisassembler msp430disassembler powerpcdisassembler riscvdisassembler sparcdisassembler systemzdisassembler vedisassembler webassemblydisassembler x86disassembler xcoredisassembler
+  )
+
+endif()
+
+message(INFO " ${llvm_libs}")
+
 target_link_libraries(llvmpym_ext PRIVATE ${llvm_libs} fmt::fmt)
+
 # -flto and --exclude-libs allow us to remove those parts of LLVM we don't use
 # although we are going build a full llvm python binding :-
 # TODO for MacOS immitate llvmlite only expose certain symbols. Can it work?
@@ -86,7 +113,9 @@ target_link_libraries(llvmpym_ext PRIVATE ${llvm_libs} fmt::fmt)
 
 if(UNIX AND CMAKE_BUILD_TYPE STREQUAL "Release")
   set_property(TARGET llvmpym_ext APPEND_STRING PROPERTY LINK_FLAGS "-flto")
-  if(NOT APPLE)
+  if(APPLE)
+    set_property(TARGET llvmpym_ext APPEND_STRING PROPERTY LINK_FLAGS " -Wl,-dead_strip")
+  else()
     set_property(TARGET llvmpym_ext APPEND_STRING PROPERTY LINK_FLAGS " -Wl,--exclude-libs,ALL")
   endif()
 endif()

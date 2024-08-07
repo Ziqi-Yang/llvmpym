@@ -26,6 +26,7 @@
 #include "types_priv/PymTargetMachine.h"
 #include "types_priv/PymTargetMachineOptions.h"
 #include "types_priv/PymLLVMObject.h"
+#include "types_priv/PymDisasmContext.h"
 
 
 #define DEFINE_PY_WRAPPER_CLASS(ClassName, UnderlyingType) \
@@ -292,7 +293,9 @@ enum class PymLLVMFastMathFlags {
   BIND_PYLLVMOBJECT_(PymTargetMachineOptions, LLVMTargetMachineOptionsRef, \
     PymTargetMachineOptionsObject) \
 \
-  BIND_PYLLVMOBJECT_(PymTargetData, LLVMTargetDataRef, PymTargetDataObject)
+  BIND_PYLLVMOBJECT_(PymTargetData, LLVMTargetDataRef, PymTargetDataObject) \
+\
+  BIND_PYLLVMOBJECT_(PymDisasmContext, LLVMDisasmContextRef, PymDisasmContextObject)
 
 
 // Core --------------------------------------------------------
