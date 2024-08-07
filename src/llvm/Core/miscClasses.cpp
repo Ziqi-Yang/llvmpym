@@ -9,6 +9,7 @@
 #include <fmt/core.h>
 #include <optional>
 #include <stdexcept>
+#include <functional>
 #include "../types_priv.h"
 #include "../utils_priv.h"
 #include "utils.h"
@@ -1268,12 +1269,23 @@ void bindOtherClasses(nb::module_ &m) {
                       "will be available in the IR.\n"
                       "This can be used to save memory and runtime, "
                       "especially in release mode."))
-      .def("set_diagnostic_handler", // FIXME
-           [](PymContext &c, LLVMDiagnosticHandler handler, void * diagnosticContext){
-             return LLVMContextSetDiagnosticHandler(c.get(), handler, diagnosticContext);
-           },
-           "handler"_a, "diagnostic_context"_a,
-           "Set the diagnostic handler for this context.")
+      // .def("set_diagnostic_handler",
+      //      [](PymContext &c,
+      //         std::function<void(PymDiagnosticInfo, nb::any)> handler,
+      //         nb::any diagnosticContext){
+      //        static std::function<void(PymDiagnosticInfo, nb::any)> *callback =
+      //          new std::function<void(PymDiagnosticInfo, nb::any)>(std::move(handler));
+      //        return LLVMContextSetDiagnosticHandler
+      //                 (c.get(),
+      //                  [](LLVMDiagnosticInfoRef di, void * v) {
+      //                    if (callback) {
+      //                      (*callback)(PymDiagnosticInfo(di), nb::any(v)); // FIXME
+      //                    }
+      //                  },
+      //                  &diagnosticContext);
+      //      },
+      //      "handler"_a, "diagnostic_context"_a,
+      //      "Set the diagnostic handler for this context.")
       // .def("get_diagnostic_handler", FIXME
       //      [](PymContext &c)  { return LLVMContextGetDiagnosticHandler(c.get()); },
       //      "Get the diagnostic handler of this context.")

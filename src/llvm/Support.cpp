@@ -3,8 +3,11 @@
 #include <vector>
 #include <llvm-c/Support.h>
 
+#include <iostream>
+
 namespace nb = nanobind;
 using namespace nb::literals;
+
 
 void populateSupport(nb::module_ &m) {
   
@@ -27,23 +30,41 @@ void populateSupport(nb::module_ &m) {
         "the same way across LLVM versions.");
   
 
-  // FIXME seems not practical in python side
-  // m.def("search_for_address_of_symbol",
-  //       [](const char *symbolName) {
-  //         return LLVMSearchForAddressOfSymbol(symbolName);
-  //       },
-  //       "name"_a,
-  //       "This function will search through all previously loaded dynamic"
-  //       "libraries for the symbol symbolName. If it is found, the address of"
-  //       "that symbol is returned. If not, null is returned.");
+  // FIXME
+  // can work, but the returned type is an capsule object, which can only be
+  // passed into binding functions, so if we want to do operation based on
+  // the returned address like `static_cast`, then we need to define a function
+  // for it
+  m.def("search_for_address_of_symbol",
+        [](const char *symbolName) {
+          return LLVMSearchForAddressOfSymbol(symbolName);
+        },
+        "name"_a,
+        "This function will search through all previously loaded dynamic"
+        "libraries for the symbol symbolName. If it is found, the address of"
+        "that symbol is returned. If not, null is returned.");
 
-  // m.def("add_symbol",
-  //       [](const char *symbolName, nb::any symbolValue) {
-  //         // the passed value is nb::any*, but not void *
-  //         return LLVMAddSymbol(symbolName, &symbolValue);
-  //       },
-  //       "symbol_name"_a, "symbol_value"_a,
-  //       "This functions permanently adds the symbol symbolName with the"
-  //       "value symbolValue.  These symbols are searched before any"
-  //       "libraries.");
+  // seems to work correctly
+  // test example:
+  // 
+  // for static void *x;
+  //
+  //  [](nb::any a) {
+  //    x = &a;
+  //  }
+
+  // and then 
+  //  std::cout << x << std::endl;
+  //  std::cout << *(static_cast<int *>(x)) << std::endl;
+  //
+  // 0x7fffffff7d20
+  // 1
+  m.def("add_symbol",
+        [](const char *symbolName, nb::any symbolValue) {
+          return LLVMAddSymbol(symbolName, &symbolValue);
+        },
+        "symbol_name"_a, "symbol_value"_a,
+        "This functions permanently adds the symbol symbolName with the"
+        "value symbolValue.  These symbols are searched before any"
+        "libraries.");
 }

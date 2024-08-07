@@ -8,6 +8,13 @@ namespace nb = nanobind;
 using namespace nb::literals;
 
 void populateDisassembler(nb::module_ &m) {
-  // m.def("create_disasm")
+  auto DisasmContextClass =
+    nb::class_<PymDisasmContext, PymLLVMObject<PymDisasmContext, LLVMDisasmContextRef>>
+      (m, "DisasmContext", "DisasmContext");
+
+  // DisasmContextClass
+  //     .def("__init__",
+  //          [](PymDisasmContext *dc, const char *tripleName, nb::any DisInfo,
+  //          int tagType, LLVM));
 }
 

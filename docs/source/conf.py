@@ -9,7 +9,7 @@
 project = 'llvmpym'
 copyright = '2024, Meow King'
 author = 'Meow King'
-release = '0.0.4'
+release = '0.0.5'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

@@ -82,13 +82,8 @@ Status
    "``BitWriter.h``", "``core``"
    "", "``utils``"
 
-- All functions that operates on lambda functions(function pointers) is not bound 
-  or handled incorrectly. Typically those parameters'(or returned value's) type name ends 
-  with `Hanlder` or `Callback`, e.g. `LLVMDiagnosticHandler`, `LLVMYieldCallback`. Though
-  very few API operates on lambda functions.
-
-- All functions accepts or return a void pointer (`void *`) is not bound. Though
-  very few API accepts or return a void pointer.
+- All functions accepts or return a void pointer (`void *`) is not bound (including
+  lambda functions/function pointers). Though very few API accepts or return a void pointer.
 
 
 Table of contents
