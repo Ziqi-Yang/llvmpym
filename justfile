@@ -48,6 +48,8 @@ find-components build_dir symbol:
 
 list-llvm-components:
     '{{LLVM-CONFIG}}' --components | tr " " "\n" | less
-    
+
+search-components component:
+    @llvm-config --components | tr ' ' '\n' | grep '{{component}}' | paste -sd ' ' -
 
 

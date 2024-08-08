@@ -98,12 +98,15 @@ void bindOtherClasses(nb::module_ &m) {
     nb::class_<PymMemoryBuffer, PymLLVMObject<PymMemoryBuffer, LLVMMemoryBufferRef>>
       (m, "MemoryBuffer", "MemoryBuffer");
   
-  // no need to create PymPassManagerBase binding
-  auto PassManagerClass =
-    nb::class_<PymPassManager, PymLLVMObject<PymPassManagerBase, LLVMPassManagerRef>>
+  auto PassManagerBaseClass =
+    nb::class_<PymPassManagerBase, PymLLVMObject<PymPassManagerBase, LLVMPassManagerRef>>
       (m, "PassManager", "PassManager");
-  auto FunctionPassManagerClass = nb::class_<PymFunctionPassManager>
-                                    (m, "FunctionPassManager", "FunctionPassManager");
+  auto PassManagerClass =
+    nb::class_<PymPassManager, PymPassManagerBase>
+      (m, "PassManager", "PassManager");
+  auto FunctionPassManagerClass =
+    nb::class_<PymFunctionPassManager, PymPassManagerBase>
+      (m, "FunctionPassManager", "FunctionPassManager");
 
   MetadataClass
       .def("__repr__",
@@ -158,6 +161,13 @@ void bindOtherClasses(nb::module_ &m) {
            },
            "context"_a);
 
+  PassManagerBaseClass
+      .def("add_target_library_info",
+           [](PymPassManagerBase &self, PymTargetLibraryInfo &tli) {
+             return LLVMAddTargetLibraryInfo(tli.get(), self.get());
+           },
+           "target_lib_info"_a);
+  
 
   PassManagerClass
       .def("__repr__",
@@ -1439,6 +1449,13 @@ void bindOtherClasses(nb::module_ &m) {
              return &self;
            })
       .def("__exit__", [](PymModule &self, nb::args args, nb::kwargs kwargs) {})
+      .def_prop_rw("data_layout",
+                [](PymModule &self) {
+                  return PymTargetData(LLVMGetModuleDataLayout(self.get()));
+                },
+                [](PymModule &self, PymTargetData &td) {
+                  return LLVMSetModuleDataLayout(self.get(), td.get());
+                })
       .def_prop_ro("first_global_variable",
                    [](PymModule &m) -> optional<PymGlobalVariable> {
                      auto res = LLVMGetFirstGlobal(m.get());

@@ -77,6 +77,7 @@ Status
    "``Analysis.h``", "``core``, ``analysis``",
    "``ErrorHandling.h``", "``error_handling``"
    "``Support.h``", "``support``"
+   "``Target.h``", "``target``, ``core``"
    "``TargetMachine.h``", "``target_machine``"
    "``BitReader.h``", "``bit_reader``, ``core``"
    "``BitWriter.h``", "``core``"

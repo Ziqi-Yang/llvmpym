@@ -295,7 +295,9 @@ enum class PymLLVMFastMathFlags {
 \
   BIND_PYLLVMOBJECT_(PymTargetData, LLVMTargetDataRef, PymTargetDataObject) \
 \
-  BIND_PYLLVMOBJECT_(PymDisasmContext, LLVMDisasmContextRef, PymDisasmContextObject)
+  BIND_PYLLVMOBJECT_(PymDisasmContext, LLVMDisasmContextRef, PymDisasmContextObject) \
+\
+  BIND_PYLLVMOBJECT_(PymTargetLibraryInfo, LLVMTargetLibraryInfoRef, PymTargetLibraryInfoObject)
 
 
 // Core --------------------------------------------------------
@@ -326,7 +328,6 @@ PY_FOR_EACH_VALUE_CLASS_RELATIONSHIP(DEFINE_DIRECT_SUB_CLASS)
 PY_FOR_EACH_TYPE_CLASS_RELASIONSHIP(DEFINE_DIRECT_SUB_CLASS)
 
 DEFINE_PY_WRAPPER_CLASS(PymIntrinsic, unsigned)
-
 
 
 DEFINE_DIRECT_SUB_CLASS(PymPassManagerBase, PymPassManager);
@@ -374,12 +375,18 @@ DEFINE_ITERATOR_CLASS(PymNamedMDNodeIterator, PymNamedMDNode, LLVMGetNextNamedMe
 DEFINE_ITERATOR_CLASS(PymFunctionIterator, PymFunction, LLVMGetNextFunction)
 
 
+// Target
+
+DEFINE_PY_WRAPPER_CLASS(PymTargetLibraryInfo, LLVMTargetLibraryInfoRef)
+
 
 // TargetMachine ---------------------------------------------------------
 
 DEFINE_PY_WRAPPER_CLASS(PymTarget, LLVMTargetRef)
 DEFINE_ITERATOR_CLASS(PymTargetIterator, PymTarget, LLVMGetNextTarget)
 
+
+// TODO split the file to boost the compilation process
 
 
 #endif

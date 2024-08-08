@@ -254,7 +254,7 @@ void populateTargetMachine(nanobind::module_ &m) {
            },
            "module"_a, "codegen"_a)
        .def("add_analysis_passes",
-            [](PymTargetMachine &self, PymPassManager &pm) {
+            [](PymTargetMachine &self, PymPassManagerBase &pm) {
               return LLVMAddAnalysisPasses(self.get(), pm.get());
             },
             "pm"_a,

@@ -97,12 +97,40 @@ else()
 
   llvm_map_components_to_libnames(llvm_libs core transformutils analysis support
     target bitwriter bitreader
-    aarch64disassembler amdgpudisassembler armdisassembler avrdisassembler bpfdisassembler hexagondisassembler lanaidisassembler loongarchdisassembler mcdisassembler mipsdisassembler msp430disassembler powerpcdisassembler riscvdisassembler sparcdisassembler systemzdisassembler vedisassembler webassemblydisassembler x86disassembler xcoredisassembler
+
+    # Disassembler & Target
+    
+    aarch64disassembler amdgpudisassembler armdisassembler avrdisassembler bpfdisassembler
+    hexagondisassembler lanaidisassembler loongarchdisassembler mcdisassembler
+    mipsdisassembler msp430disassembler powerpcdisassembler riscvdisassembler
+    sparcdisassembler systemzdisassembler vedisassembler webassemblydisassembler
+    x86disassembler xcoredisassembler
+
+    # Target
+
+    aarch64info amdgpuinfo arminfo avrinfo bpfinfo hexagoninfo lanaiinfo loongarchinfo
+    mipsinfo msp430info nvptxinfo powerpcinfo riscvinfo sparcinfo systemzinfo veinfo
+    webassemblyinfo x86info xcoreinfo
+    
+    aarch64desc amdgpudesc armdesc avrdesc bpfdesc hexagondesc lanaidesc loongarchdesc
+    mipsdesc msp430desc nvptxdesc powerpcdesc riscvdesc sparcdesc systemzdesc vedesc
+    webassemblydesc x86desc xcoredesc
+
+    aarch64codegen amdgpucodegen armcodegen avrcodegen bpfcodegen codegen codegentypes
+    hexagoncodegen lanaicodegen loongarchcodegen mipscodegen msp430codegen nativecodegen
+    nvptxcodegen powerpccodegen riscvcodegen sparccodegen systemzcodegen vecodegen
+    webassemblycodegen x86codegen xcorecodegen
+
+    aarch64asmparser amdgpuasmparser armasmparser asmparser avrasmparser bpfasmparser
+    hexagonasmparser lanaiasmparser loongarchasmparser mcparser mipsasmparser mirparser
+    msp430asmparser powerpcasmparser riscvasmparser sparcasmparser systemzasmparser
+    targetparser veasmparser webassemblyasmparser x86asmparser
+    
   )
 
 endif()
 
-message(INFO " ${llvm_libs}")
+# message(INFO " ${llvm_libs}")
 
 target_link_libraries(llvmpym_ext PRIVATE ${llvm_libs} fmt::fmt)
 
