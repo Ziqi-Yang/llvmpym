@@ -186,6 +186,22 @@ nanobind_add_stub(
   DEPENDS llvmpym_ext
 )
 
+nanobind_add_stub(
+  llvmpym_ext_stub_bit_reader
+  MODULE llvmpym_ext.bit_reader
+  OUTPUT bit_reader.pyi
+  PYTHON_PATH $<TARGET_FILE_DIR:llvmpym_ext>
+  DEPENDS llvmpym_ext
+)
+
+nanobind_add_stub(
+  llvmpym_ext_stub_disassembler
+  MODULE llvmpym_ext.disassembler
+  OUTPUT disassembler.pyi
+  PYTHON_PATH $<TARGET_FILE_DIR:llvmpym_ext>
+  DEPENDS llvmpym_ext
+)
+
 
 # Install directive for scikit-build-core
 install(TARGETS llvmpym_ext LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME})
@@ -200,5 +216,7 @@ install(FILES
   ${CMAKE_BINARY_DIR}/analysis.pyi
   ${CMAKE_BINARY_DIR}/target.pyi
   ${CMAKE_BINARY_DIR}/target_machine.pyi
+  ${CMAKE_BINARY_DIR}/bit_reader.pyi
+  ${CMAKE_BINARY_DIR}/disassembler.pyi
   
   DESTINATION ${SKBUILD_PROJECT_NAME}/llvmpym_ext)
