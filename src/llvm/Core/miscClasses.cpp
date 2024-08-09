@@ -3,9 +3,12 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 #include <nanobind/stl/optional.h>
+#include <nanobind/stl/function.h>
+
 #include <llvm-c/Analysis.h>
 #include <llvm-c/BitReader.h>
 #include <llvm-c/BitWriter.h>
+
 #include <fmt/core.h>
 #include <optional>
 #include <stdexcept>
@@ -1194,15 +1197,14 @@ void bindOtherClasses(nb::module_ &m) {
            [](PymDiagnosticInfo &self) {
              return "<DiagnosticInfo>";
            })
-      // .def(nb::init<>()) // NOTE currently no constructor function for python, we'll see
-      .def_prop_ro("description",
-                   [](PymDiagnosticInfo &d) {
-                     char *diagInfoDesc = LLVMGetDiagInfoDescription(d.get());
-                     std::string diagInfoDescCopy(diagInfoDesc);
-                     LLVMDisposeMessage(diagInfoDesc);
-                     return diagInfoDescCopy;
-                   },
-                   "Return a string representation of the DiagnosticInfo.")
+      .def("__str__",
+           [](PymDiagnosticInfo &d) {
+             char *diagInfoDesc = LLVMGetDiagInfoDescription(d.get());
+             std::string diagInfoDescCopy(diagInfoDesc);
+             LLVMDisposeMessage(diagInfoDesc);
+             return diagInfoDescCopy;
+           },
+           "Return a string representation of the DiagnosticInfo.")
       .def_prop_ro("severity",
                    [](PymDiagnosticInfo &d) {
                      return LLVMGetDiagInfoSeverity(d.get());
@@ -1256,9 +1258,7 @@ void bindOtherClasses(nb::module_ &m) {
                   "Obtain the global context instance.")
       .def_prop_ro("diagnostic_context",
                    [](PymContext &c) {
-                     // FIXME The function cannot work correctly (always None) since
-                     // `LLVMContextSetDiagnosticHandler` cannot, which set
-                     // the diagnostic context
+                     // FIXME the returned value is nb::capsule, which is meaningless
                      return LLVMContextGetDiagnosticContext(c.get());
                    },
                    "Get the diagnostic context of this context.")
@@ -1279,26 +1279,34 @@ void bindOtherClasses(nb::module_ &m) {
                       "will be available in the IR.\n"
                       "This can be used to save memory and runtime, "
                       "especially in release mode."))
-      // .def("set_diagnostic_handler",
-      //      [](PymContext &c,
-      //         std::function<void(PymDiagnosticInfo, nb::any)> handler,
-      //         nb::any diagnosticContext){
-      //        static std::function<void(PymDiagnosticInfo, nb::any)> *callback =
-      //          new std::function<void(PymDiagnosticInfo, nb::any)>(std::move(handler));
-      //        return LLVMContextSetDiagnosticHandler
-      //                 (c.get(),
-      //                  [](LLVMDiagnosticInfoRef di, void * v) {
-      //                    if (callback) {
-      //                      (*callback)(PymDiagnosticInfo(di), nb::any(v)); // FIXME
-      //                    }
-      //                  },
-      //                  &diagnosticContext);
-      //      },
-      //      "handler"_a, "diagnostic_context"_a,
-      //      "Set the diagnostic handler for this context.")
-      // .def("get_diagnostic_handler", FIXME
-      //      [](PymContext &c)  { return LLVMContextGetDiagnosticHandler(c.get()); },
-      //      "Get the diagnostic handler of this context.")
+      .def("set_diagnostic_handler",
+           [](PymContext &c,
+              // NOTE how to use `nb::any` here?
+              std::function<void(PymDiagnosticInfo, nb::object)> handler,
+              nb::any diagnosticContext){
+             static std::function<void(PymDiagnosticInfo, nb::object)> *callback =
+               new std::function<void(PymDiagnosticInfo, nb::object)>(std::move(handler));
+             return LLVMContextSetDiagnosticHandler
+                      (c.get(),
+                       [](LLVMDiagnosticInfoRef di, void * v) {
+                         if (callback) {
+                           (*callback)(PymDiagnosticInfo(di), nb::capsule(v));
+                         }
+                       },
+                       &diagnosticContext);
+           },
+           "handler"_a, "diagnostic_context"_a,
+           "Set the diagnostic handler for this context.")
+      .def("get_diagnostic_handler",
+           [](PymContext &c)  {
+             auto funcPtr = LLVMContextGetDiagnosticHandler(c.get());
+             std::function<void(PymDiagnosticInfo, nb::object)> fn =
+               [funcPtr](PymDiagnosticInfo di, nb::object obj) {
+                 funcPtr(di.get(), &obj);
+               };
+             return fn;
+           },
+           "Get the diagnostic handler of this context.")
       .def("set_yield_callback", // FIXME
            [](PymContext &c, LLVMYieldCallback callback, void *opaqueHandle){
              return LLVMContextSetYieldCallback(c.get(), callback, opaqueHandle);
@@ -1831,3 +1839,4 @@ void bindOtherClasses(nb::module_ &m) {
            "index"_a,
            "Returns the metadata for a module flag entry at a specific index.");
 }
+

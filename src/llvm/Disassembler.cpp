@@ -15,6 +15,6 @@ void populateDisassembler(nb::module_ &m) {
   // DisasmContextClass
   //     .def("__init__",
   //          [](PymDisasmContext *dc, const char *tripleName, nb::any DisInfo,
-  //          int tagType, LLVM));
+  //          int tagType, LLVMO));
 }
 

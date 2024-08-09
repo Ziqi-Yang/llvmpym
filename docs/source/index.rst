@@ -97,9 +97,6 @@ Status
    "``TargetMachine.h``", "``target_machine``"
    "<extra>", "``utils``"
 
-- All functions accepts or return a void pointer (`void *`) is not bound (including
-  lambda functions/function pointers). Though very few API accepts or return a void pointer.
-
 
 Table of contents
 -----------------
