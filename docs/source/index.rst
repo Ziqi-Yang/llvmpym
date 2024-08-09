@@ -72,16 +72,30 @@ Status
 .. csv-table:: LLVM C API Header File Mapping Status
   :header: "Header File", "Python Modules"
 
+   "``Analysis.h``", "``core``, ``analysis``"
+   "``BitReader.h``", "``bit_reader``, ``core``"
+   "``BitWriter.h``", "``core``"
+   "``blake3.h``", ""
+   "``Comdat.h``", ""
    "``Core.h``", "``core``"
-   "``IRReader.h``", "``core``"
-   "``Analysis.h``", "``core``, ``analysis``",
+   "``DebugInfo.h``", ""
+   "``Disassembler.h``", ""
+   "``Error.h``", ""
    "``ErrorHandling.h``", "``error_handling``"
+   "``ExecutionEngine``", ""
+   "``IRReader.h``", "``core``"
+   "``Linker.h``", ""
+   "``LLJIT.h``", ""
+   "``LLJITUtils.h``", ""
+   "``lto.h``", ""
+   "``Object.h``", ""
+   "``OrcEE.h``", ""
+   "``Orc.h``", ""
+   "``Remarks.h``", ""
    "``Support.h``", "``support``"
    "``Target.h``", "``target``, ``core``"
    "``TargetMachine.h``", "``target_machine``"
-   "``BitReader.h``", "``bit_reader``, ``core``"
-   "``BitWriter.h``", "``core``"
-   "", "``utils``"
+   "<extra>", "``utils``"
 
 - All functions accepts or return a void pointer (`void *`) is not bound (including
   lambda functions/function pointers). Though very few API accepts or return a void pointer.
