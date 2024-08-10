@@ -9,6 +9,7 @@
 #include "llvm/TargetMachine.h"
 #include "llvm/Disassembler.h"
 #include "llvm/BitReader.h"
+#include "llvm/Linker.h"
 
 namespace nb = nanobind;
 using namespace nb::literals;
@@ -43,7 +44,11 @@ NB_MODULE(llvmpym_ext, m) {
   auto bitReaderModule = m.def_submodule("bit_reader", "bit_reader");
   populateBitReader(bitReaderModule);
 
+  // NOTE currently not implemented
   auto disassemblerModule = m.def_submodule("disassembler", "disassembler");
   populateDisassembler(disassemblerModule);
+
+  auto linkerModule = m.def_submodule("linker", "linker");
+  populateLinker(linkerModule);
 
 }

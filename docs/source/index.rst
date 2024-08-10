@@ -84,7 +84,7 @@ Status
    "``ErrorHandling.h``", "``error_handling``"
    "``ExecutionEngine``", ""
    "``IRReader.h``", "``core``"
-   "``Linker.h``", ""
+   "``Linker.h``", "``linker``"
    "``LLJIT.h``", ""
    "``LLJITUtils.h``", ""
    "``lto.h``", ""

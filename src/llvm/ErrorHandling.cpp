@@ -9,9 +9,6 @@
 namespace nb = nanobind;
 using namespace nb::literals;
 
-namespace nb = nanobind;
-using namespace nb::literals;
-
 void populateErrorHandling(nb::module_ &m) {
   m.def("install_fatal_error_handler",
         [](std::function<void(const char*)> handler) {
