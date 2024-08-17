@@ -344,8 +344,8 @@ DEFINE_DIRECT_SUB_CLASS(PymPassManagerBase, PymFunctionPassManager);
   } \
   \
   UnderlyingType next() { \
-  if (!val.get()) \
-       throw nanobind::stop_iteration(); \
+    if (!val.get()) \
+      throw nanobind::stop_iteration(); \
     auto prev = val; \
     val = UnderlyingType(GetNextFn(val.get())); \
     return prev; \

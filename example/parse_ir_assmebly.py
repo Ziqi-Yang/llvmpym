@@ -10,12 +10,13 @@ asm_str = r'''
     @glob_f = global float 1.5
     @glob_struct = global %struct.glob_type {i64 0, [2 x i64] [i64 0, i64 0]}
 
-    define i32 @sum(i32 %.1, i32 %.2) {
+    define i32 @sum(i32 nocapture %.1, i32 %.2) noinline {
       %.3 = add i32 %.1, %.2
       %.4 = add i32 0, %.3
       ret i32 %.4
     }
 
+    ; Function Attrs: noinline nounwind optnone uwtable
     define void @foo() {
       call void asm sideeffect "nop", ""()
       ret void
@@ -33,10 +34,15 @@ for f in m.functions:
     assert m == module # point to the same module object
     assert m is not module # but python objects are not the same
     assert f.kind == core.ValueKind.Function
-    for i, a in enumerate(f.args, 1):
+    
+    # TODO it seems we cannot get function attributes (not parameter's)
+    f_attrs = f.get_attributes_at_index(0)
+    print(f"attrs: {f_attrs}")
+    
+    for a in f.args:
         print(f'\tArgument | name: "{a.name}", type: "{a.type}"') 
-        attrs = f.get_attributes_at_index(i)
-        print(f"\t\tattrs: {attrs}")
+        # attrs = f.get_attributes_at_index(i)
+        print(f"\t\tattrs: {a.attrs}")
     for bb in f.basic_blocks:
         print(f'\tBasicBlock | name: "{bb.name}" | value.type: "{bb.value.type}"')
         print("-------- Content of BasicBlock ---------")

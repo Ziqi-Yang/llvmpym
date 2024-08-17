@@ -16,6 +16,9 @@
 #include "../types_priv.h"
 #include "../utils_priv.h"
 #include "utils.h"
+#include <llvm/IR/Attributes.h>
+#include <llvm/IR/Value.h>
+
 
 namespace nb = nanobind;
 using namespace nb::literals;
@@ -1075,7 +1078,9 @@ void bindOtherClasses(nb::module_ &m) {
   AttributeClass
       .def("__repr__",
            [](PymAttribute &self) {
-             return "<Attribute>";
+             using namespace llvm;
+             Attribute attr = unwrap(self.get());
+             return fmt::format("<Attribute name='{}'>", attr.getAsString());
            })
       .def_prop_ro("is_enum",
                    [](PymAttribute &attr) {
@@ -1091,21 +1096,11 @@ void bindOtherClasses(nb::module_ &m) {
                    });
   
   EnumAttributeClass
-      .def("__repr__",
-           [](PymEnumAttribute &self) {
-             return "<EnumAttribute>";
-           })
       .def("__init__",
            [](PymEnumAttribute *t, PymContext &c, unsigned kindID, uint64_t val) {
              new (t) PymEnumAttribute(LLVMCreateEnumAttribute(c.get(), kindID, val));
            },
            "context"_a, "kind_id"_a, "val"_a)
-      .def("__repr__",
-           [](PymEnumAttribute &self) {
-             auto kind = LLVMGetEnumAttributeKind(self.get());
-             auto value = LLVMGetEnumAttributeValue(self.get());
-             return fmt::format("<EnumAttribute kind={} value={}>", kind, value);
-           })
       .def_prop_ro("kind",
                    [](PymEnumAttribute &attr) {
                      return LLVMGetEnumAttributeKind(attr.get());
@@ -1130,22 +1125,12 @@ void bindOtherClasses(nb::module_ &m) {
       .def_static("get_last_enum_attribute_kind", &LLVMGetLastEnumAttributeKind);
 
   TypeAttributeClass
-      .def("__repr__",
-           [](PymTypeAttribute &self) {
-             return "<TypeAttribute>";
-           })
       .def("__init__",
            [](PymTypeAttribute *t, PymContext &context, unsigned kind_id, PymType &type) {
              new (t) PymTypeAttribute(LLVMCreateTypeAttribute
                                        (context.get(), kind_id, type.get()));
            },
            "context"_a, "kind_id"_a, "type"_a)
-      .def("__repr__",
-           [](PymTypeAttribute &self) {
-             auto value = LLVMGetTypeAttributeValue(self.get());
-             auto type_kind = LLVMGetTypeKind(value);
-             return fmt::format("<TypeAttribute value={}>", get_repr_str(type_kind));
-           })
       .def_prop_ro("value",
                    [](PymTypeAttribute &ta){
                      return PymTypeAuto(LLVMGetTypeAttributeValue(ta.get()));
@@ -1153,10 +1138,6 @@ void bindOtherClasses(nb::module_ &m) {
                    "Get the type attribute's value.");
 
   StringAttributeClass
-      .def("__repr__",
-           [](PymStringAttribute &self) {
-             return "<StringAttribute>";
-           })
       .def("__init__",
            [](PymStringAttribute *t, PymContext &c, const std::string &kind, const std::string &value) {
              auto raw = LLVMCreateStringAttribute(c.get(),
@@ -1165,18 +1146,6 @@ void bindOtherClasses(nb::module_ &m) {
              new (t) PymStringAttribute(raw);
            },
            "context"_a, "kind"_a, "value"_a)
-      .def("__repr__",
-           [](PymStringAttribute &self) {
-             unsigned kind_length;
-             const char *raw_kind = LLVMGetStringAttributeKind(self.get(), &kind_length);
-             auto kind = std::string(raw_kind, kind_length);
-             
-             unsigned value_length;
-             const char *raw_value = LLVMGetStringAttributeValue(self.get(), &value_length);
-             auto value = std::string(raw_value, value_length);
-
-             return fmt::format("<TypeAttribute kind={} value={}>", kind, value);
-           })
       .def_prop_ro("kind",
                    [](PymStringAttribute &ta) {
                      unsigned length;

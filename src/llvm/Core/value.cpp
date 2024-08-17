@@ -10,6 +10,7 @@
 #include "../utils_priv.h"
 #include "utils.h"
 #include <llvm-c/Analysis.h>
+#include <llvm/IR/Function.h>
 
 namespace nb = nanobind;
 using namespace nb::literals;
@@ -1213,6 +1214,20 @@ void bindValueClasses(nb::module_ &m) {
                    [](PymArgument &self) -> std::optional<PymArgument> {
                      auto res = LLVMGetPreviousParam(self.get());
                      WRAP_OPTIONAL_RETURN(res, PymArgument);
+                   })
+      .def_prop_ro("attrs", // c++ extension (a little)
+                   [](PymArgument &self) {
+                     using namespace llvm;
+                     Argument *arg = unwrap<Argument>(self.get());
+                     unsigned argno = arg->getArgNo();
+                     const AttributeSet attrs =
+                       arg->getParent()->getAttributes().getParamAttrs(argno);
+
+                     std::vector<PymAttribute*> pymAttrs;
+                     for (const auto &attr : attrs) {
+                       pymAttrs.emplace_back(PymAttributeAuto(wrap(attr)));
+                     }
+                     return pymAttrs;
                    })
       .def("set_alignment",
            [](PymArgument &self, unsigned Align) {
