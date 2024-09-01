@@ -1101,6 +1101,12 @@ void bindOtherClasses(nb::module_ &m) {
              new (t) PymEnumAttribute(LLVMCreateEnumAttribute(c.get(), kindID, val));
            },
            "context"_a, "kind_id"_a, "val"_a)
+      .def("__repr__",
+           [](PymAttribute &self) {
+             using namespace llvm;
+             Attribute attr = unwrap(self.get());
+             return fmt::format("<EnumAttribute str='{}'>", attr.getAsString());
+           })
       .def_prop_ro("kind",
                    [](PymEnumAttribute &attr) {
                      return LLVMGetEnumAttributeKind(attr.get());
@@ -1131,6 +1137,12 @@ void bindOtherClasses(nb::module_ &m) {
                                        (context.get(), kind_id, type.get()));
            },
            "context"_a, "kind_id"_a, "type"_a)
+      .def("__repr__",
+           [](PymAttribute &self) {
+             using namespace llvm;
+             Attribute attr = unwrap(self.get());
+             return fmt::format("<TypeAttribute str='{}'>", attr.getAsString());
+           })
       .def_prop_ro("value",
                    [](PymTypeAttribute &ta){
                      return PymTypeAuto(LLVMGetTypeAttributeValue(ta.get()));
@@ -1146,6 +1158,12 @@ void bindOtherClasses(nb::module_ &m) {
              new (t) PymStringAttribute(raw);
            },
            "context"_a, "kind"_a, "value"_a)
+      .def("__repr__",
+           [](PymAttribute &self) {
+             using namespace llvm;
+             Attribute attr = unwrap(self.get());
+             return fmt::format("<StringAttribute str='{}'>", attr.getAsString());
+           })
       .def_prop_ro("kind",
                    [](PymStringAttribute &ta) {
                      unsigned length;

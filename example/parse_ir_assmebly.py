@@ -10,13 +10,13 @@ asm_str = r'''
     @glob_f = global float 1.5
     @glob_struct = global %struct.glob_type {i64 0, [2 x i64] [i64 0, i64 0]}
 
-    define i32 @sum(i32 nocapture %.1, i32 %.2) noinline {
+    define zeroext i32 @sum(i32 nocapture %.1, i32 %.2) cold {
       %.3 = add i32 %.1, %.2
       %.4 = add i32 0, %.3
       ret i32 %.4
     }
 
-    define void @foo() {
+    define void @foo() "frame-pointer"="all" {
       call void asm sideeffect "nop", ""()
       ret void
     }
@@ -36,10 +36,10 @@ for f in m.functions:
     
     # TODO it seems we cannot get function attributes (not parameter's)
     f_attrs = f.get_attributes_at_index(core.FunctionAttributeIndex)
-    print(f"Function Attrs: {f_attrs}")
+    print(f"Function Attributes: {f_attrs}")
 
     ret_attrs = f.get_attributes_at_index(core.ReturnAttributeIndex)
-    print(f"Return Attrs: {ret_attrs}")
+    print(f"Return Attributes: {ret_attrs}")
     
     for a in f.args:
         print(f'\tArgument | name: "{a.name}", type: "{a.type}"') 
