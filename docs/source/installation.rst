@@ -130,7 +130,7 @@ You can use the following command to temporarily solve the issue:
 
    env LD_LIBRARY_PATH="$(nix path-info nixpkgs#zlib)/lib:$(nix path-info nixpkgs#stdenv.cc.cc.lib)/lib:$LD_LIBRARY_PATH" <your-command>
 
-If you uses Nix development shell, you can set a *shell-hook* 
+You can also set ``LD_LIBRARY_PATH`` in your Nix development shell too:
 
 .. code-block:: nix
 
@@ -141,11 +141,14 @@ If you uses Nix development shell, you can set a *shell-hook*
             pip
           ]))
         ];
-        shellHook = ''
-          export LD_LIBRARY_PATH="${pkgs.zlib}/lib:${pkgs.stdenv.cc.cc.lib.outPath}/lib:$LD_LIBRARY_PATH"
-        '';
+
+        LD_LIBRARY_PATH = with pkgs; lib.makeLibraryPath [
+          zlib
+          stdenv.cc.cc
+        ];
       };
   });
 
 Currently the issue is not solved from its root. If you know how to solve it, it
 would be really helpful of you to propose a PR. 
+

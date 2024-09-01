@@ -1151,7 +1151,8 @@ void bindOtherClasses(nb::module_ &m) {
 
   StringAttributeClass
       .def("__init__",
-           [](PymStringAttribute *t, PymContext &c, const std::string &kind, const std::string &value) {
+           [](PymStringAttribute *t, PymContext &c, const std::string &kind, const
+            std::string &value) {
              auto raw = LLVMCreateStringAttribute(c.get(),
                                                   kind.c_str(), kind.size(),
                                                   value.c_str(), value.size());
@@ -1250,7 +1251,9 @@ void bindOtherClasses(nb::module_ &m) {
                    },
                    "Get the diagnostic context of this context.")
       .def_prop_rw("should_discard_value_names", // TODO convert LLVMBool to bool
-                   [](PymContext &c) -> bool { return LLVMContextShouldDiscardValueNames(c.get()) != 0; },
+                   [](PymContext &c) -> bool {
+                     return LLVMContextShouldDiscardValueNames(c.get()) != 0;
+                   },
                    [](PymContext &c, bool discard) {
                      return LLVMContextSetDiscardValueNames(c.get(), discard);
                    },

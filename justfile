@@ -8,7 +8,7 @@ install:
 test: install
     python -m pytest
 
-build-wheels: install
+build-wheels:
     python -m build
 
 ipython: install
