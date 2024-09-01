@@ -1080,7 +1080,7 @@ void bindOtherClasses(nb::module_ &m) {
            [](PymAttribute &self) {
              using namespace llvm;
              Attribute attr = unwrap(self.get());
-             return fmt::format("<Attribute name='{}'>", attr.getAsString());
+             return fmt::format("<Attribute str='{}'>", attr.getAsString());
            })
       .def_prop_ro("is_enum",
                    [](PymAttribute &attr) {

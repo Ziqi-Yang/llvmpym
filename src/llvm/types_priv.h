@@ -246,22 +246,22 @@
       .def("__hash__", &PymLLVMObject<ClassName, UnderlyingType>::__hash__);
 
 
-enum class PymAttributeIndex {
-  Return = LLVMAttributeReturnIndex,
-  Function = LLVMAttributeFunctionIndex
-};
+// enum class PymAttributeIndex {
+//   Return = LLVMAttributeReturnIndex,
+//   Function = LLVMAttributeFunctionIndex
+// };
 
-enum class PymLLVMFastMathFlags {
-  AllowReassoc = LLVMFastMathAllowReassoc,
-  NoNaNs = LLVMFastMathNoNaNs,
-  NoInfs = LLVMFastMathNoInfs,
-  NoSignedZeros = LLVMFastMathNoSignedZeros,
-  AllowReciprocal = LLVMFastMathAllowReciprocal,
-  AllowContract = LLVMFastMathAllowContract,
-  ApproxFunc = LLVMFastMathApproxFunc,
-  None = LLVMFastMathNone,
-  All = LLVMFastMathAll
-};
+// enum class PymLLVMFastMathFlags {
+//   AllowReassoc = LLVMFastMathAllowReassoc,
+//   NoNaNs = LLVMFastMathNoNaNs,
+//   NoInfs = LLVMFastMathNoInfs,
+//   NoSignedZeros = LLVMFastMathNoSignedZeros,
+//   AllowReciprocal = LLVMFastMathAllowReciprocal,
+//   AllowContract = LLVMFastMathAllowContract,
+//   ApproxFunc = LLVMFastMathApproxFunc,
+//   None = LLVMFastMathNone,
+//   All = LLVMFastMathAll
+// };
 
 /*
  * Check three places: here, class inheritance, binding class inheritance

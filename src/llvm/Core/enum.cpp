@@ -375,9 +375,12 @@ void bindEnums(nb::module_ &m) {
               "However, duplicate entries in the second list are dropped during "
               "the append operation.");
 
-  nb::enum_<PymAttributeIndex>(m, "AttributeIndex", "AttributeIndex")
-      .value("Return", PymAttributeIndex::Return)
-      .value("Function", PymAttributeIndex::Function);
+  // nb::enum_<PymAttributeIndex>(m, "AttributeIndex", "AttributeIndex")
+  //     .value("Return", PymAttributeIndex::Return)
+  //     .value("Function", PymAttributeIndex::Function);
+
+  m.attr("ReturnAttributeIndex") = (unsigned int) LLVMAttributeReturnIndex;
+  m.attr("FunctionAttributeIndex") = (unsigned int) LLVMAttributeFunctionIndex;
 
   nb::enum_<LLVMTailCallKind>(m, "TailCallKind", "TailCallKind")
       .value("LLVMTailCallKindNone", LLVMTailCallKind::LLVMTailCallKindNone)
@@ -385,18 +388,27 @@ void bindEnums(nb::module_ &m) {
       .value("LLVMTailCallKindMustTail", LLVMTailCallKind::LLVMTailCallKindMustTail)
       .value("LLVMTailCallKindNoTail", LLVMTailCallKind::LLVMTailCallKindNoTail);
 
-  // TODO LLVMAttributeIndex
 
-  nb::enum_<PymLLVMFastMathFlags>(m, "FastMathFlags", "FastMathFlags")
-       .value("AllowReassoc", PymLLVMFastMathFlags::AllowReassoc)
-       .value("NoNaNs", PymLLVMFastMathFlags::NoNaNs)
-       .value("NoInfs", PymLLVMFastMathFlags::NoInfs)
-       .value("NoSignedZeros", PymLLVMFastMathFlags::NoSignedZeros)
-       .value("AllowReciprocal", PymLLVMFastMathFlags::AllowReciprocal)
-       .value("AllowContract", PymLLVMFastMathFlags::AllowContract)
-       .value("ApproxFunc", PymLLVMFastMathFlags::ApproxFunc)
-       .value("None_", PymLLVMFastMathFlags::None)
-       .value("All", PymLLVMFastMathFlags::All);
+  // nb::enum_<PymLLVMFastMathFlags>(m, "FastMathFlags", "FastMathFlags")
+  //      .value("AllowReassoc", PymLLVMFastMathFlags::AllowReassoc)
+  //      .value("NoNaNs", PymLLVMFastMathFlags::NoNaNs)
+  //      .value("NoInfs", PymLLVMFastMathFlags::NoInfs)
+  //      .value("NoSignedZeros", PymLLVMFastMathFlags::NoSignedZeros)
+  //      .value("AllowReciprocal", PymLLVMFastMathFlags::AllowReciprocal)
+  //      .value("AllowContract", PymLLVMFastMathFlags::AllowContract)
+  //      .value("ApproxFunc", PymLLVMFastMathFlags::ApproxFunc)
+  //      .value("None_", PymLLVMFastMathFlags::None)
+  //      .value("All", PymLLVMFastMathFlags::All);
+
+  m.attr("AllowReassocFMFlag")    = (unsigned int) LLVMFastMathAllowReassoc;
+  m.attr("NoNaNsFMFlag")          = (unsigned int) LLVMFastMathNoNaNs;
+  m.attr("NoInfsFMFlag")          = (unsigned int) LLVMFastMathNoInfs;
+  m.attr("NoSignedZerosFMFlag")   = (unsigned int) LLVMFastMathNoSignedZeros;
+  m.attr("AllowReciprocalFMFlag") = (unsigned int) LLVMFastMathAllowReciprocal;
+  m.attr("AllowContractFMFlag")   = (unsigned int) LLVMFastMathAllowContract;
+  m.attr("ApproxFuncFMFlag")      = (unsigned int) LLVMFastMathApproxFunc;
+  m.attr("NoneFMFlag")            = (unsigned int) LLVMFastMathNone;
+  m.attr("AllFMFlag")             = (unsigned int) LLVMFastMathAll;
 
   // TODO LLVMFastMathFlags
 

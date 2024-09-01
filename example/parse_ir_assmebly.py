@@ -16,7 +16,6 @@ asm_str = r'''
       ret i32 %.4
     }
 
-    ; Function Attrs: noinline nounwind optnone uwtable
     define void @foo() {
       call void asm sideeffect "nop", ""()
       ret void
@@ -36,8 +35,11 @@ for f in m.functions:
     assert f.kind == core.ValueKind.Function
     
     # TODO it seems we cannot get function attributes (not parameter's)
-    f_attrs = f.get_attributes_at_index(0)
-    print(f"attrs: {f_attrs}")
+    f_attrs = f.get_attributes_at_index(core.FunctionAttributeIndex)
+    print(f"Function Attrs: {f_attrs}")
+
+    ret_attrs = f.get_attributes_at_index(core.ReturnAttributeIndex)
+    print(f"Return Attrs: {ret_attrs}")
     
     for a in f.args:
         print(f'\tArgument | name: "{a.name}", type: "{a.type}"') 
