@@ -3,19 +3,17 @@ set dotenv-load
 LLVM-CONFIG := env('LLVM_CONFIG', "llvm-config")
 
 install:
-    pip install --no-build-isolation -ve .
-
-test: install-normal
+    pip install --no-build-isolation -v .
+    
+test: install
     python -m pytest
 
-build-wheels: install-normal
+build-wheels: install
     python -m build
 
-ipython: install-normal
+ipython: install
     ipython
 
-install-normal:
-    pip install -v .
     
 install-dev-requirements:
     pip install -r ./requirements.txt
