@@ -1066,7 +1066,7 @@ void bindOtherClasses(nb::module_ &m) {
                    "This effectively advances the iterator. It returns NULL if you are on"
                    "the final use and no more are available.")
       .def_prop_ro("user",
-                   [](PymUse &u) { return PymUser(LLVMGetUser(u.get())); },
+                   [](PymUse &u) { return PymValueAuto(LLVMGetUser(u.get())); },
                    "Obtain the user value for a user.\n",
                    "The returned value corresponds to a llvm::User type.")
       .def_prop_ro("used_value",
@@ -1081,6 +1081,12 @@ void bindOtherClasses(nb::module_ &m) {
              using namespace llvm;
              Attribute attr = unwrap(self.get());
              return fmt::format("<Attribute str='{}'>", attr.getAsString());
+           })
+      .def("__str__",
+           [](PymAttribute &self) {
+             using namespace llvm;
+             Attribute attr = unwrap(self.get());
+             return attr.getAsString();
            })
       .def_prop_ro("is_enum",
                    [](PymAttribute &attr) {

@@ -1240,6 +1240,20 @@ void bindValueClasses(nb::module_ &m) {
            [](PymUser &self) {
              return gen_value_repr("User", self);
            })
+      .def_prop_ro("operands_num",
+                   [](PymUser &u) {
+                     return LLVMGetNumOperands(u.get());
+                   })
+      .def_prop_ro("operands",  // c++ extension
+                   [](PymUser &self) {
+                     using namespace llvm;
+                     User *user = unwrap<User>(self.get());
+                     std::vector<PymValue*> pymOps;
+                     for (const auto &op : user->operands()) {
+                       pymOps.emplace_back(PymValueAuto(wrap(op)));
+                     }
+                     return pymOps;
+                   })
       .def("get_operand",
            [](PymUser &u, unsigned index) {
              return PymValueAuto(LLVMGetOperand(u.get(), index));
@@ -1256,11 +1270,7 @@ void bindValueClasses(nb::module_ &m) {
              return LLVMSetOperand(u.get(), index, v.get());
            },
            "index"_a, "value"_a,
-           "Set an operand at a specific index")
-       .def_prop_ro("operands_num",
-                    [](PymUser &u) {
-                      return LLVMGetNumOperands(u.get());
-                    });
+           "Set an operand at a specific index");
 
   ConstantClass
       .def("__repr__",

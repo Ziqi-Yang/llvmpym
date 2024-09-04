@@ -60,8 +60,7 @@ for f in m.functions:
             assert insr.parent == bb
             assert insr.parent is not bb
             assert insr.kind == core.ValueKind.Instruction
-            for i in range(insr.operands_num):
-                operand = insr.get_operand(0)
+            for operand in insr.operands:
                 print(f'\t\t\tOperand | name: "{operand.name}" | type: "{operand.type}"')
 
     print("\n")

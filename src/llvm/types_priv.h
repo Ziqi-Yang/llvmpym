@@ -27,6 +27,7 @@
 #include "types_priv/PymTargetMachineOptions.h"
 #include "types_priv/PymLLVMObject.h"
 #include "types_priv/PymDisasmContext.h"
+#include "types_priv/PymBinary.h"
 
 
 #define DEFINE_PY_WRAPPER_CLASS(ClassName, UnderlyingType) \
@@ -297,7 +298,10 @@
 \
   BIND_PYLLVMOBJECT_(PymDisasmContext, LLVMDisasmContextRef, PymDisasmContextObject) \
 \
-  BIND_PYLLVMOBJECT_(PymTargetLibraryInfo, LLVMTargetLibraryInfoRef, PymTargetLibraryInfoObject)
+  BIND_PYLLVMOBJECT_(PymTargetLibraryInfo, LLVMTargetLibraryInfoRef, PymTargetLibraryInfoObject) \
+\
+  BIND_PYLLVMOBJECT_(PymBinary, LLVMBinaryRef, PyBinaryObject)
+  
 
 
 // Core --------------------------------------------------------
@@ -380,11 +384,12 @@ DEFINE_ITERATOR_CLASS(PymFunctionIterator, PymFunction, LLVMGetNextFunction)
 DEFINE_PY_WRAPPER_CLASS(PymTargetLibraryInfo, LLVMTargetLibraryInfoRef)
 
 
-// TargetMachine ---------------------------------------------------------
+// TargetMachine ---------------------------------------------------------------
 
 DEFINE_PY_WRAPPER_CLASS(PymTarget, LLVMTargetRef)
 DEFINE_ITERATOR_CLASS(PymTargetIterator, PymTarget, LLVMGetNextTarget)
 
+// Object ----------------------------------------------------------------------
 
 // TODO split the file to boost the compilation process
 
