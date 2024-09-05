@@ -1696,8 +1696,11 @@ void bindValueClasses(nb::module_ &m) {
                    nb::for_setter
                      (nb::sig("def linkage(self, linkage: Linkage, /) -> None")))
       .def_prop_rw("section",
-                   [](PymGlobalValue &v) {
-                     return LLVMGetSection(v.get());
+                   [](PymGlobalValue &v) -> optional<const char *> {
+                     auto res = LLVMGetSection(v.get());
+                     if (res)
+                       return res;
+                     return std::nullopt;
                    },
                    [](PymGlobalValue &v, const char *Section) {
                      return LLVMSetSection(v.get(), Section);
