@@ -26,6 +26,6 @@ asm_str = r'''
 
 m = utils.parse_assembly(asm_str)
 
-print(m.context) # FIXME
+print(m.context)
 # with core.Context.get_global_context() as ctx:
 #     print(ctx)

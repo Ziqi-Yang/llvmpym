@@ -11,6 +11,10 @@
 class PymContext : public PymLLVMObject<PymContext, LLVMContextRef> {
 public:
   explicit PymContext();
+  /*
+    is_global_context: whether this context is a global context; Or true if you
+    don't want automatically delete the context.
+  */
   explicit PymContext(LLVMContextRef context, bool is_global_context);
   explicit PymContext(LLVMContextRef context);
   static PymContext getGlobalContext();

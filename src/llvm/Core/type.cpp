@@ -57,7 +57,9 @@ void bindTypeClasses(nb::module_ &m) {
                    "Whether the type has a known size.\n\n"
                    "Things that don't have a size are abstract types, labels, and void.a")
       .def_prop_ro("context",
-                   [](PymType &t) { return PymContext(LLVMGetTypeContext(t.get())); },
+                   [](PymType &t) {
+                     return PymContext(LLVMGetTypeContext(t.get()), true);
+                   },
                    "Obtain the context to which this type instance is associated.")
       .def_prop_ro("sub_type_number",
                    [](PymType &t) {
