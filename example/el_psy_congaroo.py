@@ -26,6 +26,6 @@ asm_str = r'''
 
 m = utils.parse_assembly(asm_str)
 
-print(m.context)
-# with core.Context.get_global_context() as ctx:
-#     print(ctx)
+assert(m.context == m.context)
+
+assert(list(m.global_variables)[0].type.context == m.context)

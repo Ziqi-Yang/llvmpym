@@ -157,7 +157,9 @@ void bindValueClasses(nb::module_ &m) {
              return get_value_str(self.get());
            })
       .def_prop_ro("type",
-                   [](PymValue &v) { return PymTypeAuto(LLVMTypeOf(v.get())); })
+                   [](PymValue &v) {
+                     return PymTypeAuto(LLVMTypeOf(v.get()));
+                   })
       .def_prop_ro("kind",
                    [](PymValue &v) { return LLVMGetValueKind(v.get()); })
       // NOTE LLVMSetValueName and LLVMGetValueName are depreciated
