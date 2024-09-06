@@ -20,7 +20,6 @@ PymContext::PymContext(LLVMContextRef ctx, bool is_global_context) {
 }
 
 PymContext::PymContext(LLVMContextRef ctx) {
-  std::cout << 3 << std::endl;
   LLVMContextRef global_context = LLVMGetGlobalContext();
   is_global_context = global_context == context.get();
 

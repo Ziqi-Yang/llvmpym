@@ -26,7 +26,6 @@ asm_str = r'''
 
 m = utils.parse_assembly(asm_str)
 
-
 for f in m.functions:
     print(f'Function | name: "{f.name}", type: "{f.type}"')  
     module = f.parent

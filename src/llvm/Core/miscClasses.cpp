@@ -1525,7 +1525,10 @@ void bindOtherClasses(nb::module_ &m) {
                    "Obtain an iterator to the first NamedMDNode in a Module.")
       .def_prop_ro("context",
                    [](PymModule &m) {
-                     return PymContext(LLVMGetModuleContext(m.get()));
+                     // here we assume that the context got is global context
+                     // so that it won't be automatically destroyed, which
+                     // will cause an invalid pointer error.
+                     return PymContext(LLVMGetModuleContext(m.get()), true);
                    },
                    "Obtain the context to which this module is associated.")
       .def_prop_rw("id",
