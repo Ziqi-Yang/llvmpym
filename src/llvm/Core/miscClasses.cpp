@@ -1303,12 +1303,12 @@ void bindOtherClasses(nb::module_ &m) {
              return fn;
            },
            "Get the diagnostic handler of this context.")
-      .def("set_yield_callback", // FIXME
-           [](PymContext &c, LLVMYieldCallback callback, void *opaqueHandle){
-             return LLVMContextSetYieldCallback(c.get(), callback, opaqueHandle);
-           },
-           "callback"_a, "opaque_handle"_a,
-           "Set the yield callback function for this context.")
+      // .def("set_yield_callback", // FIXME cannot compile on WINDOWS build
+      //      [](PymContext &c, LLVMYieldCallback callback, void *opaqueHandle){
+      //        return LLVMContextSetYieldCallback(c.get(), callback, opaqueHandle);
+      //      },
+      //      "callback"_a, "opaque_handle"_a,
+      //      "Set the yield callback function for this context.")
       .def("parse_ir",
            [](PymContext &self, PymMemoryBuffer &memBuf) {
              auto res = parseIR(self.get(), memBuf.get());
